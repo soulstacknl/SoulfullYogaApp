@@ -8,8 +8,11 @@ import type { ClassSession } from '@/data/schedule';
 type BookingSheetProps = {
   session: (ClassSession & { day: string }) | null;
   isAdmin: boolean;
+  isLoggedIn: boolean;
+  alreadyRequested: boolean;
   onClose: () => void;
   onConfirm: () => void;
+  onLoginRequired: () => void;
   onAdjustCapacity: (delta: number) => void;
   onAdjustAvailable: (delta: number) => void;
 };
@@ -17,8 +20,11 @@ type BookingSheetProps = {
 export default function BookingSheet({
   session,
   isAdmin,
+  isLoggedIn,
+  alreadyRequested,
   onClose,
   onConfirm,
+  onLoginRequired,
   onAdjustCapacity,
   onAdjustAvailable,
 }: BookingSheetProps) {
@@ -26,6 +32,7 @@ export default function BookingSheet({
   const visible = session !== null;
   const meta = session ? styleMeta[session.style] : null;
   const isFull = session ? session.available <= 0 : false;
+  const isBlocked = isLoggedIn && (isFull || alreadyRequested);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -79,11 +86,17 @@ export default function BookingSheet({
               ) : null}
 
               <Pressable
-                style={[styles.bookBtn, isFull && styles.bookBtnDisabled]}
-                onPress={onConfirm}
-                disabled={isFull}>
+                style={[styles.bookBtn, isBlocked && styles.bookBtnDisabled]}
+                onPress={isLoggedIn ? onConfirm : onLoginRequired}
+                disabled={isBlocked}>
                 <Text style={styles.bookBtnText}>
-                  {isFull ? 'Vol — geen plekken meer' : 'Boek deze les — €15'}
+                  {!isLoggedIn
+                    ? 'Inloggen'
+                    : isFull
+                      ? 'Vol — geen plekken meer'
+                      : alreadyRequested
+                        ? 'Al aangevraagd'
+                        : 'Plek reserveren'}
                 </Text>
               </Pressable>
             </>

@@ -6,6 +6,7 @@ import LoginScreen from '@/components/LoginScreen';
 import ScreenHeader from '@/components/ScreenHeader';
 import { colors, fonts } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSchedule } from '@/contexts/ScheduleContext';
 import { useCurrentUser } from '@/contexts/UsersContext';
 
 const prices = [
@@ -17,6 +18,7 @@ const prices = [
 export default function ProfielScreen() {
   const { login, logout } = useAuth();
   const user = useCurrentUser();
+  const { requests } = useSchedule();
 
   if (!user) {
     return <LoginScreen onLogin={login} />;
@@ -59,6 +61,16 @@ export default function ProfielScreen() {
               <Pressable style={styles.adminActionBtn} onPress={() => router.push('/admin/strippen')}>
                 <Text style={styles.adminActionIcon}>🎟️</Text>
                 <Text style={styles.adminActionText}>Strippenkaart beheren</Text>
+                <Text style={styles.adminActionChevron}>›</Text>
+              </Pressable>
+              <Pressable style={styles.adminActionBtn} onPress={() => router.push('/admin/reserveringen')}>
+                <Text style={styles.adminActionIcon}>📨</Text>
+                <Text style={styles.adminActionText}>Reservering aanvragen</Text>
+                {requests.length > 0 ? (
+                  <View style={styles.adminActionBadge}>
+                    <Text style={styles.adminActionBadgeText}>{requests.length}</Text>
+                  </View>
+                ) : null}
                 <Text style={styles.adminActionChevron}>›</Text>
               </Pressable>
             </View>
@@ -262,5 +274,19 @@ const styles = StyleSheet.create({
   adminActionChevron: {
     fontSize: 20,
     color: colors.sand,
+  },
+  adminActionBadge: {
+    backgroundColor: colors.rani,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  adminActionBadgeText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: '#fff',
   },
 });

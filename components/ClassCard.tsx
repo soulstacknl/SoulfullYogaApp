@@ -24,7 +24,7 @@ export default function ClassCard({ session, onPress }: ClassCardProps) {
         <Text style={styles.time}>{session.time}</Text>
       </View>
       <Text style={[styles.spots, isFull && styles.spotsFull]}>
-        {isFull ? 'Vol' : `${session.available}/${session.capacity}`}
+        {isFull ? 'Vol' : `${session.available}/${session.capacity} beschikbaar`}
       </Text>
       <Text style={styles.chevron}>›</Text>
     </Pressable>

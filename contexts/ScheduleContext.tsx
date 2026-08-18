@@ -1,15 +1,29 @@
 import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
 
+import type { ClassStyle } from '@/constants/theme';
 import { rosterBySession as initialRoster } from '@/data/roster';
 import type { RosterEntry } from '@/data/roster';
 import { schedule } from '@/data/schedule';
 import type { ClassSession, DaySchedule } from '@/data/schedule';
 
+export type ReservationRequest = {
+  id: string;
+  day: string;
+  sessionId: string;
+  style: ClassStyle;
+  time: string;
+  studentName: string;
+  studentEmail: string;
+  requestedAt: string;
+};
+
 type ScheduleContextValue = {
   days: DaySchedule[];
   rosterBySession: Record<string, RosterEntry[]>;
-  bookSession: (day: string, id: string) => boolean;
+  requests: ReservationRequest[];
+  hasRequested: (day: string, id: string, email: string) => boolean;
+  bookSession: (day: string, id: string, student: { name: string; email: string }) => boolean;
   adjustCapacity: (day: string, id: string, delta: number) => void;
   adjustAvailable: (day: string, id: string, delta: number) => void;
   toggleCheckIn: (sessionId: string, entryId: string) => void;
@@ -24,6 +38,7 @@ const ScheduleContext = createContext<ScheduleContextValue | null>(null);
 export function ScheduleProvider({ children }: { children: ReactNode }) {
   const [days, setDays] = useState<DaySchedule[]>(schedule);
   const [rosterBySession, setRosterBySession] = useState(initialRoster);
+  const [requests, setRequests] = useState<ReservationRequest[]>([]);
 
   const updateSession = (day: string, id: string, updater: (session: ClassSession) => ClassSession) => {
     setDays((prev) =>
@@ -33,10 +48,29 @@ export function ScheduleProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  const bookSession = (day: string, id: string) => {
+  // Guests share the '—' placeholder email, so only real accounts are deduped —
+  // there's no reliable identity to distinguish one anonymous booker from another.
+  const hasRequested = (day: string, id: string, email: string) =>
+    email !== '—' && requests.some((r) => r.day === day && r.sessionId === id && r.studentEmail === email);
+
+  const bookSession = (day: string, id: string, student: { name: string; email: string }) => {
+    if (hasRequested(day, id, student.email)) return false;
     const session = days.find((d) => d.day === day)?.classes.find((c) => c.id === id);
     if (!session || session.available <= 0) return false;
     updateSession(day, id, (s) => ({ ...s, available: Math.max(0, s.available - 1) }));
+    setRequests((prev) => [
+      {
+        id: `${id}-${Date.now()}`,
+        day,
+        sessionId: id,
+        style: session.style,
+        time: session.time,
+        studentName: student.name,
+        studentEmail: student.email,
+        requestedAt: new Date().toISOString(),
+      },
+      ...prev,
+    ]);
     return true;
   };
 
@@ -86,6 +120,8 @@ export function ScheduleProvider({ children }: { children: ReactNode }) {
       value={{
         days,
         rosterBySession,
+        requests,
+        hasRequested,
         bookSession,
         adjustCapacity,
         adjustAvailable,

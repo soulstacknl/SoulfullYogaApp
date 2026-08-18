@@ -7,6 +7,7 @@ export default function AdminLayout() {
       <Stack.Screen name="roster" />
       <Stack.Screen name="strippen" />
       <Stack.Screen name="rooster-info" />
+      <Stack.Screen name="reserveringen" />
     </Stack>
   );
 }

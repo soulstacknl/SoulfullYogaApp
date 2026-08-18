@@ -39,7 +39,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
     <View style={styles.container}>
       <ScreenHeader title="Inloggen" subtitle="Log in om je strippenkaart te bekijken" />
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="always">
         <TextField
           label="E-mailadres"
           placeholder="naam@voorbeeld.nl"

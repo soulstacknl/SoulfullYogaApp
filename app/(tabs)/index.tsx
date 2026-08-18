@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -16,7 +17,7 @@ export default function ScheduleScreen() {
   const user = useCurrentUser();
   const isAdmin = user?.role === 'admin';
 
-  const { days, bookSession, adjustCapacity, adjustAvailable } = useSchedule();
+  const { days, bookSession, hasRequested, adjustCapacity, adjustAvailable } = useSchedule();
   const [selected, setSelected] = useState<Selection | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
 
@@ -26,13 +27,17 @@ export default function ScheduleScreen() {
         ?.classes.find((c) => c.id === selected.id)
     : null;
   const sheetSession = selectedSession && selected ? { ...selectedSession, day: selected.day } : null;
+  const alreadyRequested = selected ? hasRequested(selected.day, selected.id, user?.email ?? '—') : false;
 
   const openBooking = (day: string, session: ClassSession) => setSelected({ day, id: session.id });
   const closeBooking = () => setSelected(null);
 
   const confirmBooking = () => {
     if (!selected) return;
-    const booked = bookSession(selected.day, selected.id);
+    const booked = bookSession(selected.day, selected.id, {
+      name: user?.name ?? 'Gast',
+      email: user?.email ?? '—',
+    });
     if (!booked) return;
     setSelected(null);
     setToastVisible(true);
@@ -60,12 +65,18 @@ export default function ScheduleScreen() {
       <BookingSheet
         session={sheetSession}
         isAdmin={isAdmin}
+        isLoggedIn={user !== null}
+        alreadyRequested={alreadyRequested}
         onClose={closeBooking}
         onConfirm={confirmBooking}
+        onLoginRequired={() => {
+          closeBooking();
+          router.push('/profiel');
+        }}
         onAdjustCapacity={(delta) => selected && adjustCapacity(selected.day, selected.id, delta)}
         onAdjustAvailable={(delta) => selected && adjustAvailable(selected.day, selected.id, delta)}
       />
-      <Toast message="Boeking bevestigd ✓" visible={toastVisible} />
+      <Toast message="Reservering aangevraagd ✓" visible={toastVisible} />
     </View>
   );
 }
