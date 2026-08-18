@@ -24,6 +24,7 @@ type ScheduleContextValue = {
   requests: ReservationRequest[];
   hasRequested: (day: string, id: string, email: string) => boolean;
   bookSession: (day: string, id: string, student: { name: string; email: string }) => boolean;
+  resolveRequest: (requestId: string, approved: boolean) => void;
   adjustCapacity: (day: string, id: string, delta: number) => void;
   adjustAvailable: (day: string, id: string, delta: number) => void;
   toggleCheckIn: (sessionId: string, entryId: string) => void;
@@ -72,6 +73,20 @@ export function ScheduleProvider({ children }: { children: ReactNode }) {
       ...prev,
     ]);
     return true;
+  };
+
+  // Approving just clears the request — the spot was already held since the
+  // booking was made. Rejecting releases that held spot back to available.
+  const resolveRequest = (requestId: string, approved: boolean) => {
+    const request = requests.find((r) => r.id === requestId);
+    if (!request) return;
+    if (!approved) {
+      updateSession(request.day, request.sessionId, (s) => ({
+        ...s,
+        available: Math.min(s.capacity, s.available + 1),
+      }));
+    }
+    setRequests((prev) => prev.filter((r) => r.id !== requestId));
   };
 
   const adjustCapacity = (day: string, id: string, delta: number) => {
@@ -123,6 +138,7 @@ export function ScheduleProvider({ children }: { children: ReactNode }) {
         requests,
         hasRequested,
         bookSession,
+        resolveRequest,
         adjustCapacity,
         adjustAvailable,
         toggleCheckIn,

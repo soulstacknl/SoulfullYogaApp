@@ -1,12 +1,24 @@
 import { router } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import RequestActionSheet from '@/components/RequestActionSheet';
 import ScreenHeader from '@/components/ScreenHeader';
 import { colors, fonts, styleMeta } from '@/constants/theme';
 import { useSchedule } from '@/contexts/ScheduleContext';
+import type { ReservationRequest } from '@/contexts/ScheduleContext';
 
 export default function ReserveringenScreen() {
-  const { requests } = useSchedule();
+  const { requests, resolveRequest } = useSchedule();
+  const [selected, setSelected] = useState<ReservationRequest | null>(null);
+
+  const closeSheet = () => setSelected(null);
+
+  const handleResolve = (approved: boolean) => {
+    if (!selected) return;
+    resolveRequest(selected.id, approved);
+    closeSheet();
+  };
 
   return (
     <View style={styles.container}>
@@ -15,7 +27,7 @@ export default function ReserveringenScreen() {
         onBack={() => router.back()}
         eyebrow="Docentmodus"
         title="Reserveringen"
-        subtitle="Aanvragen van klanten"
+        subtitle="Tik op een aanvraag om te beoordelen"
       />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {requests.length === 0 ? (
@@ -24,7 +36,10 @@ export default function ReserveringenScreen() {
           requests.map((request) => {
             const meta = styleMeta[request.style];
             return (
-              <View key={request.id} style={styles.row}>
+              <Pressable
+                key={request.id}
+                style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+                onPress={() => setSelected(request)}>
                 <View style={[styles.dot, { backgroundColor: meta.color }]}>
                   <Text style={styles.dotLabel}>{meta.dotLabel}</Text>
                 </View>
@@ -35,11 +50,19 @@ export default function ReserveringenScreen() {
                   </Text>
                   <Text style={styles.email}>{request.studentEmail}</Text>
                 </View>
-              </View>
+                <Text style={styles.chevron}>›</Text>
+              </Pressable>
             );
           })
         )}
       </ScrollView>
+
+      <RequestActionSheet
+        request={selected}
+        onClose={closeSheet}
+        onApprove={() => handleResolve(true)}
+        onReject={() => handleResolve(false)}
+      />
     </View>
   );
 }
@@ -70,6 +93,9 @@ const styles = StyleSheet.create({
     borderColor: colors.sand,
     padding: 14,
     marginBottom: 10,
+  },
+  rowPressed: {
+    transform: [{ scale: 0.98 }],
   },
   dot: {
     width: 40,
@@ -102,5 +128,9 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     color: '#A89BB5',
     marginTop: 2,
+  },
+  chevron: {
+    fontSize: 22,
+    color: colors.sand,
   },
 });
