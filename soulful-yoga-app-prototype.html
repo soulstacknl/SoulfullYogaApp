@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<title>Soulful Yoga — App Prototype</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Work+Sans:wght@400;500;600;700&display=swap');
+
+  :root{
+    --ivory:#FBF5EA;
+    --ink:#2E1F45;
+    --marigold:#E8A33D;
+    --rani:#C23B6E;
+    --teal:#1C6B5E;
+    --sand:#E3D5BE;
+    --card:#FFFFFF;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; background:#EDE6D8; font-family:'Work Sans',sans-serif; color:var(--ink);}
+  body{display:flex; align-items:flex-start; justify-content:center; min-height:100vh; padding:32px 12px;}
+
+  .stage{display:flex; flex-direction:column; align-items:center; gap:14px;}
+  .stage-label{font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:#8a7f6e;}
+
+  .phone{
+    width:390px; max-width:94vw; height:820px; max-height:88vh;
+    background:var(--ivory);
+    border-radius:44px;
+    border:10px solid #1c1626;
+    box-shadow:0 30px 60px rgba(30,15,45,.35);
+    position:relative; overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+  .notch{
+    position:absolute; top:0; left:50%; transform:translateX(-50%);
+    width:120px; height:22px; background:#1c1626; border-radius:0 0 16px 16px; z-index:50;
+  }
+
+  /* Scalloped arch motif — signature element, echoes temple-gate & block-print borders */
+  .scallop{
+    height:14px; width:100%;
+    background-image: radial-gradient(circle at 8px 0, transparent 7px, var(--ink) 7.5px);
+    background-size: 16px 14px; background-repeat: repeat-x;
+    background-position: 0 -7px;
+  }
+  .scallop.reverse{
+    transform: rotate(180deg);
+  }
+
+  .screen{ flex:1; overflow-y:auto; padding-bottom:86px; scrollbar-width:none; }
+  .screen::-webkit-scrollbar{display:none;}
+
+  header.topbar{
+    background:var(--ink); color:var(--ivory); padding:38px 22px 18px;
+    position:relative;
+  }
+  header.topbar .eyebrow{ font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--marigold); font-weight:600;}
+  header.topbar h1{ font-family:'Fraunces',serif; font-weight:600; font-size:28px; margin:4px 0 2px; }
+  header.topbar p{ margin:0; font-size:13px; color:#d9cfe8; }
+
+  .section-pad{ padding:20px 20px 4px; }
+  .day-label{
+    font-family:'Fraunces',serif; font-style:italic; font-weight:500; font-size:15px;
+    color:var(--rani); margin:22px 0 8px;
+  }
+  .day-label:first-child{ margin-top:4px; }
+
+  .class-card{
+    background:var(--card); border-radius:18px; padding:14px 16px;
+    display:flex; align-items:center; gap:14px; margin-bottom:10px;
+    border:1px solid var(--sand); cursor:pointer; transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .class-card:active{ transform:scale(.98); }
+  .class-card .dot{
+    width:44px; height:44px; border-radius:50%; flex:none;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Fraunces',serif; font-weight:600; font-size:13px; color:#fff;
+  }
+  .dot.yin{ background:var(--teal); }
+  .dot.flow{ background:var(--rani); }
+  .dot.gentle{ background:var(--marigold); }
+  .class-card .meta{ flex:1; min-width:0; }
+  .class-card .meta .name{ font-weight:600; font-size:15px; }
+  .class-card .meta .time{ font-size:12.5px; color:#7a7188; margin-top:1px; }
+  .class-card .chev{ color:var(--sand); font-size:20px; }
+
+  .tabbar{
+    position:absolute; bottom:0; left:0; right:0; height:78px;
+    background:var(--card); border-top:1px solid var(--sand);
+    display:flex; align-items:flex-start; justify-content:space-around; padding-top:10px;
+    border-radius: 0 0 34px 34px;
+  }
+  .tab{ display:flex; flex-direction:column; align-items:center; gap:4px; font-size:11px; color:#a89bb5; cursor:pointer; background:none; border:none; font-family:'Work Sans',sans-serif; }
+  .tab.active{ color:var(--rani); font-weight:600; }
+  .tab .ic{ width:22px; height:22px; }
+
+  .view{ display:none; }
+  .view.active{ display:block; }
+
+  /* Video library */
+  .filters{ display:flex; gap:8px; padding:16px 20px 4px; overflow-x:auto; }
+  .chip{ flex:none; padding:7px 14px; border-radius:20px; background:var(--card); border:1px solid var(--sand); font-size:12.5px; font-weight:600; color:var(--ink); cursor:pointer; }
+  .chip.active{ background:var(--ink); color:var(--ivory); border-color:var(--ink); }
+
+  .video-card{
+    margin:10px 20px; border-radius:18px; overflow:hidden; background:var(--card); border:1px solid var(--sand);
+  }
+  .video-thumb{
+    height:110px; position:relative;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .video-thumb.yin{ background:linear-gradient(135deg,var(--teal),#2c8b7a); }
+  .video-thumb.flow{ background:linear-gradient(135deg,var(--rani),#e2679a); }
+  .video-thumb.gentle{ background:linear-gradient(135deg,var(--marigold),#f2c06e); }
+  .play{ width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,.9); display:flex; align-items:center; justify-content:center; }
+  .play::after{ content:''; border-left:12px solid var(--ink); border-top:8px solid transparent; border-bottom:8px solid transparent; margin-left:3px; }
+  .video-info{ padding:12px 14px; }
+  .video-info .vname{ font-weight:600; font-size:14.5px; }
+  .video-info .vsub{ font-size:12px; color:#7a7188; margin-top:2px; }
+
+  /* Profile */
+  .profile-hero{ text-align:center; padding:28px 20px 8px; }
+  .avatar{ width:74px; height:74px; border-radius:50%; margin:0 auto 10px; background:linear-gradient(135deg,var(--marigold),var(--rani)); }
+  .profile-hero h2{ font-family:'Fraunces',serif; font-size:20px; margin:4px 0 2px; }
+  .profile-hero p{ margin:0; font-size:13px; color:#7a7188; }
+
+  .strip-card{
+    margin:18px 20px; background:var(--ink); color:var(--ivory); border-radius:20px; padding:18px 20px;
+    position:relative; overflow:hidden;
+  }
+  .strip-card .label{ font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--marigold); font-weight:600; }
+  .strip-card .count{ font-family:'Fraunces',serif; font-size:32px; margin:4px 0; }
+  .strip-card .sub{ font-size:12.5px; color:#cabfdb; }
+
+  .price-row{ display:flex; justify-content:space-between; align-items:center; padding:12px 20px; border-bottom:1px solid var(--sand); font-size:13.5px; }
+  .price-row .p{ font-weight:700; color:var(--rani); }
+
+  .contact-block{ margin:18px 20px 4px; font-size:12.5px; color:#7a7188; line-height:1.6; }
+  .contact-block b{ color:var(--ink); }
+
+  /* Modal */
+  .modal-bg{
+    position:absolute; inset:0; background:rgba(30,19,45,.55); z-index:80;
+    display:none; align-items:flex-end; justify-content:center;
+  }
+  .modal-bg.show{ display:flex; }
+  .sheet{
+    width:100%; background:var(--ivory); border-radius:26px 26px 0 0; padding:22px 22px 28px;
+    animation:up .25s ease;
+  }
+  @keyframes up{ from{transform:translateY(40px); opacity:0;} to{transform:translateY(0); opacity:1;} }
+  .sheet .handle{ width:38px; height:4px; background:var(--sand); border-radius:3px; margin:0 auto 16px; }
+  .sheet h3{ font-family:'Fraunces',serif; font-size:21px; margin:0 0 2px; }
+  .sheet .sheet-sub{ font-size:13px; color:#7a7188; margin-bottom:16px; }
+  .sheet .desc{ font-size:13.5px; line-height:1.55; color:#4a3f5c; margin-bottom:18px; }
+  .book-btn{
+    width:100%; background:var(--rani); color:#fff; border:none; padding:15px; border-radius:14px;
+    font-family:'Work Sans',sans-serif; font-weight:700; font-size:14.5px; cursor:pointer;
+  }
+  .close-x{ position:absolute; top:16px; right:18px; background:none; border:none; font-size:20px; color:var(--ink); cursor:pointer; }
+
+  /* Docentmodus / admin */
+  .teacher-link{
+    margin:22px 20px 30px; text-align:center; font-size:12.5px; color:#a89bb5;
+    text-decoration:underline; cursor:pointer;
+  }
+  .admin-topbar{ position:relative; padding-top:44px; }
+  .back-btn{
+    position:absolute; top:14px; left:16px; background:none; border:none; color:var(--ivory);
+    font-size:14px; font-family:'Work Sans',sans-serif; font-weight:600; cursor:pointer; padding:4px 6px;
+  }
+  .admin-class-card{
+    background:var(--card); border-radius:18px; padding:16px; margin-bottom:12px;
+    display:flex; align-items:center; gap:14px; border:2px solid var(--sand); cursor:pointer;
+  }
+  .admin-class-card .meta{ flex:1; }
+  .admin-class-card .name{ font-weight:700; font-size:16px; }
+  .admin-class-card .time{ font-size:13px; color:#7a7188; }
+  .capacity-pill{
+    background:var(--teal); color:#fff; font-weight:700; font-size:13px;
+    padding:6px 12px; border-radius:20px; flex:none;
+  }
+  .capacity-pill.full{ background:var(--rani); }
+  .admin-hint{ text-align:center; font-size:12px; color:#a89bb5; padding:6px 20px 20px; }
+
+  .capacity-editor{
+    margin:16px 20px; background:var(--card); border:1px solid var(--sand); border-radius:16px;
+    padding:14px 16px; display:flex; align-items:center; justify-content:space-between; font-size:13.5px; font-weight:600;
+  }
+  .capacity-editor .stepper{ display:flex; align-items:center; gap:12px; }
+  .capacity-editor .stepper button{
+    width:34px; height:34px; border-radius:50%; border:none; background:var(--ink); color:var(--ivory);
+    font-size:18px; cursor:pointer; line-height:1;
+  }
+  .capacity-editor .stepper span{ font-family:'Fraunces',serif; font-size:18px; min-width:18px; text-align:center; }
+
+  .roster-row{
+    background:var(--card); border-radius:16px; padding:12px 14px; margin-bottom:9px;
+    display:flex; align-items:center; gap:12px; border:1px solid var(--sand); transition:background .15s ease;
+  }
+  .roster-row.checked{ background:#EAF3EE; border-color:var(--teal); }
+  .roster-row .initials{
+    width:38px; height:38px; border-radius:50%; background:var(--sand); color:var(--ink);
+    display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex:none;
+  }
+  .roster-row .rinfo{ flex:1; min-width:0; }
+  .roster-row .rname{ font-weight:600; font-size:14.5px; }
+  .roster-row .rstrip{ font-size:12px; color:#7a7188; }
+  .roster-row .strip-adjust{ display:flex; align-items:center; gap:6px; flex:none; }
+  .roster-row .strip-adjust button{
+    width:28px; height:28px; border-radius:50%; border:1px solid var(--sand); background:#fff;
+    font-size:15px; cursor:pointer; color:var(--ink); line-height:1;
+  }
+  .checkin-btn{
+    flex:none; width:36px; height:36px; border-radius:50%; border:2px solid var(--sand); background:#fff;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:15px; color:transparent;
+  }
+  .roster-row.checked .checkin-btn{ background:var(--teal); border-color:var(--teal); color:#fff; }
+
+  .toast{
+    position:absolute; top:56px; left:50%; transform:translateX(-50%) translateY(-20px);
+    background:var(--teal); color:#fff; padding:10px 18px; border-radius:12px; font-size:13px; font-weight:600;
+    opacity:0; transition:all .3s ease; z-index:90; white-space:nowrap;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="stage-label">Soulful Yoga — clickable prototype</div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="toast" id="toast">Boeking bevestigd ✓</div>
+
+    <!-- SCHEDULE VIEW -->
+    <div class="screen view active" id="view-schedule">
+      <header class="topbar">
+        <div class="eyebrow">Berghem</div>
+        <h1>Soulful Yoga</h1>
+        <p>Meer rust en ruimte voor jezelf</p>
+      </header>
+      <div class="scallop"></div>
+      <div class="section-pad">
+
+        <div class="day-label">Maandag</div>
+        <div class="class-card" onclick="openModal('yin','19.00 – 20.00')">
+          <div class="dot yin">Yin</div>
+          <div class="meta"><div class="name">Yin Yoga</div><div class="time">19.00 – 20.00</div></div>
+          <div class="chev">›</div>
+        </div>
+        <div class="class-card" onclick="openModal('yin','20.15 – 21.15')">
+          <div class="dot yin">Yin</div>
+          <div class="meta"><div class="name">Yin Yoga</div><div class="time">20.15 – 21.15</div></div>
+          <div class="chev">›</div>
+        </div>
+
+        <div class="day-label">Dinsdag</div>
+        <div class="class-card" onclick="openModal('yin','19.00 – 20.00')">
+          <div class="dot yin">Yin</div>
+          <div class="meta"><div class="name">Yin Yoga</div><div class="time">19.00 – 20.00</div></div>
+          <div class="chev">›</div>
+        </div>
+
+        <div class="day-label">Woensdag</div>
+        <div class="class-card" onclick="openModal('flow','09.00 – 10.00')">
+          <div class="dot flow">Flow</div>
+          <div class="meta"><div class="name">Flow Yoga</div><div class="time">09.00 – 10.00</div></div>
+          <div class="chev">›</div>
+        </div>
+
+        <div class="day-label">Donderdag</div>
+        <div class="class-card" onclick="openModal('yin','19.00 – 20.00')">
+          <div class="dot yin">Yin</div>
+          <div class="meta"><div class="name">Yin Yoga</div><div class="time">19.00 – 20.00</div></div>
+          <div class="chev">›</div>
+        </div>
+        <div class="class-card" onclick="openModal('yin','20.15 – 21.15')">
+          <div class="dot yin">Yin</div>
+          <div class="meta"><div class="name">Yin Yoga</div><div class="time">20.15 – 21.15</div></div>
+          <div class="chev">›</div>
+        </div>
+
+        <div class="day-label">Vrijdag</div>
+        <div class="class-card" onclick="openModal('gentle','09.00 – 10.00')">
+          <div class="dot gentle">Gtl</div>
+          <div class="meta"><div class="name">Gentle Yoga</div><div class="time">09.00 – 10.00</div></div>
+          <div class="chev">›</div>
+        </div>
+        <div class="class-card" onclick="openModal('yin','10.15 – 11.15')">
+          <div class="dot yin">Yin</div>
+          <div class="meta"><div class="name">Yin Yoga</div><div class="time">10.15 – 11.15</div></div>
+          <div class="chev">›</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIDEOS VIEW -->
+    <div class="screen view" id="view-videos">
+      <header class="topbar">
+        <div class="eyebrow">On demand</div>
+        <h1>Video's</h1>
+        <p>Oefen op jouw moment, in jouw tempo</p>
+      </header>
+      <div class="scallop"></div>
+      <div class="filters">
+        <div class="chip active">Alles</div>
+        <div class="chip">Yin</div>
+        <div class="chip">Flow</div>
+        <div class="chip">Gentle</div>
+      </div>
+
+      <div class="video-card">
+        <div class="video-thumb yin"><div class="play"></div></div>
+        <div class="video-info"><div class="vname">Yin Yoga — diepe ontspanning</div><div class="vsub">45 min · alle niveaus</div></div>
+      </div>
+      <div class="video-card">
+        <div class="video-thumb flow"><div class="play"></div></div>
+        <div class="video-info"><div class="vname">Flow Yoga — vloeiende beweging</div><div class="vsub">50 min · gevorderd</div></div>
+      </div>
+      <div class="video-card">
+        <div class="video-thumb gentle"><div class="play"></div></div>
+        <div class="video-info"><div class="vname">Gentle Yoga — zachte start</div><div class="vsub">30 min · beginners</div></div>
+      </div>
+      <div class="video-card">
+        <div class="video-thumb yin"><div class="play"></div></div>
+        <div class="video-info"><div class="vname">Yin Yoga — lage rug &amp; heupen</div><div class="vsub">40 min · alle niveaus</div></div>
+      </div>
+    </div>
+
+    <!-- PROFILE VIEW -->
+    <div class="screen view" id="view-profile">
+      <header class="topbar">
+        <div class="eyebrow">Jouw account</div>
+        <h1>Profiel</h1>
+        <p>Berghem · info@soulfulyoga.nl</p>
+      </header>
+      <div class="scallop"></div>
+
+      <div class="strip-card">
+        <div class="label">Strippenkaart</div>
+        <div class="count">7 / 10</div>
+        <div class="sub">nog 7 lessen tegoed</div>
+      </div>
+
+      <div style="padding:0 20px 6px; font-family:'Fraunces',serif; font-style:italic; color:var(--rani); font-size:14px;">Tarieven</div>
+      <div class="price-row"><span>Gratis proefles</span><span class="p">€0</span></div>
+      <div class="price-row"><span>Losse les</span><span class="p">€15</span></div>
+      <div class="price-row"><span>10-strippenkaart</span><span class="p">€110</span></div>
+
+      <div class="contact-block">
+        <b>Soulful Yoga</b><br>
+        Runselstraat 18, 5351 NJ Berghem<br>
+        06 12 68 08 52 · info@soulfulyoga.nl
+      </div>
+
+      <div class="teacher-link" onclick="openAdmin()">
+        🔒 Docentmodus
+      </div>
+    </div>
+
+    <!-- ================= ADMIN / DOCENT MODE ================= -->
+    <div class="screen view" id="view-admin-today">
+      <header class="topbar admin-topbar">
+        <button class="back-btn" onclick="closeAdmin()">‹ Terug</button>
+        <div class="eyebrow">Docentmodus</div>
+        <h1>Vandaag</h1>
+        <p>Vrijdag 21 augustus</p>
+      </header>
+      <div class="scallop"></div>
+      <div class="section-pad" style="padding-top:14px;">
+        <div class="admin-class-card" onclick="openRoster('gentle','Gentle Yoga','09.00 – 10.00', 6, 10)">
+          <div class="dot gentle">Gtl</div>
+          <div class="meta">
+            <div class="name">Gentle Yoga</div>
+            <div class="time">09.00 – 10.00</div>
+          </div>
+          <div class="capacity-pill">6 / 10</div>
+        </div>
+        <div class="admin-class-card" onclick="openRoster('yin','Yin Yoga','10.15 – 11.15', 9, 10)">
+          <div class="dot yin">Yin</div>
+          <div class="meta">
+            <div class="name">Yin Yoga</div>
+            <div class="time">10.15 – 11.15</div>
+          </div>
+          <div class="capacity-pill full">9 / 10</div>
+        </div>
+      </div>
+      <div class="admin-hint">Tik op een les om de klas te openen</div>
+    </div>
+
+    <div class="screen view" id="view-admin-roster">
+      <header class="topbar admin-topbar">
+        <button class="back-btn" onclick="showAdminView('today')">‹ Vandaag</button>
+        <div class="eyebrow" id="rClassType">Yin Yoga</div>
+        <h1 id="rClassTime">10.15 – 11.15</h1>
+        <p>Tik op een naam om in te checken</p>
+      </header>
+      <div class="scallop"></div>
+
+      <div class="capacity-editor">
+        <span>Maximaal aantal plekken</span>
+        <div class="stepper">
+          <button onclick="changeCapacity(-1)">–</button>
+          <span id="capValue">10</span>
+          <button onclick="changeCapacity(1)">+</button>
+        </div>
+      </div>
+
+      <div class="section-pad" style="padding-top:4px;" id="rosterList"></div>
+    </div>
+    <!-- ============= END ADMIN / DOCENT MODE ============= -->
+
+    <!-- TAB BAR -->
+    <div class="tabbar">
+      <button class="tab active" id="tab-schedule" onclick="showView('schedule')">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+        Rooster
+      </button>
+      <button class="tab" id="tab-videos" onclick="showView('videos')">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9l6 3-6 3z" fill="currentColor" stroke="none"/></svg>
+        Video's
+      </button>
+      <button class="tab" id="tab-profile" onclick="showView('profile')">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4.5 5-6 8-6s6.5 1.5 8 6"/></svg>
+        Profiel
+      </button>
+    </div>
+
+    <!-- BOOKING MODAL -->
+    <div class="modal-bg" id="modalBg" onclick="if(event.target===this) closeModal()">
+      <div class="sheet">
+        <button class="close-x" onclick="closeModal()">✕</button>
+        <div class="handle"></div>
+        <h3 id="mName">Yin Yoga</h3>
+        <div class="sheet-sub" id="mTime">Maandag · 19.00 – 20.00 · Berghem</div>
+        <div class="desc" id="mDesc"></div>
+        <button class="book-btn" onclick="confirmBooking()">Boek deze les — €15</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const descriptions = {
+    yin: "Een zeer rustige, ontspannen en mindful vorm van yoga. Je houdt posities vast voor 3 tot 5 minuten, wat spieren, bindweefsel en fascia de tijd geeft om mee te komen in de rek. Je ervaart diepe rust en stilte.",
+    flow: "Met Flow Yoga laat je je meevoeren met de muziek — elke in- en uitademing wordt een beweging, tot er een soort yogadans ontstaat. De les wordt een maand lang herhaald zodat je volledig zonder nadenken in de Flow komt.",
+    gentle: "Een milde vorm van yoga waarin je met aandacht beweegt, diep ademhaalt en het lichaam souplesse geeft. De houdingen zijn voor iedereen goed te volgen en aan te passen waar nodig."
+  };
+  const names = { yin:"Yin Yoga", flow:"Flow Yoga", gentle:"Gentle Yoga" };
+
+  function showView(name){
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.getElementById('view-'+name).classList.add('active');
+    document.getElementById('tab-'+name).classList.add('active');
+  }
+
+  // ---------- Docentmodus (admin) ----------
+  const mockRoster = {
+    yin: [
+      {name:"Marieke de Groot", strips:3, checked:true},
+      {name:"Sanne Verhoeven", strips:0, checked:false},
+      {name:"Petra Willems", strips:6, checked:true},
+      {name:"Anouk Bakker", strips:1, checked:false},
+    ],
+    gentle: [
+      {name:"Hans Peters", strips:4, checked:false},
+      {name:"Ingrid Smit", strips:2, checked:true},
+    ]
+  };
+  let currentRosterType = 'yin';
+
+  function openAdmin(){
+    document.querySelector('.tabbar').style.display = 'none';
+    showAdminView('today');
+  }
+  function closeAdmin(){
+    document.querySelector('.tabbar').style.display = 'flex';
+    showView('profile');
+  }
+  function showAdminView(name){
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-admin-'+name).classList.add('active');
+  }
+
+  function openRoster(type, className, time, booked, capacity){
+    currentRosterType = type;
+    document.getElementById('rClassType').textContent = className;
+    document.getElementById('rClassTime').textContent = time;
+    document.getElementById('capValue').textContent = capacity;
+    renderRoster();
+    showAdminView('roster');
+  }
+
+  function renderRoster(){
+    const list = document.getElementById('rosterList');
+    list.innerHTML = '';
+    mockRoster[currentRosterType].forEach((student, i) => {
+      const initials = student.name.split(' ').map(w=>w[0]).join('').slice(0,2);
+      const row = document.createElement('div');
+      row.className = 'roster-row' + (student.checked ? ' checked' : '');
+      row.innerHTML = `
+        <button class="checkin-btn" onclick="toggleCheckin(${i})">✓</button>
+        <div class="initials">${initials}</div>
+        <div class="rinfo">
+          <div class="rname">${student.name}</div>
+          <div class="rstrip">${student.strips} lessen over</div>
+        </div>
+        <div class="strip-adjust">
+          <button onclick="adjustStrip(${i},-1)">–</button>
+          <button onclick="adjustStrip(${i},1)">+</button>
+        </div>
+      `;
+      list.appendChild(row);
+    });
+  }
+
+  function toggleCheckin(i){
+    const student = mockRoster[currentRosterType][i];
+    student.checked = !student.checked;
+    // Inchecken trekt automatisch 1 strip af; uitchecken (per ongeluk) geeft 'm terug
+    student.strips += student.checked ? -1 : 1;
+    renderRoster();
+  }
+
+  function adjustStrip(i, delta){
+    const student = mockRoster[currentRosterType][i];
+    student.strips = Math.max(0, student.strips + delta);
+    renderRoster();
+  }
+
+  function changeCapacity(delta){
+    const el = document.getElementById('capValue');
+    el.textContent = Math.max(1, parseInt(el.textContent) + delta);
+  }
+
+  function openModal(type, time){
+    document.getElementById('mName').textContent = names[type];
+    document.getElementById('mTime').textContent = time + " · Berghem";
+    document.getElementById('mDesc').textContent = descriptions[type];
+    document.getElementById('modalBg').classList.add('show');
+  }
+  function closeModal(){
+    document.getElementById('modalBg').classList.remove('show');
+  }
+  function confirmBooking(){
+    closeModal();
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'), 2200);
+  }
+</script>
+</body>
+</html>
