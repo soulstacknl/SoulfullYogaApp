@@ -13,6 +13,7 @@ type BookingSheetProps = {
   onClose: () => void;
   onConfirm: () => void;
   onLoginRequired: () => void;
+  onManageSpots: () => void;
   onAdjustCapacity: (delta: number) => void;
   onAdjustAvailable: (delta: number) => void;
 };
@@ -25,6 +26,7 @@ export default function BookingSheet({
   onClose,
   onConfirm,
   onLoginRequired,
+  onManageSpots,
   onAdjustCapacity,
   onAdjustAvailable,
 }: BookingSheetProps) {
@@ -85,20 +87,26 @@ export default function BookingSheet({
                 </View>
               ) : null}
 
-              <Pressable
-                style={[styles.bookBtn, isBlocked && styles.bookBtnDisabled]}
-                onPress={isLoggedIn ? onConfirm : onLoginRequired}
-                disabled={isBlocked}>
-                <Text style={styles.bookBtnText}>
-                  {!isLoggedIn
-                    ? 'Inloggen'
-                    : isFull
-                      ? 'Vol — geen plekken meer'
-                      : alreadyRequested
-                        ? 'Al aangevraagd'
-                        : 'Plek reserveren'}
-                </Text>
-              </Pressable>
+              {isAdmin ? (
+                <Pressable style={styles.bookBtn} onPress={onManageSpots}>
+                  <Text style={styles.bookBtnText}>Beschikbare plekken beheren</Text>
+                </Pressable>
+              ) : (
+                <Pressable
+                  style={[styles.bookBtn, isBlocked && styles.bookBtnDisabled]}
+                  onPress={isLoggedIn ? onConfirm : onLoginRequired}
+                  disabled={isBlocked}>
+                  <Text style={styles.bookBtnText}>
+                    {!isLoggedIn
+                      ? 'Inloggen'
+                      : isFull
+                        ? 'Vol — geen plekken meer'
+                        : alreadyRequested
+                          ? 'Al aangevraagd'
+                          : 'Plek reserveren'}
+                  </Text>
+                </Pressable>
+              )}
             </>
           ) : null}
         </Pressable>

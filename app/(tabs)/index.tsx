@@ -10,6 +10,9 @@ import { colors, fonts } from '@/constants/theme';
 import { useSchedule } from '@/contexts/ScheduleContext';
 import { useCurrentUser } from '@/contexts/UsersContext';
 import type { ClassSession } from '@/data/schedule';
+import { dateForWeekday, formatDDMMYYYY } from '@/lib/dutchDate';
+
+const WEEKS_AHEAD = 3;
 
 type Selection = { day: string; id: string };
 
@@ -52,14 +55,32 @@ export default function ScheduleScreen() {
         subtitle="Meer rust en ruimte voor jezelf"
       />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {days.map(({ day, classes }, index) => (
-          <View key={day}>
-            <Text style={[styles.dayLabel, index === 0 && styles.dayLabelFirst]}>{day}</Text>
-            {classes.map((session) => (
-              <ClassCard key={session.id} session={session} onPress={(s) => openBooking(day, s)} />
-            ))}
-          </View>
-        ))}
+        {Array.from({ length: WEEKS_AHEAD }, (_, weekOffset) =>
+          days.map(({ day, classes }, index) => {
+            const dateLabel = formatDDMMYYYY(dateForWeekday(day, weekOffset));
+            const isVeryFirst = weekOffset === 0 && index === 0;
+            const isWeekStart = weekOffset > 0 && index === 0;
+            return (
+              <View key={`${weekOffset}-${day}`}>
+                <Text
+                  style={[
+                    styles.dayLabel,
+                    isVeryFirst && styles.dayLabelFirst,
+                    isWeekStart && styles.dayLabelWeekStart,
+                  ]}>
+                  {day} - {dateLabel}
+                </Text>
+                {classes.map((session) => (
+                  <ClassCard
+                    key={`${weekOffset}-${session.id}`}
+                    session={session}
+                    onPress={(s) => openBooking(day, s)}
+                  />
+                ))}
+              </View>
+            );
+          })
+        )}
       </ScrollView>
 
       <BookingSheet
@@ -72,6 +93,12 @@ export default function ScheduleScreen() {
         onLoginRequired={() => {
           closeBooking();
           router.push('/profiel');
+        }}
+        onManageSpots={() => {
+          if (!selected) return;
+          const { day, id } = selected;
+          closeBooking();
+          router.push({ pathname: '/admin/plekken', params: { day, id } });
         }}
         onAdjustCapacity={(delta) => selected && adjustCapacity(selected.day, selected.id, delta)}
         onAdjustAvailable={(delta) => selected && adjustAvailable(selected.day, selected.id, delta)}
@@ -100,5 +127,8 @@ const styles = StyleSheet.create({
   },
   dayLabelFirst: {
     marginTop: 4,
+  },
+  dayLabelWeekStart: {
+    marginTop: 34,
   },
 });
