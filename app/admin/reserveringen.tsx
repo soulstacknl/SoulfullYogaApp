@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
   email: {
     fontFamily: fonts.body,
     fontSize: 11.5,
-    color: '#A89BB5',
+    color: '#9DAFA2',
     marginTop: 2,
   },
   chevron: {

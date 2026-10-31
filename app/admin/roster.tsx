@@ -163,7 +163,7 @@ export default function PresentielijstScreen() {
               value={walkInName}
               onChangeText={setWalkInName}
               placeholder="Naam losse deelnemer"
-              placeholderTextColor="#A89BB5"
+              placeholderTextColor="#9DAFA2"
               onSubmitEditing={addWalkIn}
             />
             <Pressable style={styles.smallBtn} onPress={addWalkIn}>

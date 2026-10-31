@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -61,6 +62,13 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
           <Text style={styles.loginBtnText}>Inloggen</Text>
         </Pressable>
 
+        <Text style={styles.askAccount}>
+          Nog geen account?{' '}
+          <Text style={styles.askAccountLink} onPress={() => router.push('/account-aanvragen')}>
+            Account aanvragen
+          </Text>
+        </Text>
+
         <Text style={styles.hint}>
           Demo-account: marieke@soulfulyoga.nl · yoga123{'\n'}
           (of daan@soulfulyoga.nl · yoga123 voor een account zonder strippenkaart)
@@ -96,6 +104,17 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: 14.5,
     color: '#fff',
+  },
+  askAccount: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.descText,
+    textAlign: 'center',
+    marginTop: 16,
+  },
+  askAccountLink: {
+    fontFamily: fonts.bodySemiBold,
+    color: colors.rani,
   },
   hint: {
     fontFamily: fonts.body,

@@ -252,7 +252,7 @@ function SheetButton({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(30,19,45,0.55)',
+    backgroundColor: 'rgba(18,38,26,0.55)',
     justifyContent: 'flex-end',
   },
   sheet: {

@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
   stripSub: {
     fontFamily: fonts.body,
     fontSize: 12.5,
-    color: '#CABFDB',
+    color: '#BACDC0',
   },
   sectionLabel: {
     fontFamily: fonts.displayItalic,

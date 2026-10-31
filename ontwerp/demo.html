@@ -24,7 +24,7 @@
   .who button:hover{border-color:var(--ink);}
   .who button.on{border:2px solid var(--rani); padding:8px 10px;}
   .who .av{width:30px; height:30px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center; font:700 11px var(--body); color:#fff; background:var(--teal);}
-  .who .av.admin{background:var(--ink);} .who .av.guest{background:#b7aec2;}
+  .who .av.admin{background:var(--ink);} .who .av.guest{background:#AFC0B3;}
   .who .n{font-weight:600; font-size:13px;} .who .d{font-size:11.5px; color:#7d7262;}
   .sbtn{font:600 12.5px var(--body); border:1px solid #cdbfa6; background:#fff; color:var(--ink); border-radius:10px; padding:8px 12px; cursor:pointer; width:100%;}
   .sbtn:hover{border-color:var(--ink);} .sbtn:disabled{opacity:.45; cursor:not-allowed;}
@@ -207,6 +207,7 @@ function loginScreen(){
     <div class="field"><label>Wachtwoord</label><input id="loginPw" type="password" placeholder="••••••••" value="${esc(UI.loginPw)}"></div>
     ${UI.loginError ? `<div class="err">${UI.loginError}</div>` : ''}
     <div class="cta" style="margin-top:4px" data-act="login">Inloggen</div>
+    <div class="ask-account">Nog geen account? <a data-act="push" data-v="account-aanvragen">Account aanvragen</a></div>
     <div class="hint2">Demo-account: marieke@soulfulyoga.nl · yoga123<br>(of daan@soulfulyoga.nl · yoga123 voor een account zonder strippenkaart)</div></div>`;
 }
 const profileFooter = `<div class="contact"><b>Soulful Yoga</b>Runselstraat 18, 5351 NJ Berghem<br>06 12 68 08 52 · info@soulfulyoga.nl</div><div class="logout" data-act="logout">Uitloggen</div>`;
@@ -241,7 +242,45 @@ const chargeTag = (p) => !p.present ? '<span class="tag off">Afwezig · geen str
   : '<span class="tag los">Aanwezig · losse les</span>';
 
 /* ── Gestapelde schermen ────────────────────────────────────────────── */
+const STUDIO_MAIL = 'info@soulfulyoga.nl';
+const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+// De e-mail die de studio krijgt bij een accountaanvraag.
+const accountMail = (name, email) => ({
+  to: STUDIO_MAIL,
+  subject: `Accountaanvraag: ${name}`,
+  body: `Nieuwe accountaanvraag via de Soulful Yoga app.
+
+Naam: ${name}
+E-mailadres: ${email}
+
+Maak een account aan en laat de klant weten dat het klaarstaat.`,
+});
+
 const STACK = {
+  // Gast vraagt een account aan: naam + e-mailadres; de aanvraag gaat per mail naar de studio.
+  'account-aanvragen': () => {
+    const sent = UI.accountSent;
+    if (sent) {
+      const m = accountMail(sent.name, sent.email);
+      return header({back:'Inloggen', eyebrow:'Account aanvragen', title:'Bijna klaar', subtitle:'Verstuur de e-mail in je mailprogramma'}) +
+        `<div class="pad form">
+          <div class="note">✓ Je aanvraag staat klaar in je mailprogramma.</div>
+          <p class="sub2">Druk daar op Verzenden om de aanvraag naar Soulful Yoga te sturen. Zodra je account klaarstaat, krijg je bericht op <b>${esc(sent.email)}</b>.</p>
+          <div class="mailprev"><div class="mh">E-mail in je mailprogramma</div>
+            <div><span>Aan</span>${m.to}</div><div><span>Onderwerp</span>${esc(m.subject)}</div>
+            <pre>${esc(m.body)}</pre></div>
+          <div class="cta" data-act="back">Terug naar inloggen</div>
+          <div class="logout" data-act="openAccountMail">Mailprogramma opnieuw openen</div></div>`;
+    }
+    return header({back:'Inloggen', eyebrow:'Soulful Yoga', title:'Account aanvragen', subtitle:'Vul je gegevens in, dan maken wij je account aan'}) +
+      `<div class="pad form">
+        <div class="field"><label>Naam</label><input type="text" data-f="name" value="${esc(UI.form.name || '')}" placeholder="Voor- en achternaam" autocomplete="name"></div>
+        <div class="field"><label>E-mailadres</label><input type="email" data-f="email" value="${esc(UI.form.email || '')}" placeholder="naam@voorbeeld.nl" autocomplete="email"></div>
+        ${UI.formError ? `<div class="err">${UI.formError}</div>` : ''}
+        <div class="cta" data-act="requestAccount">Aanvraag versturen</div>
+        <div class="hint2">Je mailprogramma opent met de aanvraag aan ${STUDIO_MAIL}.<br>Je krijgt bericht zodra je account klaarstaat.</div></div>`;
+  },
+
   voorwaarden: () => {
     const u = me(); const on = !!u?.termsAcceptedAt;
     return header({back: UI.stack.length > 1 ? 'Terug' : 'Profiel', eyebrow:'Soulful Yoga', title:'Algemene voorwaarden'}) +
@@ -459,7 +498,7 @@ function requestSheet({id}){
   if (!r) return '';
   const s = SES[r.sessionId];
   return sheetWrap(`<h2>${esc(r.name)}</h2><div class="s" style="margin-bottom:0">${STYLE[s.style].label} · ${dateLabel(r.date)} · ${s.time}</div>
-    <div style="font:400 12px var(--body);color:#A89BB5;margin:2px 0 22px">${esc(r.email)}</div>
+    <div style="font:400 12px var(--body);color:#9DAFA2;margin:2px 0 22px">${esc(r.email)}</div>
     <div class="twobtn"><div class="cta" style="background:var(--teal)" data-act="resolve" data-v="1">✓ Goedkeuren</div><div class="cta" data-act="resolve" data-v="0">✕ Weigeren</div></div>`);
 }
 function weeksPrompt(){
@@ -507,7 +546,7 @@ const num = (v) => Number(v);
 const ACTIONS = {
   noop(){},
   tab(el){ UI.tab = el.dataset.v; UI.stack = []; },
-  back(){ UI.stack.pop(); UI.picking = false; },
+  back(){ UI.stack.pop(); UI.picking = false; UI.accountSent = null; },
   push(el){ UI.stack.push({screen:el.dataset.v, sid:el.dataset.sid, d:el.dataset.date}); UI.picking = false; UI.form = {}; UI.formError = null; },
   goRooster(){ UI.stack = []; UI.tab = 'rooster'; },
   filter(el){ UI.filter = el.dataset.v; },
@@ -631,6 +670,20 @@ const ACTIONS = {
     UI.loginError = null; UI.loginEmail = ''; UI.loginPw = '';
     S.email = u.email; log(`Ingelogd als ${u.name}`); save();
   },
+  requestAccount(){
+    const name = (UI.form.name || '').trim(); const email = (UI.form.email || '').trim().toLowerCase();
+    if (!name) { UI.formError = 'Vul je naam in.'; return; }
+    if (!isEmail(email)) { UI.formError = 'Vul een geldig e-mailadres in.'; return; }
+    if (S.users.some(u => u.email.toLowerCase() === email)) { UI.formError = 'Er bestaat al een account met dit e-mailadres. Log in met je wachtwoord.'; return; }
+    UI.formError = null; UI.accountSent = {name, email};
+    log(`Accountaanvraag van ${name} (${email}): mailprogramma geopend, aan ${STUDIO_MAIL}`); save();
+    ACTIONS.openAccountMail();
+  },
+  // Zoals in de app: het mailprogramma van de gast opent met de aanvraag al ingevuld.
+  openAccountMail(){
+    const {name, email} = UI.accountSent; const m = accountMail(name, email);
+    window.location.href = `mailto:${m.to}?subject=${encodeURIComponent(m.subject)}&body=${encodeURIComponent(m.body)}`;
+  },
   logout(){ log(`${me()?.name} logt uit`); S.email = null; UI.stack = []; UI.sheet = null; save(); },
 
   toggleTerms(){
@@ -737,7 +790,11 @@ function handle(e){
   if (fn(el) !== 'rendered') render();
 }
 document.addEventListener('click', handle);
-document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.closest('#phone input')) { ACTIONS.login(); render(); } });
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  if (e.target.id === 'loginEmail' || e.target.id === 'loginPw') { ACTIONS.login(); render(); }
+  else if (e.target.closest('#phone input[data-f]') && UI.stack.at(-1)?.screen === 'account-aanvragen') { ACTIONS.requestAccount(); render(); }
+});
 document.addEventListener('input', (e) => {
   if (e.target.id === 'loginEmail') UI.loginEmail = e.target.value;
   if (e.target.id === 'loginPw') UI.loginPw = e.target.value;

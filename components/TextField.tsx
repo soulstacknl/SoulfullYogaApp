@@ -13,7 +13,7 @@ export default function TextField({ label, style, ...inputProps }: TextFieldProp
       <Text style={styles.label}>{label}</Text>
       <TextInput
         style={[styles.input, style]}
-        placeholderTextColor="#A89BB5"
+        placeholderTextColor="#9DAFA2"
         autoCapitalize="none"
         autoCorrect={false}
         {...inputProps}

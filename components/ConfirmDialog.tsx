@@ -46,7 +46,7 @@ export default function ConfirmDialog({ request, onClose }: ConfirmDialogProps) 
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(30,19,45,0.55)',
+    backgroundColor: 'rgba(18,38,26,0.55)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,

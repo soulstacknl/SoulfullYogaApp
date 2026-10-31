@@ -7,7 +7,7 @@ export type TagTone = 'teal' | 'ink' | 'pending' | 'muted' | 'rani';
 
 const tones: Record<TagTone, { backgroundColor: string; color: string }> = {
   teal: { backgroundColor: '#EAF3EE', color: colors.teal },
-  ink: { backgroundColor: '#F1ECF7', color: colors.ink },
+  ink: { backgroundColor: '#E9EEDF', color: colors.ink },
   pending: { backgroundColor: '#FCF1DE', color: '#9A6512' },
   muted: { backgroundColor: '#EFE8DC', color: colors.mutedText },
   rani: { backgroundColor: '#FBE7EE', color: colors.rani },

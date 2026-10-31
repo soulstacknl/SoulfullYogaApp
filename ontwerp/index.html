@@ -253,7 +253,7 @@ const SCREENS = [
   { id:'aanvraag', group:'admin', name:'Aanvraag beoordelen', src:'components/RequestActionSheet.tsx',
     html: () => phone(screen(header({back:'Terug', eyebrow:'Docentmodus', title:'Reserveringen', subtitle:'Tik op een aanvraag om te beoordelen'})),
       sheetBase(`<h2>Marieke Jansen</h2><div class="s" style="margin-bottom:0">Yin Yoga · Maandag · 19.00 – 20.00</div>
-        <div class="em" style="font:400 12px var(--body);color:#A89BB5;margin:2px 0 22px">marieke@soulfulyoga.nl</div>
+        <div class="em" style="font:400 12px var(--body);color:#9DAFA2;margin:2px 0 22px">marieke@soulfulyoga.nl</div>
         <div class="twobtn"><div class="cta" style="background:var(--teal)">✓ Goedkeuren</div><div class="cta">✕ Weigeren</div></div>`)) },
   { id:'strippen', group:'admin', name:'Strippenkaarten', src:'app/admin/strippen.tsx',
     html: () => phone(screen(header({back:'Terug', eyebrow:'Docentmodus', title:'Strippenkaarten', subtitle:'Pas het aantal strippen aan'}) +
@@ -312,9 +312,9 @@ document.getElementById('exportNotes').addEventListener('click', (e) => {
 
 /* ── Tokens ─────────────────────────────────────────────────────────── */
 const COLORS = {
-  ivory:['#FBF5EA','achtergrond'], ink:['#2E1F45','hoofdkleur / tekst'], marigold:['#E8A33D','Gentle'],
+  ivory:['#FBF5EA','achtergrond'], ink:['#1F3D2B','hoofdkleur / tekst'], marigold:['#E8A33D','Gentle'],
   rani:['#C23B6E','Flow / knoppen'], teal:['#1C6B5E','Yin / bevestiging'], sand:['#E3D5BE','randen'],
-  card:['#FFFFFF','kaarten'], mutedText:['#7A7188','grijze tekst'], descText:['#4A3F5C','beschrijving'],
+  card:['#FFFFFF','kaarten'], mutedText:['#6E7A70','grijze tekst'], descText:['#3D4F43','beschrijving'],
 };
 const RADII = { 'r-card':[18,'Kaarten'], 'r-row':[16,'Lijstrijen'], 'r-btn':[14,'Knoppen'], 'r-sheet':[26,'Sheets'] };
 const tokens = store.get('sy-tokens', {});

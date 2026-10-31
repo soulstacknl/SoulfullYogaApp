@@ -64,7 +64,7 @@ export function IconBtn({ label, onPress, danger, active, title }: { label: stri
 export type TagTone = 'teal' | 'ink' | 'pending' | 'muted' | 'rani';
 const tagTones: Record<TagTone, { backgroundColor: string; color: string }> = {
   teal: { backgroundColor: '#EAF3EE', color: colors.teal },
-  ink: { backgroundColor: '#F1ECF7', color: colors.ink },
+  ink: { backgroundColor: '#E9EEDF', color: colors.ink },
   pending: { backgroundColor: '#FCF1DE', color: '#9A6512' },
   muted: { backgroundColor: '#EFE8DC', color: colors.mutedText },
   rani: { backgroundColor: '#FBE7EE', color: colors.rani },
@@ -189,7 +189,7 @@ export function Select({ value, options, onChange, highlight, style }: { value: 
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      style={{ ...inputStyle, ...(highlight ? { borderColor: colors.ink, background: '#F1ECF7', fontFamily: fonts.bodySemiBold } : null), ...style }}>
+      style={{ ...inputStyle, ...(highlight ? { borderColor: colors.ink, background: '#E9EEDF', fontFamily: fonts.bodySemiBold } : null), ...style }}>
       {options.map(([v, label]) => (
         <option key={v} value={v}>
           {label}
@@ -228,7 +228,7 @@ export function Drawer({ eyebrow, title, subtitle, onClose, children }: { eyebro
             </Pressable>
             <Text style={s.eyebrow}>{eyebrow}</Text>
             <Text style={s.drawerTitle}>{title}</Text>
-            <Text style={{ fontFamily: fonts.body, fontSize: 13, color: '#D9CFE8' }}>{subtitle}</Text>
+            <Text style={{ fontFamily: fonts.body, fontSize: 13, color: '#CFE0D4' }}>{subtitle}</Text>
           </View>
           <View style={{ flex: 1, overflow: 'scroll' as 'hidden' }}>
             <View style={s.drawerBody}>{children}</View>
@@ -277,13 +277,13 @@ export const s = StyleSheet.create({
   err: { fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.rani },
   seg: { flexDirection: 'row', flexWrap: 'wrap', alignSelf: 'flex-start', backgroundColor: '#EFE6D6', borderRadius: 10, padding: 3, marginBottom: 14 },
   segItem: { paddingVertical: 6, paddingHorizontal: 14, borderRadius: 8 },
-  segOn: { backgroundColor: '#fff', shadowColor: '#1E132D', shadowOpacity: 0.1, shadowRadius: 3, shadowOffset: { width: 0, height: 1 } },
+  segOn: { backgroundColor: '#fff', shadowColor: '#12261A', shadowOpacity: 0.1, shadowRadius: 3, shadowOffset: { width: 0, height: 1 } },
   segText: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.mutedText },
   chip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderColor: colors.sand, backgroundColor: '#fff' },
   fieldLabel: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: colors.ink },
   scrimWrap: { flex: 1, flexDirection: 'row', justifyContent: 'flex-end' },
-  scrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(30,19,45,0.35)' },
-  drawer: { width: 480, maxWidth: '100%', height: '100%', backgroundColor: colors.ivory, shadowColor: '#1E0F2D', shadowOpacity: 0.18, shadowRadius: 40, shadowOffset: { width: -12, height: 0 } },
+  scrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(18,38,26,0.35)' },
+  drawer: { width: 480, maxWidth: '100%', height: '100%', backgroundColor: colors.ivory, shadowColor: '#10241A', shadowOpacity: 0.18, shadowRadius: 40, shadowOffset: { width: -12, height: 0 } },
   drawerHead: { backgroundColor: colors.ink, paddingTop: 22, paddingBottom: 18, paddingHorizontal: 24 },
   drawerX: { position: 'absolute', top: 14, right: 18, zIndex: 1, padding: 4 },
   eyebrow: { fontFamily: fonts.bodySemiBold, fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: colors.marigold },

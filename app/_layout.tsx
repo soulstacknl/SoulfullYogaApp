@@ -10,8 +10,7 @@ import {
   WorkSans_700Bold,
   useFonts as useWorkSansFonts,
 } from '@expo-google-fonts/work-sans';
-import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import { DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
@@ -24,7 +23,7 @@ import { UsersProvider } from '@/contexts/UsersContext';
 export { ErrorBoundary } from 'expo-router';
 
 export const unstable_settings = {
-  initialRouteName: '(tabs)',
+  anchor: '(tabs)',
 };
 
 SplashScreen.preventAutoHideAsync();
@@ -79,6 +78,7 @@ export default function RootLayout() {
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="admin" options={{ headerShown: false }} />
               <Stack.Screen name="voorwaarden" options={{ headerShown: false }} />
+              <Stack.Screen name="account-aanvragen" options={{ headerShown: false }} />
               <Stack.Screen name="portal" options={{ headerShown: false, title: 'Beheerportaal' }} />
             </Stack>
           </ThemeProvider>

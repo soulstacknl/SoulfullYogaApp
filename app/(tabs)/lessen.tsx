@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
   stripTotal: {
     fontFamily: fonts.body,
     fontSize: 12,
-    color: '#CABFDB',
+    color: '#BACDC0',
   },
   segment: {
     flexDirection: 'row',

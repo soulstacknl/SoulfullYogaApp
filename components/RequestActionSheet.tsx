@@ -57,7 +57,7 @@ export default function RequestActionSheet({ request, onClose, onApprove, onReje
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(30,19,45,0.55)',
+    backgroundColor: 'rgba(18,38,26,0.55)',
     justifyContent: 'flex-end',
   },
   sheet: {
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
   email: {
     fontFamily: fonts.body,
     fontSize: 12,
-    color: '#A89BB5',
+    color: '#9DAFA2',
     marginTop: 2,
     marginBottom: 22,
   },
