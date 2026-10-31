@@ -1,5 +1,5 @@
-const WEEKDAYS = ['Zondag', 'Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrijdag', 'Zaterdag'];
-const MONTHS = [
+export const WEEKDAYS = ['Zondag', 'Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrijdag', 'Zaterdag'];
+export const MONTHS = [
   'januari',
   'februari',
   'maart',
@@ -14,45 +14,52 @@ const MONTHS = [
   'december',
 ];
 
-export function todayWeekdayName(date = new Date()): string {
-  return WEEKDAYS[date.getDay()];
+export function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-export function todayDutchLabel(date = new Date()): string {
-  return `${todayWeekdayName(date)} ${date.getDate()} ${MONTHS[date.getMonth()]}`;
-}
-
-const WEEKDAY_OFFSET_FROM_MONDAY: Record<string, number> = {
-  Maandag: 0,
-  Dinsdag: 1,
-  Woensdag: 2,
-  Donderdag: 3,
-  Vrijdag: 4,
-  Zaterdag: 5,
-  Zondag: 6,
-};
-
-function mondayOfWeek(referenceDate: Date): Date {
-  const d = new Date(referenceDate);
-  const day = d.getDay(); // 0 = Sunday, 1 = Monday, ...
-  const diffToMonday = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diffToMonday);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-// Date of a given weekday name, `weekOffset` weeks from the current week
-// (0 = this week, 1 = next week, ...), anchored to the real current date.
-export function dateForWeekday(dayName: string, weekOffset: number, referenceDate = new Date()): Date {
-  const monday = mondayOfWeek(referenceDate);
-  const offset = WEEKDAY_OFFSET_FROM_MONDAY[dayName] ?? 0;
-  const result = new Date(monday);
-  result.setDate(monday.getDate() + offset + weekOffset * 7);
-  return result;
-}
-
-export function formatDDMMYYYY(date: Date): string {
-  const dd = String(date.getDate()).padStart(2, '0');
+// Lessons hang off a calendar day, so dates are ISO strings (YYYY-MM-DD) in
+// local time — never via toISOString(), which would shift them to UTC.
+export function isoOf(date: Date): string {
   const mm = String(date.getMonth() + 1).padStart(2, '0');
-  return `${dd}-${mm}-${date.getFullYear()}`;
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${mm}-${dd}`;
+}
+
+// `time` uses the schedule's display format, e.g. "19.00".
+export function toDate(iso: string, time = '00.00'): Date {
+  const [y, m, d] = iso.split('-').map(Number);
+  const [h, min] = time.split('.').map(Number);
+  return new Date(y, m - 1, d, h, min);
+}
+
+export function plusDays(iso: string, days: number): string {
+  const d = toDate(iso);
+  d.setDate(d.getDate() + days);
+  return isoOf(d);
+}
+
+export function daysBetween(fromIso: string, toIso: string): number {
+  return Math.round((toDate(toIso).getTime() - toDate(fromIso).getTime()) / 86400000);
+}
+
+export function weekdayOf(iso: string): string {
+  return WEEKDAYS[toDate(iso).getDay()];
+}
+
+// "Maandag 2 november"
+export function dateLabel(iso: string): string {
+  const d = toDate(iso);
+  return `${WEEKDAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+}
+
+// "ma 2 nov"
+export function shortDate(iso: string): string {
+  const d = toDate(iso);
+  return `${WEEKDAYS[d.getDay()].slice(0, 2).toLowerCase()} ${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)}`;
+}
+
+// First day of the month `offset` months from `reference` (0 = this month).
+export function monthStart(offset: number, reference = new Date()): Date {
+  return new Date(reference.getFullYear(), reference.getMonth() + offset, 1);
 }

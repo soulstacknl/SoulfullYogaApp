@@ -1,11 +1,13 @@
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ProfielIcon, RoosterIcon, VideosIcon } from '@/components/TabIcons';
+import { LessenIcon, ProfielIcon, RoosterIcon, VideosIcon } from '@/components/TabIcons';
 import { colors, fonts } from '@/constants/theme';
+import { useCurrentUser } from '@/contexts/UsersContext';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
+  const isAdmin = useCurrentUser()?.role === 'admin';
 
   return (
     <Tabs
@@ -31,6 +33,15 @@ export default function TabLayout() {
         options={{
           title: 'Rooster',
           tabBarIcon: ({ color }) => <RoosterIcon color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="lessen"
+        options={{
+          title: 'Mijn lessen',
+          tabBarIcon: ({ color }) => <LessenIcon color={color} />,
+          // The admin isn't a customer, so there's nothing to plan.
+          href: isAdmin ? null : undefined,
         }}
       />
       <Tabs.Screen

@@ -7,7 +7,7 @@ import ScreenHeader from '@/components/ScreenHeader';
 import { colors, fonts } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchedule } from '@/contexts/ScheduleContext';
-import { useCurrentUser } from '@/contexts/UsersContext';
+import { useCurrentUser, useUsers } from '@/contexts/UsersContext';
 
 const prices = [
   { label: 'Gratis proefles', price: '€0' },
@@ -18,7 +18,8 @@ const prices = [
 export default function ProfielScreen() {
   const { login, logout } = useAuth();
   const user = useCurrentUser();
-  const { requests } = useSchedule();
+  const { students } = useUsers();
+  const { requests } = useSchedule().data;
 
   if (!user) {
     return <LoginScreen onLogin={login} />;
@@ -53,7 +54,7 @@ export default function ProfielScreen() {
             </View>
 
             <View style={styles.adminActions}>
-              <Pressable style={styles.adminActionBtn} onPress={() => router.push('/admin/rooster-info')}>
+              <Pressable style={styles.adminActionBtn} onPress={() => router.push('/admin/rooster-beheer')}>
                 <Text style={styles.adminActionIcon}>🗓️</Text>
                 <Text style={styles.adminActionText}>Rooster beheren</Text>
                 <Text style={styles.adminActionChevron}>›</Text>
@@ -71,6 +72,16 @@ export default function ProfielScreen() {
                     <Text style={styles.adminActionBadgeText}>{requests.length}</Text>
                   </View>
                 ) : null}
+                <Text style={styles.adminActionChevron}>›</Text>
+              </Pressable>
+              <Pressable style={styles.adminActionBtn} onPress={() => router.push('/admin/voorwaarden')}>
+                <Text style={styles.adminActionIcon}>📄</Text>
+                <View style={styles.adminActionTextWrap}>
+                  <Text style={styles.adminActionText}>Algemene voorwaarden</Text>
+                  <Text style={styles.adminActionSub}>
+                    {students.filter((s) => s.termsAcceptedAt).length} van {students.length} klanten akkoord
+                  </Text>
+                </View>
                 <Text style={styles.adminActionChevron}>›</Text>
               </Pressable>
             </View>
@@ -103,6 +114,19 @@ export default function ProfielScreen() {
                 </View>
               ))}
             </View>
+
+            <Pressable style={styles.termsRow} onPress={() => router.push('/voorwaarden')}>
+              <Text style={styles.termsIcon}>📄</Text>
+              <View style={styles.adminActionTextWrap}>
+                <Text style={styles.termsTitle}>Algemene voorwaarden</Text>
+                {user.termsAcceptedAt ? (
+                  <Text style={[styles.termsStatus, styles.termsStatusOk]}>✓ Akkoord op {user.termsAcceptedAt}</Text>
+                ) : (
+                  <Text style={[styles.termsStatus, styles.termsStatusTodo]}>Nog niet akkoord</Text>
+                )}
+              </View>
+              <Text style={styles.adminActionChevron}>›</Text>
+            </Pressable>
           </>
         )}
 
@@ -264,6 +288,47 @@ const styles = StyleSheet.create({
   },
   adminActionIcon: {
     fontSize: 20,
+  },
+  adminActionTextWrap: {
+    flex: 1,
+  },
+  adminActionSub: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.mutedText,
+    marginTop: 1,
+  },
+  termsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginHorizontal: 20,
+    marginTop: 18,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.sand,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  termsIcon: {
+    fontSize: 18,
+  },
+  termsTitle: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14.5,
+    color: colors.ink,
+  },
+  termsStatus: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 12,
+    marginTop: 1,
+  },
+  termsStatusOk: {
+    color: colors.teal,
+  },
+  termsStatusTodo: {
+    color: colors.rani,
   },
   adminActionText: {
     flex: 1,

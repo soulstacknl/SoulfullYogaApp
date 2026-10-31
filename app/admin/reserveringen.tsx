@@ -7,9 +7,11 @@ import ScreenHeader from '@/components/ScreenHeader';
 import { colors, fonts, styleMeta } from '@/constants/theme';
 import { useSchedule } from '@/contexts/ScheduleContext';
 import type { ReservationRequest } from '@/contexts/ScheduleContext';
+import { dateLabel } from '@/lib/dutchDate';
 
 export default function ReserveringenScreen() {
-  const { requests, resolveRequest } = useSchedule();
+  const { data, sessionById, resolveRequest } = useSchedule();
+  const { requests } = data;
   const [selected, setSelected] = useState<ReservationRequest | null>(null);
 
   const closeSheet = () => setSelected(null);
@@ -34,7 +36,9 @@ export default function ReserveringenScreen() {
           <Text style={styles.empty}>Nog geen aanvragen</Text>
         ) : (
           requests.map((request) => {
-            const meta = styleMeta[request.style];
+            const session = sessionById(request.sessionId);
+            if (!session) return null;
+            const meta = styleMeta[session.style];
             return (
               <Pressable
                 key={request.id}
@@ -44,11 +48,11 @@ export default function ReserveringenScreen() {
                   <Text style={styles.dotLabel}>{meta.dotLabel}</Text>
                 </View>
                 <View style={styles.info}>
-                  <Text style={styles.name}>{request.studentName}</Text>
+                  <Text style={styles.name}>{request.name}</Text>
                   <Text style={styles.detail}>
-                    {meta.label} · {request.day} · {request.time}
+                    {meta.label} · {dateLabel(request.date)} · {session.time}
                   </Text>
-                  <Text style={styles.email}>{request.studentEmail}</Text>
+                  <Text style={styles.email}>{request.email}</Text>
                 </View>
                 <Text style={styles.chevron}>›</Text>
               </Pressable>

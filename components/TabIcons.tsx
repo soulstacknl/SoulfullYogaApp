@@ -17,6 +17,15 @@ export function RoosterIcon({ color, size = 22 }: IconProps) {
   );
 }
 
+export function LessenIcon({ color, size = 22 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8}>
+      <Rect x="3" y="5" width="18" height="16" rx="3" />
+      <Path d="M8 3v4M16 3v4M8.5 14.5l2.5 2.5 4.5-5" />
+    </Svg>
+  );
+}
+
 export function VideosIcon({ color, size = 22 }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8}>

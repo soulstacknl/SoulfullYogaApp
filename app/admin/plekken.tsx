@@ -2,69 +2,98 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import ConfirmDialog from '@/components/ConfirmDialog';
+import type { ConfirmRequest } from '@/components/ConfirmDialog';
 import ScreenHeader from '@/components/ScreenHeader';
+import Tag from '@/components/Tag';
 import WeeksPrompt from '@/components/WeeksPrompt';
 import { colors, fonts, styleMeta } from '@/constants/theme';
 import { useSchedule } from '@/contexts/ScheduleContext';
-import type { ClassEnrollment } from '@/contexts/ScheduleContext';
+import type { LessonStatus } from '@/contexts/ScheduleContext';
 import { useUsers } from '@/contexts/UsersContext';
 import type { MockUser } from '@/data/users';
+import { dateLabel, daysBetween, shortDate } from '@/lib/dutchDate';
+import { enrollmentOf, ONGOING_WEEKS, startTimeOf } from '@/lib/schedule';
 
-type PendingAction = { kind: 'add'; user: MockUser } | { kind: 'remove'; enrollment: ClassEnrollment };
+type PendingAction = { kind: 'add' | 'remove'; user: MockUser };
 
-export default function PlekkenBeherenScreen() {
-  const { day, id } = useLocalSearchParams<{ day: string; id: string }>();
-  const { days, enrollmentsBySession, addEnrollment, removeEnrollment } = useSchedule();
-  const { users } = useUsers();
-
+// Who takes part in one lesson date: standing customers, one-off bookings and
+// requests. New standing customers are planned from this date onward.
+export default function DeelnemersScreen() {
+  const { sessionId, date } = useLocalSearchParams<{ sessionId: string; date: string }>();
+  const schedule = useSchedule();
+  const { students } = useUsers();
   const [picking, setPicking] = useState(false);
   const [pending, setPending] = useState<PendingAction | null>(null);
+  const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
 
-  const session = days.find((d) => d.day === day)?.classes.find((c) => c.id === id);
-  const enrolled = enrollmentsBySession[id ?? ''] ?? [];
-  const isFull = session ? session.available <= 0 : true;
-
-  if (!session) {
+  const session = schedule.sessionById(sessionId ?? '');
+  if (!session || !date) {
     return (
       <View style={styles.container}>
-        <ScreenHeader backLabel="Rooster" onBack={() => router.back()} title="Les niet gevonden" subtitle="" />
+        <ScreenHeader backLabel="Terug" onBack={() => router.back()} title="Les niet gevonden" subtitle="" />
       </View>
     );
   }
 
   const meta = styleMeta[session.style];
-  const enrolledEmails = new Set(enrolled.map((e) => e.email));
-  const pickable = users.filter((u) => u.role === 'student' && !enrolledEmails.has(u.email));
+  const occupancy = schedule.occupancy(session.id, date);
+  const started = schedule.hasStarted(session, date);
+  const canAdd = occupancy.available > 0 && !started;
+  const attending = schedule.attendees(session.id, date);
+  const cancelled = students.filter((u) => schedule.statusFor(u.email, session.id, date)?.cancelled);
+  const pickable = students.filter((u) => !enrollmentOf(schedule.data, u.email, session.id, date));
+  const lessonName = `${meta.label} ${shortDate(date)} ${startTimeOf(session)}`;
 
-  const closePrompt = () => setPending(null);
+  const sourceTag = (status: LessonStatus) => {
+    if (status.source === 'aanvraag') return <Tag label="Aanvraag" tone="pending" />;
+    if (status.source === 'los') return <Tag label="Losse les" tone="ink" />;
+    const e = status.enrollment!;
+    const left = e.weeks - daysBetween(e.start, date) / 7;
+    const label = e.weeks >= ONGOING_WEEKS ? 'Vaste klant' : `Vaste klant · nog ${left} ${left === 1 ? 'week' : 'weken'}`;
+    return <Tag label={label} tone="teal" />;
+  };
 
-  const handleConfirm = (weeks: number) => {
-    if (!pending || !day || !id) return;
-    if (pending.kind === 'add') {
-      addEnrollment(day, id, { name: pending.user.name, email: pending.user.email, phone: pending.user.phone }, weeks);
-    } else {
-      removeEnrollment(day, id, pending.enrollment.id);
+  const askRemove = (user: MockUser, status: LessonStatus) => {
+    if (status.source === 'vast') {
+      setPending({ kind: 'remove', user });
+      return;
     }
-    closePrompt();
+    setConfirm({
+      title: `${user.name} afmelden?`,
+      message: `Losse les ${lessonName}. De plek komt weer vrij.`,
+      confirmLabel: 'Afmelden',
+      onConfirm: () => schedule.cancelLesson(user.email, session.id, date, 'beheer'),
+    });
+  };
+
+  const handleWeeks = (weeks: number) => {
+    if (!pending) return;
+    if (pending.kind === 'add') schedule.addStanding(session.id, date, pending.user.email, weeks);
+    else schedule.removeStanding(session.id, date, pending.user.email, weeks);
+    setPending(null);
     setPicking(false);
   };
 
   return (
     <View style={styles.container}>
       <ScreenHeader
-        backLabel="Rooster"
+        backLabel="Terug"
         onBack={() => router.back()}
         eyebrow={meta.label}
         title={session.time}
-        subtitle={`${day} · ${session.available} / ${session.capacity} plekken beschikbaar`}
+        subtitle={`${dateLabel(date)} · ${occupancy.available} / ${occupancy.capacity} plekken vrij`}
       />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {picking ? (
           <>
-            <Text style={styles.sectionLabel}>Kies een klant</Text>
+            <Text style={styles.sectionLabel}>Kies een vaste klant</Text>
+            <Text style={styles.note}>
+              Wordt ingepland vanaf {dateLabel(date)}, elke {session.day.toLowerCase()}.
+            </Text>
             {pickable.length === 0 ? (
-              <Text style={styles.empty}>Alle klanten zijn al toegevoegd</Text>
+              <Text style={styles.empty}>Alle klanten zijn al vaste klant</Text>
             ) : (
               pickable.map((u) => (
                 <Pressable
@@ -87,32 +116,45 @@ export default function PlekkenBeherenScreen() {
         ) : (
           <>
             <Pressable
-              style={[styles.addBtn, isFull && styles.addBtnDisabled]}
-              onPress={() => !isFull && setPicking(true)}
-              disabled={isFull}>
-              <Text style={styles.addBtnText}>{isFull ? 'Vol — geen plekken meer' : '+ Klant toevoegen'}</Text>
+              style={[styles.addBtn, !canAdd && styles.addBtnDisabled]}
+              onPress={() => setPicking(true)}
+              disabled={!canAdd}>
+              <Text style={styles.addBtnText}>
+                {started ? 'Les is al begonnen' : canAdd ? '+ Vaste klant toevoegen' : 'Vol — geen plekken meer'}
+              </Text>
             </Pressable>
 
-            {enrolled.length === 0 ? (
-              <Text style={styles.empty}>Nog geen klanten toegevoegd</Text>
-            ) : (
-              enrolled.map((e) => (
-                <View key={e.id} style={styles.row}>
+            <Text style={styles.sectionLabel}>Ingepland op {dateLabel(date).toLowerCase()}</Text>
+            {attending.map(({ person, status }) => {
+              const user = students.find((u) => u.email === person.email)!;
+              return (
+                <View key={person.email} style={styles.row}>
                   <View style={styles.info}>
-                    <Text style={styles.name}>{e.name}</Text>
-                    <Text style={styles.detail}>{e.email}</Text>
-                    <Text style={styles.detail}>{e.phone}</Text>
-                    <Text style={styles.weeks}>{e.weeks} weken</Text>
+                    <Text style={styles.name}>{person.name}</Text>
+                    <Text style={styles.detail}>{person.email}</Text>
+                    {sourceTag(status)}
                   </View>
-                  <Pressable
-                    style={styles.removeBtn}
-                    onPress={() => setPending({ kind: 'remove', enrollment: e })}
-                    hitSlop={10}>
-                    <Text style={styles.removeBtnText}>✕</Text>
-                  </Pressable>
+                  {!started && status.source !== 'aanvraag' ? (
+                    <Pressable style={styles.removeBtn} onPress={() => askRemove(user, status)} hitSlop={10}>
+                      <Text style={styles.removeBtnText}>✕</Text>
+                    </Pressable>
+                  ) : null}
                 </View>
-              ))
-            )}
+              );
+            })}
+            {cancelled.map((u) => (
+              <View key={u.email} style={[styles.row, styles.rowCancelled]}>
+                <View style={styles.info}>
+                  <Text style={styles.name}>{u.name}</Text>
+                  <Text style={styles.detail}>{u.email}</Text>
+                  <Tag label="Afgemeld" tone="muted" />
+                </View>
+              </View>
+            ))}
+            <Text style={styles.note}>
+              {attending.length ? '' : 'Nog geen app-klanten ingepland. '}+{' '}
+              {(schedule.data.roster[session.id] ?? []).length} vaste deelnemers op de presentielijst.
+            </Text>
           </>
         )}
       </ScrollView>
@@ -121,15 +163,21 @@ export default function PlekkenBeherenScreen() {
         visible={pending !== null}
         title={
           pending?.kind === 'add'
-            ? `${pending.user.name} toevoegen voor hoeveel weken?`
-            : pending?.kind === 'remove'
-              ? `${pending.enrollment.name} verwijderen voor hoeveel weken?`
+            ? `${pending.user.name} vast inplannen voor hoeveel weken?`
+            : pending
+              ? `${pending.user.name} afmelden voor hoeveel weken?`
               : ''
         }
-        confirmLabel={pending?.kind === 'add' ? 'Toevoegen' : 'Verwijderen'}
-        onCancel={closePrompt}
-        onConfirm={handleConfirm}
+        hint={
+          pending?.kind === 'add'
+            ? `Kies ${ONGOING_WEEKS} voor een doorlopende vaste les.`
+            : `Kies ${ONGOING_WEEKS} om de vaste les helemaal te stoppen.`
+        }
+        confirmLabel={pending?.kind === 'add' ? 'Inplannen' : 'Afmelden'}
+        onCancel={() => setPending(null)}
+        onConfirm={handleWeeks}
       />
+      <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} />
     </View>
   );
 }
@@ -148,6 +196,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.rani,
     marginBottom: 10,
+  },
+  note: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    lineHeight: 17,
+    color: colors.mutedText,
+    marginTop: 4,
+    marginBottom: 12,
   },
   empty: {
     fontFamily: fonts.body,
@@ -185,6 +241,9 @@ const styles = StyleSheet.create({
   rowPressed: {
     transform: [{ scale: 0.98 }],
   },
+  rowCancelled: {
+    opacity: 0.6,
+  },
   info: {
     flex: 1,
   },
@@ -198,12 +257,6 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     color: colors.mutedText,
     marginTop: 1,
-  },
-  weeks: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 11.5,
-    color: colors.teal,
-    marginTop: 4,
   },
   chevron: {
     fontSize: 22,

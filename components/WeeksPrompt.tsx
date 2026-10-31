@@ -6,12 +6,13 @@ import { colors, fonts } from '@/constants/theme';
 type WeeksPromptProps = {
   visible: boolean;
   title: string;
+  hint?: string;
   confirmLabel: string;
   onCancel: () => void;
   onConfirm: (weeks: number) => void;
 };
 
-export default function WeeksPrompt({ visible, title, confirmLabel, onCancel, onConfirm }: WeeksPromptProps) {
+export default function WeeksPrompt({ visible, title, hint, confirmLabel, onCancel, onConfirm }: WeeksPromptProps) {
   const [weeks, setWeeks] = useState(1);
 
   useEffect(() => {
@@ -22,7 +23,8 @@ export default function WeeksPrompt({ visible, title, confirmLabel, onCancel, on
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <Pressable style={styles.backdrop} onPress={onCancel}>
         <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
-          <Text style={styles.title}>{title}</Text>
+          <Text style={[styles.title, hint ? styles.titleWithHint : null]}>{title}</Text>
+          {hint ? <Text style={styles.hint}>{hint}</Text> : null}
           <Text style={styles.label}>Aantal weken</Text>
           <View style={styles.stepper}>
             <Pressable style={styles.stepperBtn} onPress={() => setWeeks((w) => Math.max(1, w - 1))} hitSlop={10}>
@@ -72,6 +74,17 @@ const styles = StyleSheet.create({
     color: colors.ink,
     marginBottom: 16,
     textAlign: 'center',
+  },
+  titleWithHint: {
+    marginBottom: 6,
+  },
+  hint: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.descText,
+    textAlign: 'center',
+    marginBottom: 16,
   },
   label: {
     fontFamily: fonts.bodySemiBold,

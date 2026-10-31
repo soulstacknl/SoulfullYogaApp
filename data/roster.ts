@@ -1,60 +1,66 @@
-// Mock per-class booking rosters — stands in for the `bookings` + `users` join
-// until Supabase is connected. Counts here match capacity - available for the
-// corresponding session in data/schedule.ts.
+// Regular attendees without an app account, per weekly session — stands in for
+// the `bookings` + `users` join until Supabase is connected. They count toward
+// every week's occupancy and show up on the Docentmodus attendance list.
 export type RosterEntry = {
   id: string;
   name: string;
   strips: number;
-  checkedIn: boolean;
 };
 
-export const rosterBySession: Record<string, RosterEntry[]> = {
+const seed: Record<string, [name: string, strips: number][]> = {
   'mon-1': [
-    { id: 'mon-1-1', name: 'Lotte Jansen', strips: 4, checkedIn: false },
-    { id: 'mon-1-2', name: 'Femke van Dijk', strips: 2, checkedIn: true },
+    ['Lotte Jansen', 4],
+    ['Femke van Dijk', 2],
   ],
   'mon-2': [
-    { id: 'mon-2-1', name: 'Marieke de Groot', strips: 3, checkedIn: true },
-    { id: 'mon-2-2', name: 'Sanne Verhoeven', strips: 0, checkedIn: false },
-    { id: 'mon-2-3', name: 'Petra Willems', strips: 6, checkedIn: true },
-    { id: 'mon-2-4', name: 'Anouk Bakker', strips: 1, checkedIn: false },
-    { id: 'mon-2-5', name: 'Noor Bos', strips: 5, checkedIn: false },
-    { id: 'mon-2-6', name: 'Eva de Wit', strips: 2, checkedIn: true },
-    { id: 'mon-2-7', name: 'Tessa Mulder', strips: 0, checkedIn: false },
+    ['Marieke de Groot', 3],
+    ['Sanne Verhoeven', 0],
+    ['Petra Willems', 6],
+    ['Anouk Bakker', 1],
+    ['Noor Bos', 5],
+    ['Eva de Wit', 2],
+    ['Tessa Mulder', 0],
   ],
   'tue-1': [
-    { id: 'tue-1-1', name: 'Iris Vermeulen', strips: 3, checkedIn: false },
-    { id: 'tue-1-2', name: 'Sophie de Boer', strips: 7, checkedIn: true },
-    { id: 'tue-1-3', name: 'Julia Hendriks', strips: 1, checkedIn: false },
-    { id: 'tue-1-4', name: 'Fleur Dekker', strips: 4, checkedIn: true },
-    { id: 'tue-1-5', name: 'Lisa Kok', strips: 2, checkedIn: false },
+    ['Iris Vermeulen', 3],
+    ['Sophie de Boer', 7],
+    ['Julia Hendriks', 1],
+    ['Fleur Dekker', 4],
+    ['Lisa Kok', 2],
   ],
   'wed-1': [
-    { id: 'wed-1-1', name: 'Maud Willemsen', strips: 5, checkedIn: true },
-    { id: 'wed-1-2', name: 'Roos Meijer', strips: 0, checkedIn: false },
-    { id: 'wed-1-3', name: 'Nina Kuiper', strips: 3, checkedIn: true },
-    { id: 'wed-1-4', name: 'Vera Postma', strips: 8, checkedIn: false },
-    { id: 'wed-1-5', name: 'Anna Brouwer', strips: 2, checkedIn: true },
-    { id: 'wed-1-6', name: 'Elke Visser', strips: 1, checkedIn: false },
-    { id: 'wed-1-7', name: 'Carla Smeets', strips: 6, checkedIn: true },
-    { id: 'wed-1-8', name: 'Marloes Timmer', strips: 4, checkedIn: false },
-    { id: 'wed-1-9', name: 'Yara van Beek', strips: 0, checkedIn: false },
-    { id: 'wed-1-10', name: 'Britt Kramer', strips: 3, checkedIn: true },
-    { id: 'wed-1-11', name: 'Esmee Sanders', strips: 5, checkedIn: false },
-    { id: 'wed-1-12', name: 'Amber Groen', strips: 2, checkedIn: true },
+    ['Maud Willemsen', 5],
+    ['Roos Meijer', 0],
+    ['Nina Kuiper', 3],
+    ['Vera Postma', 8],
+    ['Anna Brouwer', 2],
+    ['Elke Visser', 1],
+    ['Carla Smeets', 6],
+    ['Marloes Timmer', 4],
+    ['Yara van Beek', 0],
+    ['Britt Kramer', 3],
+    ['Esmee Sanders', 5],
+    ['Amber Groen', 2],
   ],
   'thu-1': [],
   'thu-2': [
-    { id: 'thu-2-1', name: 'Wendy Hoekstra', strips: 4, checkedIn: false },
-    { id: 'thu-2-2', name: 'Suzanne Blom', strips: 1, checkedIn: true },
-    { id: 'thu-2-3', name: 'Karin Dijkstra', strips: 6, checkedIn: false },
-    { id: 'thu-2-4', name: 'Nadia Peeters', strips: 2, checkedIn: true },
+    ['Wendy Hoekstra', 4],
+    ['Suzanne Blom', 1],
+    ['Karin Dijkstra', 6],
+    ['Nadia Peeters', 2],
   ],
   'fri-1': [
-    { id: 'fri-1-1', name: 'Hans Peters', strips: 4, checkedIn: false },
-    { id: 'fri-1-2', name: 'Ingrid Smit', strips: 2, checkedIn: true },
-    { id: 'fri-1-3', name: 'Manon Verheul', strips: 0, checkedIn: false },
-    { id: 'fri-1-4', name: 'Merel Aarts', strips: 5, checkedIn: true },
+    ['Hans Peters', 4],
+    ['Ingrid Smit', 2],
+    ['Manon Verheul', 0],
+    ['Merel Aarts', 5],
   ],
-  'fri-2': [{ id: 'fri-2-1', name: 'Loes Verweij', strips: 3, checkedIn: false }],
+  'fri-2': [['Loes Verweij', 3]],
 };
+
+export const initialRoster: Record<string, RosterEntry[]> = Object.fromEntries(
+  Object.entries(seed).map(([sessionId, entries]) => [
+    sessionId,
+    entries.map(([name, strips], i) => ({ id: `${sessionId}-${i + 1}`, name, strips })),
+  ])
+);

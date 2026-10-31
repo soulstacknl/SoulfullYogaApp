@@ -1,31 +1,48 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import Tag from '@/components/Tag';
 import { colors, fonts, styleMeta } from '@/constants/theme';
-import type { ClassSession } from '@/data/schedule';
+import type { Session } from '@/data/schedule';
+
+export type SpotsTone = 'muted' | 'full' | 'mine' | 'pending';
 
 type ClassCardProps = {
-  session: ClassSession;
-  onPress: (session: ClassSession) => void;
+  session: Session;
+  spotsText: string;
+  spotsTone: SpotsTone;
+  closedReason?: string;
+  extra?: boolean;
+  onPress: () => void;
 };
 
-export default function ClassCard({ session, onPress }: ClassCardProps) {
+const spotsColor: Record<SpotsTone, string> = {
+  muted: colors.mutedText,
+  full: colors.rani,
+  mine: colors.teal,
+  pending: '#B07A1E',
+};
+
+export default function ClassCard({ session, spotsText, spotsTone, closedReason, extra, onPress }: ClassCardProps) {
   const meta = styleMeta[session.style];
-  const isFull = session.available <= 0;
 
   return (
     <Pressable
-      onPress={() => onPress(session)}
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
+      onPress={onPress}
+      style={({ pressed }) => [styles.card, closedReason && styles.cardClosed, pressed && styles.cardPressed]}>
       <View style={[styles.dot, { backgroundColor: meta.color }]}>
         <Text style={styles.dotLabel}>{meta.dotLabel}</Text>
       </View>
       <View style={styles.meta}>
-        <Text style={styles.name}>{meta.label}</Text>
-        <Text style={styles.time}>{session.time}</Text>
+        <View style={styles.nameRow}>
+          <Text style={styles.name}>{meta.label}</Text>
+          {extra ? <Tag label="Extra" tone="pending" style={styles.extraTag} /> : null}
+        </View>
+        <Text style={styles.time}>
+          {session.time}
+          {closedReason ? ` · ${closedReason}` : ''}
+        </Text>
       </View>
-      <Text style={[styles.spots, isFull && styles.spotsFull]}>
-        {isFull ? 'Vol' : `${session.available}/${session.capacity} beschikbaar`}
-      </Text>
+      <Text style={[styles.spots, { color: spotsColor[spotsTone] }]}>{spotsText}</Text>
       <Text style={styles.chevron}>›</Text>
     </Pressable>
   );
@@ -43,6 +60,11 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     marginBottom: 10,
+  },
+  cardClosed: {
+    opacity: 0.55,
+    borderStyle: 'dashed',
+    backgroundColor: 'transparent',
   },
   cardPressed: {
     transform: [{ scale: 0.98 }],
@@ -62,10 +84,18 @@ const styles = StyleSheet.create({
   meta: {
     flex: 1,
   },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   name: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 15,
     color: colors.ink,
+  },
+  extraTag: {
+    marginTop: 0,
   },
   time: {
     fontFamily: fonts.body,
@@ -76,11 +106,7 @@ const styles = StyleSheet.create({
   spots: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 12.5,
-    color: colors.mutedText,
     marginRight: 2,
-  },
-  spotsFull: {
-    color: colors.rani,
   },
   chevron: {
     fontSize: 22,

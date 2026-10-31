@@ -5,18 +5,11 @@ import AdminClassCard from '@/components/AdminClassCard';
 import ScreenHeader from '@/components/ScreenHeader';
 import { colors, fonts } from '@/constants/theme';
 import { useSchedule } from '@/contexts/ScheduleContext';
-import type { ClassSession } from '@/data/schedule';
-import { todayDutchLabel, todayWeekdayName } from '@/lib/dutchDate';
+import { dateLabel } from '@/lib/dutchDate';
 
 export default function VandaagScreen() {
-  const { days } = useSchedule();
-
-  const todayName = todayWeekdayName();
-  const todayClasses = days.find((d) => d.day === todayName)?.classes ?? [];
-
-  const openRoster = (session: ClassSession) => {
-    router.push({ pathname: '/admin/roster', params: { day: todayName, id: session.id } });
-  };
+  const { today, sessionsOn, occupancy, closureOf } = useSchedule();
+  const todayClasses = sessionsOn(today);
 
   return (
     <View style={styles.container}>
@@ -25,18 +18,32 @@ export default function VandaagScreen() {
         onBack={() => router.back()}
         eyebrow="Docentmodus"
         title="Vandaag"
-        subtitle={todayDutchLabel()}
+        subtitle={dateLabel(today)}
       />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {todayClasses.length === 0 ? (
           <Text style={styles.empty}>Geen lessen vandaag</Text>
         ) : (
-          todayClasses.map((session) => (
-            <AdminClassCard key={session.id} session={session} onPress={openRoster} />
-          ))
+          todayClasses.map((session) => {
+            const { booked, capacity } = occupancy(session.id, today);
+            const closure = closureOf(session.id, today);
+            return (
+              <AdminClassCard
+                key={session.id}
+                session={session}
+                booked={booked}
+                capacity={capacity}
+                closedReason={closure?.reason}
+                onPress={
+                  closure
+                    ? undefined
+                    : () => router.push({ pathname: '/admin/roster', params: { sessionId: session.id, date: today } })
+                }
+              />
+            );
+          })
         )}
       </ScrollView>
-      {todayClasses.length > 0 ? <Text style={styles.hint}>Tik op een les om de klas te openen</Text> : null}
     </View>
   );
 }
@@ -56,12 +63,5 @@ const styles = StyleSheet.create({
     color: colors.mutedText,
     textAlign: 'center',
     marginTop: 40,
-  },
-  hint: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: '#A89BB5',
-    textAlign: 'center',
-    paddingVertical: 16,
   },
 });

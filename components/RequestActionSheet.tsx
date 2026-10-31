@@ -2,7 +2,9 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, fonts, styleMeta } from '@/constants/theme';
+import { useSchedule } from '@/contexts/ScheduleContext';
 import type { ReservationRequest } from '@/contexts/ScheduleContext';
+import { dateLabel } from '@/lib/dutchDate';
 
 type RequestActionSheetProps = {
   request: ReservationRequest | null;
@@ -14,7 +16,9 @@ type RequestActionSheetProps = {
 export default function RequestActionSheet({ request, onClose, onApprove, onReject }: RequestActionSheetProps) {
   const insets = useSafeAreaInsets();
   const visible = request !== null;
-  const meta = request ? styleMeta[request.style] : null;
+  const { sessionById } = useSchedule();
+  const session = request ? sessionById(request.sessionId) : undefined;
+  const meta = session ? styleMeta[session.style] : null;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -26,13 +30,13 @@ export default function RequestActionSheet({ request, onClose, onApprove, onReje
             <Text style={styles.closeXText}>✕</Text>
           </Pressable>
           <View style={styles.handle} />
-          {request && meta ? (
+          {request && session && meta ? (
             <>
-              <Text style={styles.title}>{request.studentName}</Text>
+              <Text style={styles.title}>{request.name}</Text>
               <Text style={styles.subtitle}>
-                {meta.label} · {request.day} · {request.time}
+                {meta.label} · {dateLabel(request.date)} · {session.time}
               </Text>
-              <Text style={styles.email}>{request.studentEmail}</Text>
+              <Text style={styles.email}>{request.email}</Text>
 
               <View style={styles.actions}>
                 <Pressable style={[styles.actionBtn, styles.approveBtn]} onPress={onApprove}>

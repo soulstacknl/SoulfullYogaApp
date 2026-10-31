@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -57,3 +57,24 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
 });
+
+// Shows a toast message for a couple of seconds: `const toast = useToast();`
+// then `toast.show('…')` and `<Toast message={toast.message} visible={toast.visible} />`.
+export function useToast() {
+  const [message, setMessage] = useState('');
+  const [visible, setVisible] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (timer.current) clearTimeout(timer.current);
+  }, []);
+
+  const show = (text: string) => {
+    setMessage(text);
+    setVisible(true);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setVisible(false), 2200);
+  };
+
+  return { message, visible, show };
+}

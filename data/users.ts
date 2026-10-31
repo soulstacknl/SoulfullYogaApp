@@ -9,6 +9,7 @@ export type MockUser = {
   strippen: number | null; // null = no strippenkaart purchased yet
   total: number;
   role: UserRole;
+  termsAcceptedAt: string | null; // DD-MM-YYYY when the customer agreed to the algemene voorwaarden
 };
 
 export const mockUsers: MockUser[] = [
@@ -20,6 +21,7 @@ export const mockUsers: MockUser[] = [
     strippen: 7,
     total: 10,
     role: 'student',
+    termsAcceptedAt: null,
   },
   {
     email: 'daan@soulfulyoga.nl',
@@ -29,6 +31,7 @@ export const mockUsers: MockUser[] = [
     strippen: null,
     total: 10,
     role: 'student',
+    termsAcceptedAt: null,
   },
   {
     email: 'beheer@soulfulyoga.nl',
@@ -38,6 +41,7 @@ export const mockUsers: MockUser[] = [
     strippen: null,
     total: 10,
     role: 'admin',
+    termsAcceptedAt: null,
   },
   {
     email: 'marjolijn_n@hotmail.com',
@@ -47,5 +51,6 @@ export const mockUsers: MockUser[] = [
     strippen: 5,
     total: 10,
     role: 'student',
+    termsAcceptedAt: null,
   },
 ];

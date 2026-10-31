@@ -5,6 +5,7 @@ import type { MockUser } from '@/data/users';
 
 type UserStripRowProps = {
   user: MockUser;
+  detail?: string;
   onAdjust: (delta: number) => void;
 };
 
@@ -17,7 +18,7 @@ function initialsFor(name: string) {
     .toUpperCase();
 }
 
-export default function UserStripRow({ user, onAdjust }: UserStripRowProps) {
+export default function UserStripRow({ user, detail, onAdjust }: UserStripRowProps) {
   const strips = user.strippen ?? 0;
 
   return (
@@ -28,7 +29,9 @@ export default function UserStripRow({ user, onAdjust }: UserStripRowProps) {
 
       <View style={styles.info}>
         <Text style={styles.name}>{user.name}</Text>
-        <Text style={styles.strip}>{strips} lessen over</Text>
+        <Text style={styles.strip}>
+          {strips} lessen over{detail ? ` · ${detail}` : ''}
+        </Text>
       </View>
 
       <View style={styles.stripAdjust}>

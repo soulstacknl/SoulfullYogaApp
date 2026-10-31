@@ -6,7 +6,11 @@ export default function AdminLayout() {
       <Stack.Screen name="index" />
       <Stack.Screen name="roster" />
       <Stack.Screen name="strippen" />
-      <Stack.Screen name="rooster-info" />
+      <Stack.Screen name="rooster-beheer" />
+      <Stack.Screen name="les-form" />
+      <Stack.Screen name="vervallen" />
+      <Stack.Screen name="les-bewerken" />
+      <Stack.Screen name="voorwaarden" />
       <Stack.Screen name="reserveringen" />
       <Stack.Screen name="plekken" />
     </Stack>

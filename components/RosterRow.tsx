@@ -1,10 +1,12 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, fonts } from '@/constants/theme';
-import type { RosterEntry } from '@/data/roster';
 
 type RosterRowProps = {
-  entry: RosterEntry;
+  name: string;
+  strips: number;
+  checkedIn: boolean;
+  usesApp: boolean; // app customers pay automatically after the lesson
   onToggleCheckIn: () => void;
   onAdjustStrip: (delta: number) => void;
 };
@@ -18,23 +20,25 @@ function initialsFor(name: string) {
     .toUpperCase();
 }
 
-export default function RosterRow({ entry, onToggleCheckIn, onAdjustStrip }: RosterRowProps) {
+export default function RosterRow({ name, strips, checkedIn, usesApp, onToggleCheckIn, onAdjustStrip }: RosterRowProps) {
   return (
-    <View style={[styles.row, entry.checkedIn && styles.rowChecked]}>
+    <View style={[styles.row, checkedIn && styles.rowChecked]}>
       <Pressable
-        style={[styles.checkinBtn, entry.checkedIn && styles.checkinBtnChecked]}
+        style={[styles.checkinBtn, checkedIn && styles.checkinBtnChecked]}
         onPress={onToggleCheckIn}
         hitSlop={10}>
-        {entry.checkedIn ? <Text style={styles.checkmark}>✓</Text> : null}
+        {checkedIn ? <Text style={styles.checkmark}>✓</Text> : null}
       </Pressable>
 
       <View style={styles.initials}>
-        <Text style={styles.initialsText}>{initialsFor(entry.name)}</Text>
+        <Text style={styles.initialsText}>{initialsFor(name)}</Text>
       </View>
 
       <View style={styles.info}>
-        <Text style={styles.name}>{entry.name}</Text>
-        <Text style={styles.strip}>{entry.strips} lessen over</Text>
+        <Text style={styles.name}>{name}
+          {usesApp ? ' 📱' : ''}
+        </Text>
+        <Text style={styles.strip}>{strips} lessen over</Text>
       </View>
 
       <View style={styles.stripAdjust}>

@@ -1,19 +1,23 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import RosterRow from '@/components/RosterRow';
 import ScreenHeader from '@/components/ScreenHeader';
+import Stepper from '@/components/Stepper';
 import { colors, fonts, styleMeta } from '@/constants/theme';
 import { useSchedule } from '@/contexts/ScheduleContext';
+import { useUsers } from '@/contexts/UsersContext';
+import { lessonKey } from '@/lib/schedule';
 
+// Attendance list for one lesson date: app customers scheduled that day plus
+// the regular attendees without the app.
 export default function RosterScreen() {
-  const { day, id } = useLocalSearchParams<{ day: string; id: string }>();
-  const { days, rosterBySession, adjustCapacity, toggleCheckIn, adjustStrip } = useSchedule();
+  const { sessionId, date } = useLocalSearchParams<{ sessionId: string; date: string }>();
+  const schedule = useSchedule();
+  const { users, adjustStrip } = useUsers();
+  const session = schedule.sessionById(sessionId ?? '');
 
-  const session = days.find((d) => d.day === day)?.classes.find((c) => c.id === id);
-  const roster = rosterBySession[id ?? ''] ?? [];
-
-  if (!session) {
+  if (!session || !date) {
     return (
       <View style={styles.container}>
         <ScreenHeader backLabel="Vandaag" onBack={() => router.back()} title="Les niet gevonden" subtitle="" />
@@ -22,6 +26,12 @@ export default function RosterScreen() {
   }
 
   const meta = styleMeta[session.style];
+  const checkins = schedule.data.checkins[lessonKey(session.id, date)] ?? {};
+  const appCustomers = schedule
+    .attendees(session.id, date)
+    .filter((a) => a.status.source !== 'aanvraag')
+    .map(({ person }) => users.find((u) => u.email === person.email)!)
+    .filter(Boolean);
 
   return (
     <View style={styles.container}>
@@ -34,31 +44,36 @@ export default function RosterScreen() {
       />
 
       <View style={styles.capacityEditor}>
-        <Text style={styles.capacityLabel}>Maximaal aantal plekken</Text>
-        <View style={styles.stepper}>
-          <Pressable
-            style={styles.stepperBtn}
-            onPress={() => adjustCapacity(day, id, -1)}
-            hitSlop={10}>
-            <Text style={styles.stepperBtnText}>–</Text>
-          </Pressable>
-          <Text style={styles.stepperValue}>{session.capacity}</Text>
-          <Pressable
-            style={styles.stepperBtn}
-            onPress={() => adjustCapacity(day, id, 1)}
-            hitSlop={10}>
-            <Text style={styles.stepperBtnText}>+</Text>
-          </Pressable>
-        </View>
+        <Text style={styles.capacityLabel}>Plekken deze les</Text>
+        <Stepper
+          size="md"
+          value={schedule.occupancy(session.id, date).capacity}
+          onChange={(delta) => schedule.adjustCapacity(session.id, date, delta)}
+        />
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {roster.map((entry) => (
+        <Text style={styles.note}>Klanten met de app (📱): de strip gaat automatisch af na de les.</Text>
+        {appCustomers.map((user) => (
+          <RosterRow
+            key={user.email}
+            name={user.name}
+            strips={user.strippen ?? 0}
+            checkedIn={!!checkins[user.email]}
+            usesApp
+            onToggleCheckIn={() => schedule.toggleCheckIn(session.id, date, user.email)}
+            onAdjustStrip={(delta) => adjustStrip(user.email, delta)}
+          />
+        ))}
+        {(schedule.data.roster[session.id] ?? []).map((entry) => (
           <RosterRow
             key={entry.id}
-            entry={entry}
-            onToggleCheckIn={() => toggleCheckIn(id, entry.id)}
-            onAdjustStrip={(delta) => adjustStrip(id, entry.id, delta)}
+            name={entry.name}
+            strips={entry.strips}
+            checkedIn={!!checkins[entry.id]}
+            usesApp={false}
+            onToggleCheckIn={() => schedule.toggleCheckIn(session.id, date, entry.id)}
+            onAdjustStrip={(delta) => schedule.adjustRosterStrip(session.id, entry.id, delta)}
           />
         ))}
       </ScrollView>
@@ -89,34 +104,15 @@ const styles = StyleSheet.create({
     fontSize: 13.5,
     color: colors.ink,
   },
-  stepper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  stepperBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: colors.ink,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepperBtnText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 18,
-    color: colors.ivory,
-    lineHeight: 20,
-  },
-  stepperValue: {
-    fontFamily: fonts.display,
-    fontSize: 18,
-    color: colors.ink,
-    minWidth: 20,
-    textAlign: 'center',
-  },
   content: {
     padding: 20,
-    paddingTop: 4,
+    paddingTop: 16,
+  },
+  note: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    lineHeight: 17,
+    color: colors.mutedText,
+    marginBottom: 12,
   },
 });

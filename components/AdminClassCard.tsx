@@ -1,32 +1,38 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, fonts, styleMeta } from '@/constants/theme';
-import type { ClassSession } from '@/data/schedule';
+import type { Session } from '@/data/schedule';
 
 type AdminClassCardProps = {
-  session: ClassSession;
-  onPress: (session: ClassSession) => void;
+  session: Session;
+  booked: number;
+  capacity: number;
+  closedReason?: string;
+  onPress?: () => void;
 };
 
-export default function AdminClassCard({ session, onPress }: AdminClassCardProps) {
+export default function AdminClassCard({ session, booked, capacity, closedReason, onPress }: AdminClassCardProps) {
   const meta = styleMeta[session.style];
-  const booked = session.capacity - session.available;
-  const isFull = booked >= session.capacity;
+  const isFull = booked >= capacity;
 
   return (
     <Pressable
-      onPress={() => onPress(session)}
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
+      onPress={onPress}
+      disabled={!onPress}
+      style={({ pressed }) => [styles.card, closedReason && styles.cardClosed, pressed && styles.cardPressed]}>
       <View style={[styles.dot, { backgroundColor: meta.color }]}>
         <Text style={styles.dotLabel}>{meta.dotLabel}</Text>
       </View>
       <View style={styles.meta}>
         <Text style={styles.name}>{meta.label}</Text>
-        <Text style={styles.time}>{session.time}</Text>
+        <Text style={styles.time}>
+          {session.time}
+          {closedReason ? ` · ${closedReason}` : ''}
+        </Text>
       </View>
-      <View style={[styles.pill, isFull && styles.pillFull]}>
-        <Text style={styles.pillText}>
-          {booked} / {session.capacity}
+      <View style={[styles.pill, isFull && styles.pillFull, closedReason && styles.pillClosed]}>
+        <Text style={[styles.pillText, closedReason && styles.pillTextClosed]}>
+          {closedReason ? 'Vervalt' : `${booked} / ${capacity}`}
         </Text>
       </View>
     </Pressable>
@@ -44,6 +50,11 @@ const styles = StyleSheet.create({
     borderColor: colors.sand,
     padding: 16,
     marginBottom: 12,
+  },
+  cardClosed: {
+    opacity: 0.55,
+    borderStyle: 'dashed',
+    backgroundColor: 'transparent',
   },
   cardPressed: {
     transform: [{ scale: 0.98 }],
@@ -82,6 +93,12 @@ const styles = StyleSheet.create({
   },
   pillFull: {
     backgroundColor: colors.rani,
+  },
+  pillClosed: {
+    backgroundColor: colors.sand,
+  },
+  pillTextClosed: {
+    color: colors.ink,
   },
   pillText: {
     fontFamily: fonts.bodyBold,
