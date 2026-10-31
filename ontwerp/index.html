@@ -194,11 +194,28 @@ const SCREENS = [
        <div style="padding:10px 0 24px">${VIDEOS.map(v=>`<div class="vcard"><div class="thumb ${v.s}"><div class="play"></div></div>
        <div class="vinfo"><div class="nm">${v.t}</div><div class="sb2">${v.m} min · ${v.l}</div></div></div>`).join('')}</div>`, 'videos')) },
   { id:'inloggen', group:'student', name:'Inloggen', src:'components/LoginScreen.tsx',
-    flag:'Er is nog geen "account aanmaken" of "wachtwoord vergeten".',
+    flag:'Er is nog geen "wachtwoord vergeten".',
     html: () => phone(screen(header({title:'Inloggen', subtitle:'Log in om je strippenkaart te bekijken'}) +
       `<div style="padding:24px 20px 20px"><div class="field"><label>E-mailadres</label><div class="in">naam@voorbeeld.nl</div></div>
        <div class="field"><label>Wachtwoord</label><div class="in">••••••••</div></div><div class="cta" style="margin-top:4px">Inloggen</div>
+       <div class="ask-account">Nog geen account? <a>Account aanvragen</a></div>
        <div class="hint2">Demo-account: marieke@soulfulyoga.nl · yoga123<br>(of daan@soulfulyoga.nl · yoga123 voor een account zonder strippenkaart)</div></div>`, 'profiel')) },
+  { id:'account-aanvragen', group:'student', name:'Account aanvragen', src:'app/account-aanvragen.tsx',
+    flag:'De gast moet de mail zelf nog versturen in het mailprogramma; automatisch versturen kan pas met een server.',
+    html: () => phone(screen(header({back:'Inloggen', eyebrow:'Soulful Yoga', title:'Account aanvragen', subtitle:'Vul je gegevens in, dan maken wij je account aan'}) +
+      `<div style="padding:24px 20px 20px"><div class="field"><label>Naam</label><div class="in">Voor- en achternaam</div></div>
+       <div class="field"><label>E-mailadres</label><div class="in">naam@voorbeeld.nl</div></div><div class="cta" style="margin-top:4px">Aanvraag versturen</div>
+       <div class="hint2">Je mailprogramma opent met de aanvraag aan info@soulfulyoga.nl.<br>Je krijgt bericht zodra je account klaarstaat.</div></div>`, 'profiel')) },
+  { id:'account-klaar', group:'student', name:'Account aanvragen — mail klaar', src:'app/account-aanvragen.tsx',
+    html: () => phone(screen(header({back:'Inloggen', eyebrow:'Account aanvragen', title:'Bijna klaar', subtitle:'Verstuur de e-mail in je mailprogramma'}) +
+      `<div style="padding:24px 20px 20px"><div class="note">✓ Je aanvraag staat klaar in je mailprogramma.</div>
+       <p class="sub2">Druk daar op Verzenden om de aanvraag naar Soulful Yoga te sturen. Zodra je account klaarstaat, krijg je bericht op <b>joke.peters@gmail.com</b>.</p>
+       <div class="mailprev"><div class="mh">E-mail in je mailprogramma</div><div><span>Aan</span>info@soulfulyoga.nl</div><div><span>Onderwerp</span>Accountaanvraag: Joke Peters</div>
+       <pre>Nieuwe accountaanvraag via de Soulful Yoga app.
+
+Naam: Joke Peters
+E-mailadres: joke.peters@gmail.com</pre></div>
+       <div class="cta">Terug naar inloggen</div><div class="logout">Mailprogramma opnieuw openen</div></div>`, 'profiel')) },
   { id:'profiel-kaart', group:'student', name:'Profiel — met strippenkaart', src:'app/(tabs)/profiel.tsx',
     html: () => phone(screen(header({eyebrow:'Jouw account', title:'Profiel', subtitle:'Berghem · info@soulfulyoga.nl'}) +
       `<div class="hero"><div class="avatar"></div><h2>Marieke Jansen</h2><p>marieke@soulfulyoga.nl</p></div>
