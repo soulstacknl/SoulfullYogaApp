@@ -30,26 +30,17 @@ const TERMS = [
 
 /* ── Lessen per week — gelijk aan data/schedule.ts ──────────────────── */
 const WEEK = [
-  {day:'Maandag', classes:[{id:'mon-1',style:'yin',time:'19.00 – 20.00',capacity:10},{id:'mon-2',style:'yin',time:'20.15 – 21.15',capacity:10}]},
-  {day:'Dinsdag', classes:[{id:'tue-1',style:'yin',time:'19.00 – 20.00',capacity:10}]},
-  {day:'Woensdag', classes:[{id:'wed-1',style:'flow',time:'09.00 – 10.00',capacity:12}]},
-  {day:'Donderdag', classes:[{id:'thu-1',style:'yin',time:'19.00 – 20.00',capacity:10},{id:'thu-2',style:'yin',time:'20.15 – 21.15',capacity:10}]},
-  {day:'Vrijdag', classes:[{id:'fri-1',style:'gentle',time:'09.00 – 10.00',capacity:8},{id:'fri-2',style:'yin',time:'10.15 – 11.15',capacity:10}]},
+  {day:'Maandag', classes:[{id:'mon-1',style:'yin',time:'19.00 – 20.00',capacity:14},{id:'mon-2',style:'yin',time:'20.15 – 21.15',capacity:14}]},
+  {day:'Dinsdag', classes:[{id:'tue-1',style:'yin',time:'19.00 – 20.00',capacity:14}]},
+  {day:'Woensdag', classes:[{id:'wed-1',style:'flow',time:'09.00 – 10.00',capacity:14}]},
+  {day:'Donderdag', classes:[{id:'thu-1',style:'yin',time:'19.00 – 20.00',capacity:14},{id:'thu-2',style:'yin',time:'20.15 – 21.15',capacity:14}]},
+  {day:'Vrijdag', classes:[{id:'fri-1',style:'gentle',time:'09.00 – 10.00',capacity:12},{id:'fri-2',style:'yin',time:'10.15 – 11.15',capacity:14}]},
 ];
 // Lessen staan in de toestand (S.sessions) zodat de beheerder ze kan aanpassen; SES is de index op id.
 let SES = Object.fromEntries(WEEK.flatMap(d => d.classes.map(c => [c.id, {...c, day:d.day}])));
 
-// Vaste deelnemers zonder app-account (presentielijst) — tellen elke week mee in de bezetting.
-const ROSTER_SEED = {
-  'mon-1':[['Lotte Jansen',4],['Femke van Dijk',2]],
-  'mon-2':[['Marieke de Groot',3],['Sanne Verhoeven',0],['Petra Willems',6],['Anouk Bakker',1],['Noor Bos',5],['Eva de Wit',2],['Tessa Mulder',0]],
-  'tue-1':[['Iris Vermeulen',3],['Sophie de Boer',7],['Julia Hendriks',1],['Fleur Dekker',4],['Lisa Kok',2]],
-  'wed-1':[['Maud Willemsen',5],['Roos Meijer',0],['Nina Kuiper',3],['Vera Postma',8],['Anna Brouwer',2],['Elke Visser',1],['Carla Smeets',6],['Marloes Timmer',4],['Yara van Beek',0],['Britt Kramer',3],['Esmee Sanders',5],['Amber Groen',2]],
-  'thu-1':[],
-  'thu-2':[['Wendy Hoekstra',4],['Suzanne Blom',1],['Karin Dijkstra',6],['Nadia Peeters',2]],
-  'fri-1':[['Hans Peters',4],['Ingrid Smit',2],['Manon Verheul',0],['Merel Aarts',5]],
-  'fri-2':[['Loes Verweij',3]],
-};
+// Vaste deelnemers zonder app-account (presentielijst). Leeg: in de demo zitten alle klanten in de app.
+const ROSTER_SEED = {};
 
 /* ── Datum & tijd ───────────────────────────────────────────────────── */
 const DAY = 86400000;
@@ -100,6 +91,61 @@ function baseSchedule(){
     closures: [{id:'c-kerst', from:`${y}-12-21`, to:`${y+1}-01-03`, sessionId:null, reason:'Kerstvakantie'}],
   };
 }
+/* ── Voorbeeldklanten ───────────────────────────────────────────────── */
+// Vaste "willekeur" (zelfde data bij elke reset, en in telefoon-demo én portaal).
+function seededRandom(seed){ return () => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const FIRST_NAMES = ['Anna','Sanne','Lotte','Femke','Iris','Noor','Eva','Lisa','Julia','Fleur','Sophie','Emma','Tessa','Roos','Maud','Nina','Vera','Elke','Carla','Marloes','Yara','Britt','Esmee','Amber','Wendy','Suzanne','Karin','Nadia','Ingrid','Manon','Merel','Loes','Petra','Anouk','Ilse','Mirjam','Hanneke','Joyce','Linda','Monique','Sandra','Esther','Inge','Marjan','Ellen','Bram','Joost','Thijs','Ruben','Hans','Peter','Mark','Jeroen','Koen','Wouter','Sander','Gijs','Lieke','Kim','Eline','Floor','Jet','Puck','Mila','Saskia','Annemiek','Gerda','Ria','Tineke','Willemijn'];
+const LAST_NAMES = ['Jansen','de Vries','van Dijk','Bakker','Visser','Smit','Meijer','de Boer','Mulder','de Groot','Bos','Vos','Peters','Hendriks','van Leeuwen','Dekker','Brouwer','de Wit','Dijkstra','Smits','de Graaf','van der Meer','Kok','Jacobs','Willems','van den Berg','Verhoeven','Schouten','Hoekstra','Kuiper','Postma','Timmer','van Beek','Kramer','Sanders','Groen','Blom','Peeters','Aarts','Verweij','van Erp','Coolen','van Lith','Hermans','van Rooij','Verbeek','Kuijpers','van Gerwen','Wijnen','Cornelissen'];
+const DEMO_CUSTOMERS = 100;
+
+// 100 klanten met elk één vaste les, gelijk verdeeld over de lessen (Gentle iets kleiner).
+function seedCustomers(s){
+  const rnd = seededRandom(20261031);
+  const pick = (list) => list[Math.floor(rnd() * list.length)];
+  const sessionIds = WEEK.flatMap(d => d.classes.map(c => c.id));
+  // Plekken verdelen: elke les krijgt (capaciteit − 1 à 2) vaste klanten, tot er 100 zijn
+  const slots = [];
+  for (let round = 0; slots.length < DEMO_CUSTOMERS; round++) {
+    for (const sid of sessionIds) if (slots.length < DEMO_CUSTOMERS && round < SES[sid].capacity - 1) slots.push(sid);
+  }
+  // Marieke, Daan en Marjolijn hebben al een vaste les; de rest krijgt een plek uit de pot
+  const taken = {'marieke@soulfulyoga.nl':'tue-1', 'marjolijn_n@hotmail.com':'thu-2', 'daan@soulfulyoga.nl':'fri-2'};
+  for (const sid of Object.values(taken)) slots.splice(slots.indexOf(sid), 1);
+  for (let i = slots.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [slots[i], slots[j]] = [slots[j], slots[i]]; }
+
+  const used = new Set(s.users.map(u => u.name));
+  const today = isoOf(new Date());
+  for (const sid of slots) {
+    let name; do { name = `${pick(FIRST_NAMES)} ${pick(LAST_NAMES)}`; } while (used.has(name));
+    used.add(name);
+    const email = `${name.toLowerCase().replace(/ /g, '.')}@voorbeeld.nl`;
+    const r = rnd();
+    const strippen = r < 0.05 ? null : r < 0.12 ? 0 : Math.floor(rnd() * 10) + 1;   // ~5% zonder kaart, ~7% op
+    s.users.push({email, password:'yoga123', name, phone:`06 ${String(Math.floor(rnd() * 1e8)).padStart(8, '0')}`, strippen, total:10, role:'student',
+      termsAcceptedAt: rnd() < 0.6 ? `${String(1 + Math.floor(rnd() * 28)).padStart(2, '0')}-10-2026` : null});
+    const pastWeeks = 1 + Math.floor(rnd() * 4);
+    seedVast(s, email, sid, pastWeeks, rnd() < 0.15 ? [Math.floor(rnd() * pastWeeks)] : [], rnd() < 0.8 ? 99 : 12 + Math.floor(rnd() * 13));
+  }
+  seedVast(s, 'daan@soulfulyoga.nl', 'fri-2', 2, [], 99);
+
+  // Afmeldingen in de komende 6 weken (~10% van de lessen) en een paar losse aanvragen
+  for (const e of s.enrollments) {
+    for (let k = 0; k < e.weeks; k++) {
+      const d = plusDays(e.start, 7 * k);
+      if (d <= today) continue;
+      if (daysBetween(today, d) > 42) break;
+      if (rnd() < 0.1) s.cancels.push({sessionId:e.sessionId, date:d, email:e.email, by:'klant'});
+    }
+  }
+  const customers = s.users.filter(u => u.role === 'student');
+  for (let i = 0; i < 5; i++) {
+    const u = pick(customers); const sid = pick(sessionIds);
+    let d = plusDays(today, 2 + Math.floor(rnd() * 14));
+    while (weekdayOf(d) !== SES[sid].day) d = plusDays(d, 1);
+    if (!s.enrollments.some(e => e.email === u.email && e.sessionId === sid)) s.requests.push({id:`r-seed-${i}`, sessionId:sid, date:d, email:u.email, name:u.name});
+  }
+}
+
 function initialState(){
   const s = {
     users: [
@@ -122,11 +168,12 @@ function initialState(){
   Object.assign(s, baseSchedule());
   seedVast(s, 'marieke@soulfulyoga.nl', 'tue-1', 4, [1], 99);    // dinsdagavond, 1× afgemeld
   seedVast(s, 'marjolijn_n@hotmail.com', 'thu-2', 3, [], 12);
+  seedCustomers(s);
   return s;
 }
 
 /* ── Toestand (blijft bewaard tot "Demo resetten") ──────────────────── */
-const SAVE_KEY = 'sy-demo-v3';
+const SAVE_KEY = 'sy-demo-v4';
 try { S = JSON.parse(localStorage.getItem(SAVE_KEY)) || null; } catch { S = null; }
 const reindex = () => { SES = Object.fromEntries(S.sessions.map(s => [s.id, s])); };
 if (!S) { S = initialState(); S.seedPending = true; }   // geschiedenis volgt onderaan, als alle regels bekend zijn
@@ -148,6 +195,9 @@ const isExtra = (s) => !!s.from && s.from === s.until;
 const activeOn = (s, d) => s.day === weekdayOf(d) && (!s.from || d >= s.from) && (!s.until || d <= s.until);
 const sessionsOn = (d) => S.sessions.filter(s => activeOn(s, d)).sort((a, b) => a.time.localeCompare(b.time));
 const closureOf = (sid, d) => S.closures.find(c => d >= c.from && d <= c.to && (!c.sessionId || c.sessionId === sid));
+// Een vaste les is actief zolang er nog een les op of na vandaag in zit.
+const lastLessonOf = (e) => plusDays(e.start, 7 * (e.weeks - 1));
+const isActiveEnrollment = (e) => e.weeks > 0 && lastLessonOf(e) >= isoOf(now());
 const covers = (e, d) => { const n = daysBetween(e.start, d); return n >= 0 && n % 7 === 0 && n / 7 < e.weeks; };
 const enrollmentOf = (email, sid, d) => S.enrollments.find(e => e.email === email && e.sessionId === sid && covers(e, d));
 const isCancelled = (email, sid, d) => S.cancels.some(c => c.email === email && c.sessionId === sid && c.date === d);

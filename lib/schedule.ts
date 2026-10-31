@@ -1,6 +1,7 @@
 // Pure scheduling rules — everything is derived per lesson date (session id +
 // ISO date) from enrollments, bookings, requests, cancellations and closures.
 // Kept free of React so the same rules can move to Supabase queries later.
+import { seededRandom, standingSeeds } from '@/data/customers';
 import { initialRoster } from '@/data/roster';
 import type { RosterEntry } from '@/data/roster';
 import { initialSessions } from '@/data/schedule';
@@ -48,6 +49,9 @@ export type Occupancy = { capacity: number; booked: number; available: number };
 // Weeks prompt value meaning "ongoing" — long enough to never run out in practice.
 export const ONGOING_WEEKS = 99;
 export const MONTHS_AHEAD = 3;
+
+// Last day customers can see ahead: the end of the month MONTHS_AHEAD months from now.
+export const horizonEnd = (now: Date) => isoOf(new Date(now.getFullYear(), now.getMonth() + MONTHS_AHEAD + 1, 0));
 
 export const lessonKey = (sessionId: string, date: string) => `${sessionId}@${date}`;
 export const startTimeOf = (session: Session) => session.time.split(' – ')[0];
@@ -142,10 +146,63 @@ export function myLessons(data: ScheduleData, email: string, from: string, to: s
     .sort((a, b) => startOf(a.session, a.date).getTime() - startOf(b.session, b.date).getTime());
 }
 
+// A standing lesson is active as long as one of its lessons falls on or after today.
+export const lastLessonOf = (e: Enrollment) => plusDays(e.start, 7 * (e.weeks - 1));
+export const isActiveEnrollment = (e: Enrollment, today: string) => e.weeks > 0 && lastLessonOf(e) >= today;
+
 // The weekly session a customer currently has as standing lesson, if any.
 export function currentStandingSession(data: ScheduleData, email: string, today: string): Session | undefined {
-  const e = data.enrollments.find((x) => x.email === email && plusDays(x.start, 7 * x.weeks) > today);
+  const e = data.enrollments.find((x) => x.email === email && isActiveEnrollment(x, today));
   return e ? data.sessions.find((s) => s.id === e.sessionId) : undefined;
+}
+
+// Active standing enrollments of a customer whose session still exists.
+export const activeEnrollmentsOf = (data: ScheduleData, email: string, today: string) =>
+  data.enrollments.filter(
+    (e) => e.email === email && isActiveEnrollment(e, today) && data.sessions.some((s) => s.id === e.sessionId)
+  );
+
+// First date on or after `from` (within a week) this session takes place, or null.
+export function nextOccurrence(session: Session, from: string): string | null {
+  for (let i = 0; i < 7; i++) {
+    const date = plusDays(from, i);
+    if (activeOn(session, date)) return date;
+  }
+  return null;
+}
+
+// Standing lessons that haven't started yet (up to the horizon) — what stopping would remove.
+export function upcomingStandingDates(data: ScheduleData, enrollment: Enrollment, now: Date): string[] {
+  const session = data.sessions.find((s) => s.id === enrollment.sessionId);
+  if (!session) return [];
+  const end = horizonEnd(now);
+  const dates: string[] = [];
+  for (let week = 0; week < enrollment.weeks; week++) {
+    const date = plusDays(enrollment.start, 7 * week);
+    if (date > end) break;
+    if (activeOn(session, date) && !hasStarted(session, date, now)) dates.push(date);
+  }
+  return dates;
+}
+
+// Ends a standing lesson after the last lesson that already started; later
+// cancellations for it go too, so nothing of it is left in the schedule.
+export function stopEnrollment(data: ScheduleData, enrollmentId: string, now: Date): Partial<ScheduleData> {
+  const enrollment = data.enrollments.find((e) => e.id === enrollmentId);
+  const session = enrollment && data.sessions.find((s) => s.id === enrollment.sessionId);
+  if (!enrollment || !session) return {};
+  let started = 0;
+  while (started < enrollment.weeks && hasStarted(session, plusDays(enrollment.start, 7 * started), now)) started++;
+  const today = isoOf(now);
+  return {
+    enrollments:
+      started === 0
+        ? data.enrollments.filter((e) => e.id !== enrollmentId)
+        : data.enrollments.map((e) => (e.id !== enrollmentId ? e : { ...e, weeks: started })),
+    cancels: data.cancels.filter(
+      (c) => !(c.email === enrollment.email && c.sessionId === enrollment.sessionId && c.date >= today)
+    ),
+  };
 }
 
 // What a holiday would affect: lessons dropped, and how often an app customer was scheduled.
@@ -279,6 +336,28 @@ function seedStanding(
   });
 }
 
+// Some cancellations in the coming six weeks (~10% of the lessons) and a few open requests.
+function seedUpcoming(data: ScheduleData, people: Person[], now: Date) {
+  const rnd = seededRandom(1031);
+  const today = isoOf(now);
+  for (const e of data.enrollments) {
+    for (let week = 0; week < e.weeks; week++) {
+      const date = plusDays(e.start, 7 * week);
+      if (date <= today) continue;
+      if (daysBetween(today, date) > 42) break;
+      if (rnd() < 0.1) data.cancels.push({ sessionId: e.sessionId, date, email: e.email, by: 'klant' });
+    }
+  }
+  for (let i = 0; i < 5; i++) {
+    const person = people[Math.floor(rnd() * people.length)];
+    const session = data.sessions[Math.floor(rnd() * data.sessions.length)];
+    const date = nextOccurrence(session, plusDays(today, 2 + Math.floor(rnd() * 14)));
+    if (person && date && !data.enrollments.some((e) => e.email === person.email && e.sessionId === session.id)) {
+      data.requests.push({ id: `r-seed-${i}`, sessionId: session.id, date, email: person.email, name: person.name });
+    }
+  }
+}
+
 // The last four weeks count as confirmed according to the schedule; the strip
 // balances in data/users.ts and data/roster.ts already reflect them.
 function seedHistory(data: ScheduleData, people: Person[], now: Date) {
@@ -311,9 +390,8 @@ export function initialScheduleData(people: Person[], now = new Date()): Schedul
     extras: {},
     confirmed: {},
   };
-  // Matches the strip balances in data/users.ts (7 and 5 left).
-  seedStanding(data, 'marieke@soulfulyoga.nl', 'tue-1', 4, [1], ONGOING_WEEKS, now);
-  seedStanding(data, 'marjolijn_n@hotmail.com', 'thu-2', 3, [], 12, now);
+  for (const s of standingSeeds) seedStanding(data, s.email, s.sessionId, s.pastWeeks, s.cancelledWeeks, s.weeks, now);
+  seedUpcoming(data, people, now);
   seedHistory(data, people, now);
   return data;
 }

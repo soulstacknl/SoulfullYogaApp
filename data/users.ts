@@ -1,4 +1,6 @@
 // Mock account data — stands in for Supabase auth + the `users` table until that's connected.
+import { demoCustomers } from '@/data/customers';
+
 export type UserRole = 'student' | 'admin';
 
 export type MockUser = {
@@ -53,4 +55,5 @@ export const mockUsers: MockUser[] = [
     role: 'student',
     termsAcceptedAt: null,
   },
+  ...demoCustomers,
 ];

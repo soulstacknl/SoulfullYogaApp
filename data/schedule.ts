@@ -12,16 +12,17 @@ export type Session = {
   until: string | null;
 };
 
-// Matches the real weekly schedule from soulful-yoga-app-spec.md
+// Matches the real weekly schedule from soulful-yoga-app-spec.md; capacities
+// leave room for the ~100 standing demo customers (see data/customers.ts).
 export const initialSessions: Session[] = [
-  { id: 'mon-1', day: 'Maandag', style: 'yin', time: '19.00 – 20.00', capacity: 10, from: null, until: null },
-  { id: 'mon-2', day: 'Maandag', style: 'yin', time: '20.15 – 21.15', capacity: 10, from: null, until: null },
-  { id: 'tue-1', day: 'Dinsdag', style: 'yin', time: '19.00 – 20.00', capacity: 10, from: null, until: null },
-  { id: 'wed-1', day: 'Woensdag', style: 'flow', time: '09.00 – 10.00', capacity: 12, from: null, until: null },
-  { id: 'thu-1', day: 'Donderdag', style: 'yin', time: '19.00 – 20.00', capacity: 10, from: null, until: null },
-  { id: 'thu-2', day: 'Donderdag', style: 'yin', time: '20.15 – 21.15', capacity: 10, from: null, until: null },
-  { id: 'fri-1', day: 'Vrijdag', style: 'gentle', time: '09.00 – 10.00', capacity: 8, from: null, until: null },
-  { id: 'fri-2', day: 'Vrijdag', style: 'yin', time: '10.15 – 11.15', capacity: 10, from: null, until: null },
+  { id: 'mon-1', day: 'Maandag', style: 'yin', time: '19.00 – 20.00', capacity: 14, from: null, until: null },
+  { id: 'mon-2', day: 'Maandag', style: 'yin', time: '20.15 – 21.15', capacity: 14, from: null, until: null },
+  { id: 'tue-1', day: 'Dinsdag', style: 'yin', time: '19.00 – 20.00', capacity: 14, from: null, until: null },
+  { id: 'wed-1', day: 'Woensdag', style: 'flow', time: '09.00 – 10.00', capacity: 14, from: null, until: null },
+  { id: 'thu-1', day: 'Donderdag', style: 'yin', time: '19.00 – 20.00', capacity: 14, from: null, until: null },
+  { id: 'thu-2', day: 'Donderdag', style: 'yin', time: '20.15 – 21.15', capacity: 14, from: null, until: null },
+  { id: 'fri-1', day: 'Vrijdag', style: 'gentle', time: '09.00 – 10.00', capacity: 12, from: null, until: null },
+  { id: 'fri-2', day: 'Vrijdag', style: 'yin', time: '10.15 – 11.15', capacity: 14, from: null, until: null },
 ];
 
 export const classDescriptions: Record<ClassStyle, string> = {

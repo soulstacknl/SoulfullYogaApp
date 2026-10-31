@@ -11,6 +11,7 @@ import type {
   Charge,
   Closure,
   Confirmation,
+  Enrollment,
   Lesson,
   LessonStatus,
   Occupancy,
@@ -24,6 +25,7 @@ export type {
   Attendee,
   Closure,
   Confirmation,
+  Enrollment,
   Lesson,
   LessonStatus,
   Occupancy,
@@ -41,6 +43,8 @@ type ScheduleContextValue = {
   attendees: (sessionId: string, date: string) => { person: Person; status: LessonStatus }[];
   occupancy: (sessionId: string, date: string) => Occupancy;
   myLessons: (email: string, from: string, to: string) => Lesson[];
+  activeEnrollmentsOf: (email: string) => Enrollment[];
+  upcomingStandingDates: (enrollment: Enrollment) => string[];
   closurePreview: (from: string, to: string, sessionId: string | null) => { lessons: number; scheduled: number } | null;
   hasStarted: (session: Session, date: string) => boolean;
   isPast: (session: Session, date: string) => boolean;
@@ -52,6 +56,7 @@ type ScheduleContextValue = {
   resolveRequest: (requestId: string, approved: boolean) => void;
   addStanding: (sessionId: string, date: string, email: string, weeks: number) => boolean;
   removeStanding: (sessionId: string, date: string, email: string, weeks: number) => 'gestopt' | 'afgemeld';
+  stopStanding: (enrollmentId: string) => void;
   adjustCapacity: (sessionId: string, date: string, delta: number) => void;
   adjustDefaultCapacity: (sessionId: string, delta: number) => void;
   addSession: (session: Omit<Session, 'id'>) => void;
@@ -164,6 +169,8 @@ export function ScheduleProvider({ children }: { children: ReactNode }) {
     return 'afgemeld';
   };
 
+  const stopStanding = (enrollmentId: string) => update((prev) => rules.stopEnrollment(prev, enrollmentId, new Date()));
+
   const adjustCapacity = (sessionId: string, date: string, delta: number) => {
     const capacity = Math.max(0, occupancy(sessionId, date).capacity + delta);
     update((prev) => ({ capOverride: { ...prev.capOverride, [rules.lessonKey(sessionId, date)]: capacity } }));
@@ -272,6 +279,8 @@ export function ScheduleProvider({ children }: { children: ReactNode }) {
         attendees: (sessionId, date) => rules.attendees(data, students, sessionId, date),
         occupancy,
         myLessons: (email, from, to) => rules.myLessons(data, email, from, to),
+        activeEnrollmentsOf: (email) => rules.activeEnrollmentsOf(data, email, isoOf(now)),
+        upcomingStandingDates: (enrollment) => rules.upcomingStandingDates(data, enrollment, now),
         closurePreview: (from, to, sessionId) => rules.closurePreview(data, students, from, to, sessionId),
         hasStarted: (session, date) => rules.hasStarted(session, date, now),
         isPast: (session, date) => rules.isPast(session, date, now),
@@ -281,6 +290,7 @@ export function ScheduleProvider({ children }: { children: ReactNode }) {
         resolveRequest,
         addStanding,
         removeStanding,
+        stopStanding,
         adjustCapacity,
         adjustDefaultCapacity,
         addSession,

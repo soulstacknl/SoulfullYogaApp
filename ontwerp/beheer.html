@@ -67,12 +67,6 @@
   .note{font-size:12.5px; color:var(--mutedText); line-height:1.5;}
 
   /* Kerncijfers */
-  .tiles{display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:14px; margin-bottom:18px;}
-  .tile{background:var(--card); border:1px solid var(--sand); border-radius:16px; padding:16px 18px;}
-  .tile .lbl{font-size:12.5px; color:var(--mutedText); font-weight:500;}
-  .tile .val{font:600 30px var(--body); margin-top:4px; letter-spacing:-.5px;}
-  .tile .sub{font-size:12px; color:var(--mutedText); margin-top:2px;}
-  .tile[data-act]:hover{border-color:var(--ink);}
 
   /* Bezettingsbalk: spoor = lichte stap van dezelfde kleur als de vulling */
   .meter{display:flex; align-items:center; gap:10px;}
@@ -89,6 +83,8 @@
   .list-row .nm{font-weight:600;}
   .list-row .dt{font-size:12.5px; color:var(--mutedText); margin-top:1px;}
   .list-row[data-act]:hover .nm{color:var(--rani);}
+  .list-row .go{color:var(--sand); font-weight:400; margin-left:2px;}
+  .list-row[data-act]:hover .go{color:var(--rani);}
   table{width:100%; border-collapse:collapse;}
   th{font:600 11.5px var(--body); letter-spacing:.06em; text-transform:uppercase; color:var(--mutedText); text-align:left; padding:0 10px 10px; border-bottom:1px solid var(--sand);}
   td{padding:11px 10px; border-bottom:1px solid #F1EADC; vertical-align:middle;}
@@ -96,6 +92,14 @@
   tr[data-act]:hover td{background:#FBF7EF;}
   td .nm{font-weight:600;} td .dt{font-size:12px; color:var(--mutedText);}
   .num-col{text-align:right;}
+
+  /* Filters (één rij boven de tabel) */
+  .filterbar{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:14px;}
+  .filterbar input,.filterbar select{border:1px solid var(--sand); border-radius:10px; padding:8px 10px; background:#fff; font-size:13px;}
+  .filterbar input{width:220px;}
+  .filterbar select.on{border-color:var(--ink); background:#F1ECF7; font-weight:600;}
+  .lesinfo{display:flex; align-items:center; gap:14px; margin-bottom:14px; padding:14px 18px;}
+  .lesinfo .meta{flex:1;} .lesinfo .nm{font-weight:600;} .lesinfo .dt{font-size:12.5px; color:var(--mutedText); margin-top:2px;}
 
   /* Weekkalender */
   .weeknav{display:flex; align-items:center; gap:10px;}
@@ -161,7 +165,7 @@
   .login-card .btn{width:100%; justify-content:center; padding:12px; margin-top:16px;}
   .login-card .hint{font-size:12px; color:var(--mutedText); text-align:center; margin-top:16px; line-height:1.5;}
 
-  @media (max-width:1100px){ .tiles{grid-template-columns:repeat(2, minmax(0,1fr));} .grid2{grid-template-columns:1fr;} .cal{grid-template-columns:repeat(2, minmax(0,1fr));} }
+  @media (max-width:1100px){ .grid2{grid-template-columns:1fr;} .cal{grid-template-columns:repeat(2, minmax(0,1fr));} }
   @media (max-width:800px){
     .shell{flex-direction:column;} .side{width:100%; height:auto; position:static;} .nav{flex-direction:row; overflow-x:auto;} .side-foot{display:none;}
     main{padding:20px 16px 48px;} .form-grid{grid-template-columns:1fr;} .cal{grid-template-columns:1fr;}
@@ -177,9 +181,9 @@
 const AUTH_KEY = 'sy-portal-auth';
 const P = {
   auth: (() => { try { return sessionStorage.getItem(AUTH_KEY); } catch { return null; } })(),
-  page: 'overzicht', week: 0, drawer: null, confirm: null, prompt: null, toast: null,
+  page: 'rooster', week: 0, drawer: null, confirm: null, prompt: null, toast: null,
   formKind: 'vast', form: {}, formError: null, loginError: null,
-  pres: {date: null, sid: null}, stopDates: {}, addVast: {email: '', weeks: 99}, av: {email: '', walkin: ''},
+  pres: {date: null, sid: null}, stopDates: {}, addVast: {email: '', weeks: 99}, av: {email: '', walkin: ''}, klantVast: {sid: '', from: '', weeks: 99}, klantError: null, search: '', filters: {les: '', strippen: '', voorwaarden: '', open: ''},
 };
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -189,7 +193,7 @@ const stepper = (act, v, attrs = '') => `<span class="stepper"><span class="sb" 
 const at = (sid, d) => `data-sid="${sid}" data-date="${d}"`;
 const today = () => isoOf(now());
 const startTime = (s) => s.time.split(' – ')[0];
-const standingOf = (email) => { const e = S.enrollments.find(x => x.email === email && plusDays(x.start, 7 * x.weeks) > today()); return e && SES[e.sessionId]; };
+const standingOf = (email) => { const e = S.enrollments.find(x => x.email === email && isActiveEnrollment(x)); return e && SES[e.sessionId]; };
 const openCharges = openChargesOf;
 const mondayOf = (offset) => { const d = now(); const wd = d.getDay(); d.setDate(d.getDate() + (wd === 0 ? -6 : 1 - wd) + offset * 7); return isoOf(d); };
 const weekNumber = (iso) => { const d = toDate(iso); d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7); const w1 = new Date(d.getFullYear(), 0, 4); return 1 + Math.round(((d - w1) / DAY - 3 + (w1.getDay() + 6) % 7) / 7); };
@@ -208,64 +212,17 @@ const sourceTag = (st, d) => {
 };
 function act(msg){ log(`Portaal: ${msg}`); save(); }
 
+// Teller naast een menu-item (open aanvragen, presentie nog te bevestigen).
+const badge = (k) => { const c = k === 'reserveringen' ? S.requests.length : k === 'presentie' ? unconfirmedLessons(14).length : 0; return c ? `<span class="bdg">${c}</span>` : ''; };
+
 /* ── Pagina's ──────────────────────────────────────────────────────── */
 const NAV = [
-  ['overzicht', '🏠', 'Overzicht'],
   ['rooster', '🗓️', 'Rooster'],
   ['reserveringen', '📨', 'Reserveringen'],
   ['klanten', '👥', 'Klanten'],
   ['beheer', '🛠️', 'Rooster beheren'],
   ['presentie', '✅', 'Presentielijst'],
 ];
-
-function overzicht(){
-  const t = today(); const mon = mondayOf(0);
-  const week = Array.from({length: 7}, (_, i) => plusDays(mon, i));
-  const lessonsWeek = week.flatMap(d => sessionsOn(d).filter(s => !closureOf(s.id, d)).map(s => ({s, d})));
-  const remaining = lessonsWeek.filter(({s, d}) => !isPast(s.id, d)).length;
-  const next7 = Array.from({length: 7}, (_, i) => plusDays(t, i)).flatMap(d => sessionsOn(d).filter(s => !closureOf(s.id, d) && !isPast(s.id, d)).map(s => occ(s.id, d)));
-  const fillPct = next7.length ? Math.round(100 * next7.reduce((a, o) => a + Math.min(o.booked, o.cap), 0) / next7.reduce((a, o) => a + o.cap, 0)) : 0;
-  const st = students(); const agreed = st.filter(u => u.termsAcceptedAt).length;
-  const todo = unconfirmedLessons(14);
-  const todays = sessionsOn(t);
-  const closures = S.closures.filter(c => c.to >= t).sort((a, b) => a.from.localeCompare(b.from)).slice(0, 4);
-  const hour = now().getHours();
-  return `<div class="ph"><div><h1>${hour < 12 ? 'Goedemorgen' : hour < 18 ? 'Goedemiddag' : 'Goedenavond'}</h1><p>${dateLabel(t)}</p></div>
-      <div class="acts"><button class="btn" data-act="nav" data-v="rooster">Bekijk rooster</button><button class="btn ink" data-act="nav" data-v="beheer">＋ Les of vakantie</button></div></div>
-    <div class="tiles">
-      <div class="tile" data-act="nav" data-v="presentie"><div class="lbl">Presentie te bevestigen</div><div class="val">${todo.length}</div><div class="sub">${todo.length ? 'lessen · strippen nog niet verwerkt' : 'alles bevestigd'}</div></div>
-      <div class="tile"><div class="lbl">Bezetting komende 7 dagen</div><div class="val">${fillPct}%</div><div class="sub">${next7.length} lessen · deze week nog ${remaining} van ${lessonsWeek.length}</div></div>
-      <div class="tile" data-act="nav" data-v="reserveringen"><div class="lbl">Open aanvragen</div><div class="val">${S.requests.length}</div><div class="sub">${S.requests.length ? 'wachten op goedkeuring' : 'alles behandeld'}</div></div>
-      <div class="tile" data-act="nav" data-v="klanten"><div class="lbl">Voorwaarden akkoord</div><div class="val">${agreed} <span style="font-size:16px;color:var(--mutedText)">/ ${st.length}</span></div><div class="sub">klanten</div></div>
-    </div>
-    <div class="grid2">
-      <div class="card"><h2>Vandaag <small>${dateLabel(t)}</small></h2>
-        ${todays.length ? todays.map(s => { const cl = closureOf(s.id, t);
-          const status = cl ? `Vervalt: ${esc(cl.reason)}` : confirmationOf(s.id, t) ? '✓ Presentie bevestigd' : hasStarted(s.id, t) ? 'Presentie nog bevestigen' : 'Nog te gaan';
-          return `<div class="list-row" data-act="openLesson" ${at(s.id, t)}>${dot(s.style)}<div class="meta"><div class="nm">${STYLE[s.style].label} · ${s.time}</div><div class="dt">${status}</div></div>
-            <div style="width:170px">${cl ? '<span class="tag muted">Vervalt</span>' : meter(occ(s.id, t))}</div></div>`; }).join('')
-          : `<div class="empty">Geen lessen vandaag.</div>`}
-      </div>
-      <div class="stack">
-        ${todo.length ? `<div class="card"><h2>Presentie bevestigen <small>${todo.length} ${todo.length === 1 ? 'les' : 'lessen'}</small></h2>
-          ${todo.slice(0, 5).map(l => { const s = SES[l.sid]; return `<div class="list-row" data-act="toPresentie" ${at(l.sid, l.d)}>${dot(s.style)}<div class="meta"><div class="nm">${dateLabel(l.d)}</div><div class="dt">${STYLE[s.style].label} · ${s.time} · ${attendanceList(l.sid, l.d).length} ingepland</div></div><button class="btn sm primary">Bevestigen</button></div>`; }).join('')}
-          ${todo.length > 5 ? `<button class="btn sm" data-act="nav" data-v="presentie">Alle ${todo.length} lessen</button>` : ''}</div>` : ''}
-        <div class="card"><h2>Aanvragen <small>${S.requests.length} open</small></h2>
-          ${S.requests.length ? S.requests.slice(0, 5).map(r => requestRow(r, true)).join('') : '<div class="empty">Geen open aanvragen.</div>'}
-          ${S.requests.length > 5 ? `<button class="btn sm" data-act="nav" data-v="reserveringen">Alle ${S.requests.length} aanvragen</button>` : ''}
-        </div>
-        <div class="card"><h2>Komende uitzonderingen</h2>
-          ${closures.length ? closures.map(c => `<div class="list-row"><span style="font-size:18px">🌴</span><div class="meta"><div class="nm">${esc(c.reason)}</div><div class="dt">${c.from === c.to ? dateLabel(c.from) : `${shortDate(c.from)} – ${shortDate(c.to)}`} · ${c.sessionId ? `alleen ${SES[c.sessionId].day.toLowerCase()} ${startTime(SES[c.sessionId])}` : 'alle lessen'}</div></div></div>`).join('') : '<div class="empty">Geen vakanties gepland.</div>'}
-        </div>
-      </div>
-    </div>`;
-}
-
-function requestRow(r, compact){
-  const s = SES[r.sessionId];
-  return `<div class="list-row">${dot(s.style)}<div class="meta"><div class="nm">${esc(r.name)}</div><div class="dt">${STYLE[s.style].label} · ${dateLabel(r.date)} · ${s.time}</div></div>
-    <button class="btn sm teal" data-act="resolve" data-id="${r.id}" data-v="1">✓${compact ? '' : ' Goedkeuren'}</button><button class="btn sm ghost-r" data-act="resolve" data-id="${r.id}" data-v="0">✕${compact ? '' : ' Weigeren'}</button></div>`;
-}
 
 function rooster(){
   const mon = mondayOf(P.week); const t = today();
@@ -289,17 +246,66 @@ function reserveringen(){
       </tbody></table>` : '<div class="empty">Geen open aanvragen. Nieuwe aanvragen uit de app verschijnen hier direct.</div>'}</div>`;
 }
 
+// Huidige vaste lessen (sessie-id's) van een klant.
+const standingIds = (email) => S.enrollments.filter(e => e.email === email && isActiveEnrollment(e) && SES[e.sessionId]).map(e => e.sessionId);
+
+// Filters per kolom; alle filters samen (EN) plus de zoekterm.
+const KLANT_FILTERS = {
+  strippen: [['', 'Alle strippen'], ['op', 'Op (0)'], ['bijna', 'Bijna op (1–2)'], ['genoeg', '3 of meer'], ['geen', 'Geen kaart']],
+  voorwaarden: [['', 'Voorwaarden: alle'], ['ja', 'Akkoord'], ['nee', 'Nog niet akkoord']],
+  open: [['', 'Openstaand: alle'], ['ja', 'Met openstaande lessen'], ['nee', 'Zonder openstaande lessen']],
+};
+function matchesFilters(u){
+  const f = P.filters; const ids = standingIds(u.email); const st = u.strippen;
+  if (f.les === 'geen' ? ids.length : f.les && !ids.includes(f.les)) return false;
+  if (f.strippen === 'op' && st !== 0) return false;
+  if (f.strippen === 'bijna' && !(st >= 1 && st <= 2)) return false;
+  if (f.strippen === 'genoeg' && !(st >= 3)) return false;
+  if (f.strippen === 'geen' && st !== null) return false;
+  if (f.voorwaarden === 'ja' && !u.termsAcceptedAt) return false;
+  if (f.voorwaarden === 'nee' && u.termsAcceptedAt) return false;
+  if (f.open === 'ja' && !openCharges(u.email)) return false;
+  if (f.open === 'nee' && openCharges(u.email)) return false;
+  const q = P.search.trim().toLowerCase();
+  return !q || u.name.toLowerCase().includes(q) || u.email.includes(q);
+}
+
 function klanten(){
-  const list = [...students()].sort((a, b) => a.name.localeCompare(b.name));
-  return `<div class="ph"><div><h1>Klanten</h1><p>${list.length} klanten met de app · klik op een klant voor de lessen</p></div></div>
-    <div class="card"><table><thead><tr><th>Klant</th><th>Telefoon</th><th>Strippen</th><th>Vaste les</th><th>Voorwaarden</th><th>Openstaand</th></tr></thead><tbody>
-      ${list.map(u => { const v = standingOf(u.email); const open = openCharges(u.email);
+  const all = students();
+  const list = all.filter(matchesFilters).sort((a, b) => a.name.localeCompare(b.name));
+  const f = P.filters;
+  const active = Object.values(f).some(Boolean) || P.search.trim();
+  const order = (s2) => (WEEKDAYS.indexOf(s2.day) + 6) % 7;
+  const weekly = S.sessions.filter(s2 => !isExtra(s2) && (!s2.until || s2.until >= today())).sort((a, b) => order(a) - order(b) || a.time.localeCompare(b.time));
+  const sel = (key, options) => `<select data-filter="${key}" class="${f[key] ? 'on' : ''}">${options.map(([v, l]) => `<option value="${v}" ${f[key] === v ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
+  const lesOptions = [['', 'Alle vaste lessen'], ...weekly.map(s2 => [s2.id, `${s2.day} ${startTime(s2)} · ${STYLE[s2.style].label}`]), ['geen', 'Geen vaste les']];
+
+  // Samenvatting als er op één les gefilterd wordt
+  let lesInfo = '';
+  if (f.les && f.les !== 'geen') {
+    const s2 = SES[f.les]; let d = today(); for (let i = 0; i < 14 && (!activeOn(s2, d) || hasStarted(s2.id, d)); i++) d = plusDays(d, 1);
+    const o = occ(s2.id, d); const cl = closureOf(s2.id, d);
+    const off = all.filter(u => standingIds(u.email).includes(s2.id) && statusFor(u.email, s2.id, d)?.cancelled).length;
+    lesInfo = `<div class="card lesinfo">${dot(s2.style)}<div class="meta"><div class="nm">${s2.day} ${s2.time} · ${STYLE[s2.style].label}</div>
+        <div class="dt">${all.filter(u => standingIds(u.email).includes(s2.id)).length} vaste klanten · ${s2.capacity} plekken · volgende les ${dateLabel(d)}${cl ? ` vervalt (${esc(cl.reason)})` : `${off ? ` · ${off} afgemeld` : ''}`}</div></div>
+        ${cl ? '<span class="tag muted">Vervalt</span>' : `<div style="width:190px">${meter(o)}</div>`}<button class="btn sm" data-act="openLesson" ${at(s2.id, d)}>Open les</button></div>`;
+  }
+
+  return `<div class="ph"><div><h1>Klanten</h1><p>${active ? `${list.length} van ${all.length}` : all.length} klanten met de app · klik op een klant voor de lessen</p></div></div>
+    <div class="filterbar">
+      <input type="search" id="klantSearch" value="${esc(P.search)}" placeholder="Zoek op naam of e-mail…">
+      ${sel('les', lesOptions)}${sel('strippen', KLANT_FILTERS.strippen)}${sel('voorwaarden', KLANT_FILTERS.voorwaarden)}${sel('open', KLANT_FILTERS.open)}
+      ${active ? '<button class="btn sm" data-act="clearFilters">Wis filters</button>' : ''}
+    </div>
+    ${lesInfo}
+    <div class="card">${list.length ? `<table><thead><tr><th>Klant</th><th>Telefoon</th><th>Strippen</th><th>Vaste les</th><th>Voorwaarden</th><th>Openstaand</th></tr></thead><tbody>
+      ${list.map(u => { const ids = standingIds(u.email); const open = openCharges(u.email);
         return `<tr data-act="openKlant" data-email="${u.email}"><td><div class="nm">${esc(u.name)}</div><div class="dt">${esc(u.email)}</div></td><td>${esc(u.phone)}</td>
-          <td data-act="noop"><span style="display:inline-flex;gap:8px;align-items:center">${stepper('strip', u.strippen ?? 0, `data-email="${u.email}"`)}<button class="btn sm teal" data-act="askCard" data-email="${u.email}" title="Nieuwe 10-strippenkaart">+10</button></span></td>
-          <td>${v ? `${v.day} ${startTime(v)}` : '<span class="muted">—</span>'}</td>
+          <td data-act="noop"><span style="display:inline-flex;gap:8px;align-items:center">${stepper('strip', u.strippen ?? 0, `data-email="${u.email}"`)}<button class="btn sm teal" data-act="askCard" data-email="${u.email}" title="Nieuwe 10-strippenkaart">+10</button>${u.strippen === null ? '<span class="tag muted">geen kaart</span>' : ''}</span></td>
+          <td>${ids.length ? ids.map(id => `${SES[id].day} ${startTime(SES[id])}`).join(', ') : '<span class="muted">—</span>'}</td>
           <td>${u.termsAcceptedAt ? `<span class="tag teal">✓ ${u.termsAcceptedAt}</span>` : '<span class="tag rani">Nog niet</span>'}</td>
           <td>${open ? `<span class="tag rani">${open} ${open === 1 ? 'les' : 'lessen'}</span>` : '<span class="muted">—</span>'}</td></tr>`; }).join('')}
-    </tbody></table></div>`;
+    </tbody></table>` : '<div class="empty">Geen klanten met deze filters.</div>'}</div>`;
 }
 
 function beheer(){
@@ -308,7 +314,7 @@ function beheer(){
   const weekly = S.sessions.filter(s => !isExtra(s) && (!s.until || s.until >= t)).sort((a, b) => order(a) - order(b) || a.time.localeCompare(b.time));
   const extras = S.sessions.filter(s => isExtra(s) && s.from >= t).sort((a, b) => a.from.localeCompare(b.from));
   const closures = S.closures.filter(c => c.to >= t).sort((a, b) => a.from.localeCompare(b.from));
-  const standingCount = (sid) => new Set(S.enrollments.filter(e => e.sessionId === sid && plusDays(e.start, 7 * e.weeks) > t).map(e => e.email)).size;
+  const standingCount = (sid) => new Set(S.enrollments.filter(e => e.sessionId === sid && isActiveEnrollment(e)).map(e => e.email)).size;
   return `<div class="ph"><div><h1>Rooster beheren</h1><p>Weekrooster, extra lessen en vakanties.</p></div></div>
     <div class="grid2">
       <div class="stack">
@@ -422,9 +428,9 @@ function lessonDrawer({sid, d}){
           <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn" data-act="toPresentie" ${at(sid, d)}>✅ Presentielijst</button>
           ${started ? '' : `<button class="btn ghost-r" data-act="askCloseOne" ${at(sid, d)}>Les laten vervallen</button>`}</div></div>`}
       <div class="card"><h2>Deelnemers <small>${att.length} met de app · ${(S.roster[sid] || []).length} zonder</small></h2>
-        ${att.length ? att.map(({user, st}) => `<div class="list-row"><div class="meta"><div class="nm">${esc(user.name)}</div><div class="dt">${esc(user.email)}</div></div>${sourceTag(st, d)}
+        ${att.length ? att.map(({user, st}) => `<div class="list-row" data-act="gotoKlant" data-email="${user.email}" title="Naar klant"><div class="meta"><div class="nm">${esc(user.name)} <span class="go">›</span></div><div class="dt">${user.strippen === null ? 'geen kaart' : `${user.strippen} strippen`} · ${esc(user.email)}</div></div>${sourceTag(st, d)}
           ${!started && st.source !== 'aanvraag' ? `<button class="icon-btn rm" data-act="askRemove" ${at(sid, d)} data-email="${user.email}" title="Afmelden">✕</button>` : ''}</div>`).join('') : '<div class="note">Nog geen app-klanten ingepland.</div>'}
-        ${off.map(u => `<div class="list-row" style="opacity:.6"><div class="meta"><div class="nm">${esc(u.name)}</div></div><span class="tag muted">Afgemeld</span></div>`).join('')}
+        ${off.map(u => `<div class="list-row" style="opacity:.6" data-act="gotoKlant" data-email="${u.email}" title="Naar klant"><div class="meta"><div class="nm">${esc(u.name)} <span class="go">›</span></div></div><span class="tag muted">Afgemeld</span></div>`).join('')}
       </div>
       ${!cl && !started ? `<div class="card"><h2>Vaste klant inplannen <small>vanaf ${shortDate(d)}</small></h2>
         ${o.available > 0 && pickable.length ? `<div class="form-grid"><label class="f full">Klant<select data-av="email"><option value="">Kies een klant…</option>${pickable.map(u => `<option value="${u.email}" ${P.addVast.email === u.email ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}</select></label>
@@ -432,6 +438,34 @@ function lessonDrawer({sid, d}){
           <p class="note" style="margin-top:8px">99 weken = doorlopende vaste les.</p>`
           : `<p class="note">${o.available <= 0 ? 'Deze les is vol.' : 'Alle klanten zijn al vaste klant.'}</p>`}</div>` : ''}
     </div>`;
+}
+
+// Eerste datum op of na `from` waarop een les gegeven wordt (binnen een week), of null.
+function nextOccurrence(sid, from){
+  for (let i = 0; i < 7; i++) { const d = plusDays(from, i); if (activeOn(SES[sid], d)) return d; }
+  return null;
+}
+const weekLabel = (s) => `${s.day} ${startTime(s)} · ${STYLE[s.style].label}`;
+
+// Vaste lessen van een klant: overzicht + inplannen op een les uit het weekrooster.
+function klantVastCard(email){
+  const t = today();
+  const current = S.enrollments.filter(e => e.email === email && isActiveEnrollment(e) && SES[e.sessionId]);
+  const weekly = S.sessions.filter(s => !isExtra(s) && (!s.until || s.until >= t));
+  const f = P.klantVast;
+  const first = f.sid ? nextOccurrence(f.sid, f.from || t) : null;
+  return `<div class="card"><h2>Vaste les <small>${current.length ? `${current.length} actief` : 'geen'}</small></h2>
+    ${current.map(e => { const s = SES[e.sessionId]; const left = e.weeks >= 99 ? 'doorlopend' : `t/m ${shortDate(plusDays(e.start, 7 * (e.weeks - 1)))}`;
+      return `<div class="list-row">${dot(s.style)}<div class="meta"><div class="nm">${weekLabel(s)}</div><div class="dt">vanaf ${shortDate(e.start)} · ${left}</div></div>
+        <button class="btn sm ghost-r" data-act="askStopVast" data-email="${email}" data-id="${e.id}">Stoppen</button></div>`; }).join('')}
+    <div class="form-grid" style="margin-top:${current.length ? 14 : 0}px">
+      <label class="f full">Les uit het weekrooster<select data-kv="sid"><option value="">Kies een les…</option>${weekly.map(s => `<option value="${s.id}" ${f.sid === s.id ? 'selected' : ''}>${weekLabel(s)}</option>`).join('')}</select></label>
+      <label class="f">Vanaf<input type="date" data-kv="from" value="${f.from || t}" min="${t}"></label>
+      <label class="f">Aantal weken<input type="number" min="1" data-kv="weeks" value="${f.weeks}"></label>
+      ${first ? `<div class="preview full">Eerste les: ${dateLabel(first)} · daarna elke ${SES[f.sid].day.toLowerCase()}${n(f.weeks) >= 99 ? ', doorlopend' : `, ${n(f.weeks)} weken`}. Vrije plekken die dag: ${occ(f.sid, first).available}.</div>` : ''}
+      ${P.klantError ? `<div class="err full">${P.klantError}</div>` : ''}
+      <div class="full"><button class="btn primary" data-act="klantVast" data-email="${email}">Vast inplannen</button> <span class="note">99 weken = doorlopend</span></div>
+    </div></div>`;
 }
 
 function klantDrawer({email}){
@@ -454,6 +488,7 @@ function klantDrawer({email}){
         <div class="kv"><span>Vaste les</span><b>${v ? `${v.day} ${startTime(v)}` : '—'}</b></div>
         <div class="kv"><span>Algemene voorwaarden</span>${u.termsAcceptedAt ? `<span class="tag teal">✓ ${u.termsAcceptedAt}</span>` : '<span class="tag rani">Nog niet akkoord</span>'}</div>
         <div class="kv"><span>Openstaande lessen</span><b>${openCharges(email) || '—'}</b></div></div>
+      ${klantVastCard(email)}
       <div class="card"><h2>Komende lessen</h2>${upcoming.length ? upcoming.map(l => row(l, false)).join('') : '<div class="note">Niets ingepland.</div>'}</div>
       <div class="card"><h2>Afgenomen</h2>${past.length ? past.map(l => row(l, true)).join('') : '<div class="note">Nog geen lessen afgenomen.</div>'}</div>
     </div>`;
@@ -473,7 +508,7 @@ function render(){
   const admin = S.users.find(u => u.email === P.auth && u.role === 'admin');
   if (!admin) { app.innerHTML = loginView(); return; }
   const scrollY = window.scrollY;
-  const page = {overzicht, rooster, reserveringen, klanten, beheer, presentie}[P.page]();
+  const page = {rooster, reserveringen, klanten, beheer, presentie}[P.page]();
   let overlay = '';
   if (P.drawer) overlay += `<div class="scrim" data-act="closeDrawer"></div><aside class="drawer">${P.drawer.type === 'les' ? lessonDrawer(P.drawer) : klantDrawer(P.drawer)}</aside>`;
   if (P.prompt) overlay += `<div class="modal-bg" data-act="closePrompt"><div class="modal" data-act="noop"><h3>${esc(P.prompt.name)} afmelden voor hoeveel weken?</h3><p>Kies 99 om de vaste les helemaal te stoppen.</p>
@@ -483,7 +518,7 @@ function render(){
     <div class="acts"><button class="btn" data-act="closeConfirm">Annuleren</button><button class="btn primary" data-act="doConfirm">${P.confirm.ok}</button></div></div></div>`;
   if (P.toast) overlay += `<div class="ptoast">${P.toast}</div>`;
   app.innerHTML = `<div class="shell"><nav class="side"><div class="brand"><img src="logo-mark.png" alt=""><div><b>Soulful Yoga</b><small>Beheerportaal</small></div></div>
-      <div class="nav">${NAV.map(([k, ic, l]) => `<a class="${P.page === k ? 'on' : ''}" data-act="nav" data-v="${k}"><span class="ic">${ic}</span>${l}${k === 'reserveringen' && S.requests.length ? `<span class="bdg">${S.requests.length}</span>` : ''}</a>`).join('')}</div>
+      <div class="nav">${NAV.map(([k, ic, l]) => `<a class="${P.page === k ? 'on' : ''}" data-act="nav" data-v="${k}"><span class="ic">${ic}</span>${l}${badge(k)}</a>`).join('')}</div>
       <div class="side-foot"><b>${esc(admin.name)}</b>${esc(admin.email)}<div class="row2"><a href="demo.html" target="_blank">Telefoon-demo ↗</a><a data-act="logout">Uitloggen</a></div></div></nav>
     <main>${page}</main></div>${overlay}`;
   window.scrollTo(0, scrollY);
@@ -511,7 +546,38 @@ const ACTIONS = {
   logout(){ P.auth = null; try { sessionStorage.removeItem(AUTH_KEY); } catch {} },
   week(el){ P.week = el.dataset.d === '0' ? 0 : P.week + n(el.dataset.d); },
   openLesson(el){ P.drawer = {type: 'les', sid: el.dataset.sid, d: el.dataset.date}; P.addVast = {email: '', weeks: 99}; },
-  openKlant(el){ P.drawer = {type: 'klant', email: el.dataset.email}; },
+  clearFilters(){ P.filters = {les: '', strippen: '', voorwaarden: '', open: ''}; P.search = ''; },
+  // Vanuit een les naar de klant: Klanten-tab met het klantpaneel open.
+  gotoKlant(el){ P.page = 'klanten'; P.drawer = {type: 'klant', email: el.dataset.email}; P.klantVast = {sid: '', from: today(), weeks: 99}; P.klantError = null; window.scrollTo(0, 0); },
+  openKlant(el){ P.drawer = {type: 'klant', email: el.dataset.email}; P.klantVast = {sid: '', from: today(), weeks: 99}; P.klantError = null; },
+  klantVast(el){
+    const email = el.dataset.email; const u = userBy(email); const f = P.klantVast;
+    if (!f.sid) { P.klantError = 'Kies eerst een les.'; return; }
+    const first = nextOccurrence(f.sid, f.from || today());
+    if (!first) { P.klantError = 'Deze les wordt in die week niet gegeven.'; return; }
+    if (enrollmentOf(email, f.sid, first)) { P.klantError = `${u.name} staat al vast op deze les.`; return; }
+    if (occ(f.sid, first).available <= 0) { P.klantError = `De les op ${dateLabel(first)} is vol.`; return; }
+    const weeks = Math.max(1, n(f.weeks) || 1);
+    addVast(f.sid, first, email, weeks);
+    act(`${u.name} vast ingepland op ${weekLabel(SES[f.sid])} vanaf ${shortDate(first)} (${weeks >= 99 ? 'doorlopend' : `${weeks} weken`})`);
+    P.klantVast = {sid: '', from: today(), weeks: 99}; P.klantError = null;
+    toast('Vaste les ingepland ✓'); return 'rendered';
+  },
+  askStopVast(el){
+    const u = userBy(el.dataset.email); const e = S.enrollments.find(x => x.id === el.dataset.id); const s = SES[e.sessionId];
+    // eerstvolgende les die nog niet begonnen is
+    let from = nextOccurrence(e.sessionId, today());
+    if (from && hasStarted(e.sessionId, from)) from = nextOccurrence(e.sessionId, plusDays(from, 1));
+    const vanishing = myLessons(u.email, today(), horizonEnd()).filter(l => l.sid === e.sessionId && !hasStarted(l.sid, l.d) && l.st.source === 'vast');
+    P.confirm = {title: 'Vaste les stoppen?', text: `${esc(u.name)} stopt met ${weekLabel(s)}${from ? ` vanaf ${dateLabel(from)}` : ''}. ${vanishing.length ? `${vanishing.length} komende ${vanishing.length === 1 ? 'les verdwijnt' : 'lessen verdwijnen'} uit de planning en het rooster` : 'Er staan geen komende lessen meer'}. Eerdere lessen blijven staan.`, ok: 'Stoppen',
+      run: () => {
+        if (from && enrollmentOf(u.email, e.sessionId, from)) removeVast(e.sessionId, from, u.email, 99);
+        else e.weeks = Math.max(0, Math.ceil(daysBetween(e.start, today()) / 7));
+        S.cancels = S.cancels.filter(c => !(c.email === u.email && c.sessionId === e.sessionId && c.date >= today()));   // afmeldingen voor vervallen lessen opruimen
+        act(`${u.name} gestopt met vaste les ${weekLabel(s)} — ${vanishing.length} komende lessen uit de planning`);
+        P.toast = `Vaste les gestopt · ${vanishing.length} ${vanishing.length === 1 ? 'les' : 'lessen'} uit de planning`; setTimeout(() => { P.toast = null; render(); }, 2400);
+      }};
+  },
   closeDrawer(){ P.drawer = null; },
 
   resolve(el){ const r = resolveRequest(el.dataset.id, el.dataset.v === '1'); if (!r) return; act(`aanvraag ${r.name} (${lessonName(r.sessionId, r.date)}) ${el.dataset.v === '1' ? 'goedgekeurd' : 'geweigerd'}`); toast(el.dataset.v === '1' ? 'Goedgekeurd ✓' : 'Geweigerd'); return 'rendered'; },
@@ -592,10 +658,14 @@ document.addEventListener('input', (e) => {
   if (t.dataset.av && P.page === 'presentie') P.av[t.dataset.av] = t.value;
   else if (t.dataset.av) P.addVast[t.dataset.av] = t.value;
   if (t.dataset.stop) P.stopDates[t.dataset.stop] = t.value;
+  if (t.dataset.kv) P.klantVast[t.dataset.kv] = t.value;
+  if (t.id === 'klantSearch') { P.search = t.value; render(); const el = document.getElementById('klantSearch'); el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
 });
 document.addEventListener('change', (e) => {
   const t = e.target;
   if (t.dataset.f && t.type !== 'text') render();            // bv. voorvertoning vakantie bijwerken
+  if (t.dataset.kv) { P.klantError = null; render(); }      // voorvertoning eerste les bijwerken
+  if (t.dataset.filter !== undefined) { P.filters[t.dataset.filter] = t.value; render(); }
   if (t.hasAttribute('data-pres-date')) { P.pres = {date: t.value || null, sid: null}; render(); }
 });
 

@@ -94,7 +94,7 @@ const dot = (s, sm) => `<div class="dot ${sm?'sm':''} ${s}">${STYLE[s].dot}</div
 const stepper = (act, v, extra='') => `<div class="stepper"><div class="sb" data-act="${act}" data-d="-1" ${extra}>–</div><div class="sv">${v}</div><div class="sb" data-act="${act}" data-d="1" ${extra}>+</div></div>`;
 const initials = (n) => n.split(' ').filter(w => /^\p{L}/u.test(w)).map(w => w[0]).join('').slice(0,2).toUpperCase();
 const at = (sid, d) => `data-sid="${sid}" data-date="${d}"`;
-const vastLabel = (u) => { const e = S.enrollments.find(x => x.email === u.email && plusDays(x.start, 7 * x.weeks) > isoOf(now())); return e ? `${SES[e.sessionId].day.toLowerCase()} ${SES[e.sessionId].time.split(' – ')[0]}` : null; };
+const vastLabel = (u) => { const e = S.enrollments.find(x => x.email === u.email && isActiveEnrollment(x)); return e ? `${SES[e.sessionId].day.toLowerCase()} ${SES[e.sessionId].time.split(' – ')[0]}` : null; };
 
 /* ── Tab: Rooster (één maand per pagina) ────────────────────────────── */
 function monthDays(offset){
@@ -322,7 +322,7 @@ const STACK = {
   // Vaste les aanpassen: standaard plekken, stoppen, vakantie voor alleen deze les
   'les-bewerken': ({sid}) => {
     const s = SES[sid];
-    const klanten = new Set(S.enrollments.filter(e => e.sessionId === sid && plusDays(e.start, 7 * e.weeks) > isoOf(now())).map(e => e.email)).size;
+    const klanten = new Set(S.enrollments.filter(e => e.sessionId === sid && isActiveEnrollment(e)).map(e => e.email)).size;
     return header({back:'Terug', eyebrow:STYLE[s.style].label, title:`${s.day} ${s.time.split(' – ')[0]}`, subtitle:`${s.time} · ${klanten} vaste ${klanten === 1 ? 'klant' : 'klanten'} met de app`}) +
       `<div class="pad form">
         <div class="panel"><div class="srow" style="margin:0"><span>Standaard aantal plekken</span>${stepper('tplCap', s.capacity, `data-sid="${sid}"`)}</div>
@@ -742,6 +742,7 @@ document.addEventListener('input', (e) => {
   if (e.target.id === 'loginEmail') UI.loginEmail = e.target.value;
   if (e.target.id === 'loginPw') UI.loginPw = e.target.value;
   if (e.target.dataset.av) UI.av[e.target.dataset.av] = e.target.value;
+  if (e.target.id === 'otherUser' && e.target.value) { ACTIONS.quickLogin({dataset: {email: e.target.value}}); render(); }
   if (e.target.dataset.f) UI.form[e.target.dataset.f] = e.target.value;
 });
 // Datum/keuze bevestigd → opnieuw tekenen (bv. voor het aantal vervallen lessen)
@@ -751,7 +752,7 @@ document.addEventListener('change', (e) => { if (e.target.dataset?.f && e.target
 function renderSide(){
   const u = me();
   const profiles = [
-    ...S.users.map(x => ({email:x.email, name:x.name, pw:x.password,
+    ...S.users.slice(0, 4).map(x => ({email:x.email, name:x.name, pw:x.password,
       desc: x.role === 'admin' ? 'Beheerder' : x.strippen === null ? 'Klant · geen strippenkaart' : `Klant · ${x.strippen} strippen`,
       cls: x.role === 'admin' ? 'admin' : ''})),
     {email:'', name:'Gast', desc:'Niet ingelogd', cls:'guest'},
@@ -765,6 +766,10 @@ function renderSide(){
       ${profiles.map(p => `<button data-act="quickLogin" data-email="${p.email}" class="${(S.email || '') === p.email ? 'on' : ''}">
         <span class="av ${p.cls}">${p.email ? initials(p.name) : '?'}</span>
         <span><span class="n">${esc(p.name)}</span><br><span class="d">${p.desc}${p.pw ? ` · ${esc(p.email)} / ${esc(p.pw)}` : ''}</span></span></button>`).join('')}
+      <select class="sbtn" id="otherUser" style="margin-top:4px; ${S.users.slice(4).some(x => x.email === S.email) ? 'border:2px solid var(--rani)' : ''}">
+        <option value="">Andere klant (${S.users.length - 4})…</option>
+        ${S.users.slice(4).sort((a, b) => a.name.localeCompare(b.name)).map(x => `<option value="${x.email}" ${S.email === x.email ? 'selected' : ''}>${esc(x.name)} · ${x.strippen === null ? 'geen kaart' : `${x.strippen} strippen`}</option>`).join('')}
+      </select>
     </div></div>
     <div class="box"><h2>Demo-tijd</h2>
       <p style="font:600 15px var(--display); color:var(--ink); margin-bottom:6px">${cap1(n.toLocaleDateString('nl-NL', {weekday:'long', day:'numeric', month:'long', year:'numeric'}))} · ${n.toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit'})}</p>

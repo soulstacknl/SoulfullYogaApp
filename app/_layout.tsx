@@ -79,6 +79,7 @@ export default function RootLayout() {
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="admin" options={{ headerShown: false }} />
               <Stack.Screen name="voorwaarden" options={{ headerShown: false }} />
+              <Stack.Screen name="portal" options={{ headerShown: false, title: 'Beheerportaal' }} />
             </Stack>
           </ThemeProvider>
         </ScheduleProvider>

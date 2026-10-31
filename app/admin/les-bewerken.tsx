@@ -8,7 +8,7 @@ import Stepper from '@/components/Stepper';
 import { colors, fonts, styleMeta } from '@/constants/theme';
 import { useSchedule } from '@/contexts/ScheduleContext';
 import { dateLabel, plusDays } from '@/lib/dutchDate';
-import { startTimeOf } from '@/lib/schedule';
+import { isActiveEnrollment, startTimeOf } from '@/lib/schedule';
 
 // One weekly lesson: default capacity, stopping it, or a holiday for just this lesson.
 export default function LesBewerkenScreen() {
@@ -27,7 +27,7 @@ export default function LesBewerkenScreen() {
 
   const standing = new Set(
     data.enrollments
-      .filter((e) => e.sessionId === session.id && plusDays(e.start, 7 * e.weeks) > today)
+      .filter((e) => e.sessionId === session.id && isActiveEnrollment(e, today))
       .map((e) => e.email)
   ).size;
 
