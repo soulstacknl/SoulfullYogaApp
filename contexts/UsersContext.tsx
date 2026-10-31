@@ -11,8 +11,11 @@ type UsersContextValue = {
   findUser: (email: string, password: string) => MockUser | undefined;
   adjustStrip: (email: string, delta: number) => void;
   applyStripDeltas: (deltas: Record<string, number>) => void;
+  activateCard: (email: string) => void;
   setTermsAccepted: (email: string, acceptedAt: string | null) => void;
 };
+
+export const CARD_SIZE = 10;
 
 const UsersContext = createContext<UsersContextValue | null>(null);
 
@@ -33,7 +36,7 @@ export function UsersProvider({ children }: { children: ReactNode }) {
     updateUser(email, (u) => ({ ...u, strippen: Math.max(0, (u.strippen ?? 0) + delta) }));
   };
 
-  // Used by the automatic deduction after finished lessons (see ScheduleContext).
+  // Used when the admin confirms (or undoes) a lesson's attendance (see ScheduleContext).
   const applyStripDeltas = useCallback((deltas: Record<string, number>) => {
     setUsers((prev) =>
       prev.map((u) =>
@@ -41,6 +44,14 @@ export function UsersProvider({ children }: { children: ReactNode }) {
       )
     );
   }, []);
+
+  // A new 10-strip card on top of what's left; total follows so the card never shows e.g. 12 / 10.
+  const activateCard = (email: string) => {
+    updateUser(email, (u) => {
+      const strippen = (u.strippen ?? 0) + CARD_SIZE;
+      return { ...u, strippen, total: Math.max(CARD_SIZE, strippen) };
+    });
+  };
 
   const setTermsAccepted = (email: string, acceptedAt: string | null) => {
     updateUser(email, (u) => ({ ...u, termsAcceptedAt: acceptedAt }));
@@ -51,7 +62,7 @@ export function UsersProvider({ children }: { children: ReactNode }) {
 
   return (
     <UsersContext.Provider
-      value={{ users, students, findUser, adjustStrip, applyStripDeltas, setTermsAccepted }}>
+      value={{ users, students, findUser, adjustStrip, applyStripDeltas, activateCard, setTermsAccepted }}>
       {children}
     </UsersContext.Provider>
   );

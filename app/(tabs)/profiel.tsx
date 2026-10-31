@@ -19,7 +19,9 @@ export default function ProfielScreen() {
   const { login, logout } = useAuth();
   const user = useCurrentUser();
   const { students } = useUsers();
-  const { requests } = useSchedule().data;
+  const { data, unconfirmedLessons } = useSchedule();
+  const { requests } = data;
+  const toConfirm = user?.role === 'admin' ? unconfirmedLessons().length : 0;
 
   if (!user) {
     return <LoginScreen onLogin={login} />;
@@ -54,6 +56,16 @@ export default function ProfielScreen() {
             </View>
 
             <View style={styles.adminActions}>
+              <Pressable style={styles.adminActionBtn} onPress={() => router.push('/admin')}>
+                <Text style={styles.adminActionIcon}>✅</Text>
+                <Text style={styles.adminActionText}>Vandaag · presentielijst</Text>
+                {toConfirm > 0 ? (
+                  <View style={styles.adminActionBadge}>
+                    <Text style={styles.adminActionBadgeText}>{toConfirm}</Text>
+                  </View>
+                ) : null}
+                <Text style={styles.adminActionChevron}>›</Text>
+              </Pressable>
               <Pressable style={styles.adminActionBtn} onPress={() => router.push('/admin/rooster-beheer')}>
                 <Text style={styles.adminActionIcon}>🗓️</Text>
                 <Text style={styles.adminActionText}>Rooster beheren</Text>

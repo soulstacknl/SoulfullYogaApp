@@ -8,10 +8,21 @@ type AdminClassCardProps = {
   booked: number;
   capacity: number;
   closedReason?: string;
+  // Attendance state, shown instead of the occupancy once the lesson has started.
+  attendance?: 'confirmed' | 'todo';
+  dateLabel?: string; // for lessons on another day than today
   onPress?: () => void;
 };
 
-export default function AdminClassCard({ session, booked, capacity, closedReason, onPress }: AdminClassCardProps) {
+export default function AdminClassCard({
+  session,
+  booked,
+  capacity,
+  closedReason,
+  attendance,
+  dateLabel,
+  onPress,
+}: AdminClassCardProps) {
   const meta = styleMeta[session.style];
   const isFull = booked >= capacity;
 
@@ -26,13 +37,27 @@ export default function AdminClassCard({ session, booked, capacity, closedReason
       <View style={styles.meta}>
         <Text style={styles.name}>{meta.label}</Text>
         <Text style={styles.time}>
+          {dateLabel ? `${dateLabel} · ` : ''}
           {session.time}
           {closedReason ? ` · ${closedReason}` : ''}
         </Text>
       </View>
-      <View style={[styles.pill, isFull && styles.pillFull, closedReason && styles.pillClosed]}>
+      <View
+        style={[
+          styles.pill,
+          isFull && styles.pillFull,
+          attendance === 'todo' && styles.pillFull,
+          attendance === 'confirmed' && styles.pillConfirmed,
+          closedReason && styles.pillClosed,
+        ]}>
         <Text style={[styles.pillText, closedReason && styles.pillTextClosed]}>
-          {closedReason ? 'Vervalt' : `${booked} / ${capacity}`}
+          {closedReason
+            ? 'Vervalt'
+            : attendance === 'confirmed'
+              ? '✓ Bevestigd'
+              : attendance === 'todo'
+                ? 'Bevestigen'
+                : `${booked} / ${capacity}`}
         </Text>
       </View>
     </Pressable>
@@ -93,6 +118,9 @@ const styles = StyleSheet.create({
   },
   pillFull: {
     backgroundColor: colors.rani,
+  },
+  pillConfirmed: {
+    backgroundColor: colors.teal,
   },
   pillClosed: {
     backgroundColor: colors.sand,

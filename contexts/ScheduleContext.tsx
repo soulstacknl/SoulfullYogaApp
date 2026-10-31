@@ -6,7 +6,11 @@ import type { Session } from '@/data/schedule';
 import { daysBetween, isoOf, plusDays } from '@/lib/dutchDate';
 import * as rules from '@/lib/schedule';
 import type {
+  AttendanceEntry,
+  Attendee,
+  Charge,
   Closure,
+  Confirmation,
   Lesson,
   LessonStatus,
   Occupancy,
@@ -15,7 +19,16 @@ import type {
   ScheduleData,
 } from '@/lib/schedule';
 
-export type { Closure, Lesson, LessonStatus, Occupancy, ReservationRequest } from '@/lib/schedule';
+export type {
+  AttendanceEntry,
+  Attendee,
+  Closure,
+  Confirmation,
+  Lesson,
+  LessonStatus,
+  Occupancy,
+  ReservationRequest,
+} from '@/lib/schedule';
 
 type ScheduleContextValue = {
   data: ScheduleData;
@@ -46,8 +59,16 @@ type ScheduleContextValue = {
   setSessionUntil: (sessionId: string, until: string | null) => void;
   addClosure: (closure: Omit<Closure, 'id'>) => void;
   removeClosure: (closureId: string) => void;
-  toggleCheckIn: (sessionId: string, date: string, attendeeId: string) => void;
-  adjustRosterStrip: (sessionId: string, entryId: string, delta: number) => void;
+  // Attendance — strips are only deducted when the admin confirms
+  attendanceList: (sessionId: string, date: string) => AttendanceEntry[];
+  confirmationOf: (sessionId: string, date: string) => Confirmation | undefined;
+  unconfirmedLessons: () => { session: Session; date: string }[];
+  chargeFor: (email: string, sessionId: string, date: string) => Charge | 'afwezig' | undefined;
+  setPresent: (sessionId: string, date: string, attendeeId: string, present: boolean) => void;
+  addAttendee: (sessionId: string, date: string, attendee: Attendee) => void;
+  removeAttendee: (sessionId: string, date: string, attendeeId: string) => void;
+  confirmAttendance: (sessionId: string, date: string) => { present: number; strips: number };
+  undoConfirmation: (sessionId: string, date: string) => void;
 };
 
 const ScheduleContext = createContext<ScheduleContextValue | null>(null);
@@ -56,8 +77,8 @@ const ScheduleContext = createContext<ScheduleContextValue | null>(null);
 // connected — shared so the student-facing screens and the Docentmodus admin
 // screens read and write the same per-date schedule.
 export function ScheduleProvider({ children }: { children: ReactNode }) {
-  const { students, applyStripDeltas } = useUsers();
-  const [data, setData] = useState<ScheduleData>(() => rules.initialScheduleData());
+  const { users, students, applyStripDeltas } = useUsers();
+  const [data, setData] = useState<ScheduleData>(() => rules.initialScheduleData(students));
   const [now, setNow] = useState(() => new Date());
 
   // Keep "now" fresh so lessons move from upcoming to finished while the app is open.
@@ -65,21 +86,6 @@ export function ScheduleProvider({ children }: { children: ReactNode }) {
     const timer = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(timer);
   }, []);
-
-  // Automatic strip deduction for finished lessons. Charged keys are recorded,
-  // so each lesson is only ever deducted once.
-  useEffect(() => {
-    const result = rules.pendingCharges(data, students, now);
-    if (!result) return;
-    setData((prev) => {
-      const charged = { ...prev.charged };
-      for (const { email, key, charge } of result.charges) {
-        charged[email] = { ...charged[email], [key]: charge };
-      }
-      return { ...prev, charged };
-    });
-    applyStripDeltas(result.stripDeltas);
-  }, [data, students, now, applyStripDeltas]);
 
   const update = (updater: (prev: ScheduleData) => Partial<ScheduleData>) =>
     setData((prev) => ({ ...prev, ...updater(prev) }));
@@ -191,33 +197,67 @@ export function ScheduleProvider({ children }: { children: ReactNode }) {
   const removeClosure = (closureId: string) =>
     update((prev) => ({ closures: prev.closures.filter((c) => c.id !== closureId) }));
 
-  // Attendees without the app pay at check-in (undoing refunds it); app
-  // customers are charged automatically after the lesson, so for them
-  // check-in only records presence.
-  const toggleCheckIn = (sessionId: string, date: string, attendeeId: string) =>
+  const setPresent = (sessionId: string, date: string, attendeeId: string, present: boolean) =>
     update((prev) => {
       const key = rules.lessonKey(sessionId, date);
-      const checkedIn = !prev.checkins[key]?.[attendeeId];
+      return { checkins: { ...prev.checkins, [key]: { ...prev.checkins[key], [attendeeId]: present } } };
+    });
+
+  const addAttendee = (sessionId: string, date: string, attendee: Attendee) =>
+    update((prev) => {
+      const key = rules.lessonKey(sessionId, date);
       return {
-        checkins: { ...prev.checkins, [key]: { ...prev.checkins[key], [attendeeId]: checkedIn } },
-        roster: {
-          ...prev.roster,
-          [sessionId]: (prev.roster[sessionId] ?? []).map((e) =>
-            e.id !== attendeeId ? e : { ...e, strips: e.strips + (checkedIn ? -1 : 1) }
-          ),
-        },
+        extras: { ...prev.extras, [key]: [...(prev.extras[key] ?? []).filter((x) => x.id !== attendee.id), attendee] },
+        checkins: { ...prev.checkins, [key]: { ...prev.checkins[key], [attendee.id]: true } },
       };
     });
 
-  const adjustRosterStrip = (sessionId: string, entryId: string, delta: number) =>
+  const removeAttendee = (sessionId: string, date: string, attendeeId: string) =>
+    update((prev) => {
+      const key = rules.lessonKey(sessionId, date);
+      return { extras: { ...prev.extras, [key]: (prev.extras[key] ?? []).filter((x) => x.id !== attendeeId) } };
+    });
+
+  const applyRosterDeltas = (roster: ScheduleData['roster'], sessionId: string, deltas: Record<string, number>) => ({
+    ...roster,
+    [sessionId]: (roster[sessionId] ?? []).map((e) =>
+      deltas[e.id] === undefined ? e : { ...e, strips: Math.max(0, e.strips + deltas[e.id]) }
+    ),
+  });
+
+  const confirmAttendance = (sessionId: string, date: string) => {
+    const at = new Date().toLocaleString('nl-NL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    const stripsOf = (email: string) => users.find((u) => u.email === email)?.strippen ?? null;
+    const { confirmation, userDeltas, rosterDeltas } = rules.settleAttendance(data, students, sessionId, date, stripsOf, at);
     update((prev) => ({
-      roster: {
-        ...prev.roster,
-        [sessionId]: (prev.roster[sessionId] ?? []).map((e) =>
-          e.id !== entryId ? e : { ...e, strips: Math.max(0, e.strips + delta) }
-        ),
-      },
+      confirmed: { ...prev.confirmed, [rules.lessonKey(sessionId, date)]: confirmation },
+      roster: applyRosterDeltas(prev.roster, sessionId, rosterDeltas),
     }));
+    applyStripDeltas(userDeltas);
+    return {
+      present: confirmation.people.filter((p) => p.present).length,
+      strips: confirmation.people.filter((p) => p.charge === 'strip').length,
+    };
+  };
+
+  // Refunds the deducted strips and makes the list editable again.
+  const undoConfirmation = (sessionId: string, date: string) => {
+    const confirmation = rules.confirmationOf(data, sessionId, date);
+    if (!confirmation) return;
+    const userRefunds: Record<string, number> = {};
+    const rosterRefunds: Record<string, number> = {};
+    for (const p of confirmation.people) {
+      if (p.charge !== 'strip') continue;
+      if (p.usesApp) userRefunds[p.id] = 1;
+      else rosterRefunds[p.id] = 1;
+    }
+    update((prev) => {
+      const confirmed = { ...prev.confirmed };
+      delete confirmed[rules.lessonKey(sessionId, date)];
+      return { confirmed, roster: applyRosterDeltas(prev.roster, sessionId, rosterRefunds) };
+    });
+    applyStripDeltas(userRefunds);
+  };
 
   return (
     <ScheduleContext.Provider
@@ -248,8 +288,15 @@ export function ScheduleProvider({ children }: { children: ReactNode }) {
         setSessionUntil,
         addClosure,
         removeClosure,
-        toggleCheckIn,
-        adjustRosterStrip,
+        attendanceList: (sessionId, date) => rules.attendanceList(data, students, sessionId, date),
+        confirmationOf: (sessionId, date) => rules.confirmationOf(data, sessionId, date),
+        unconfirmedLessons: () => rules.unconfirmedLessons(data, now),
+        chargeFor: (email, sessionId, date) => rules.chargeFor(data, email, sessionId, date),
+        setPresent,
+        addAttendee,
+        removeAttendee,
+        confirmAttendance,
+        undoConfirmation,
       }}>
       {children}
     </ScheduleContext.Provider>

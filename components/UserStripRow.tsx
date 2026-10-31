@@ -6,6 +6,7 @@ import type { MockUser } from '@/data/users';
 type UserStripRowProps = {
   user: MockUser;
   detail?: string;
+  onActivateCard?: () => void;
   onAdjust: (delta: number) => void;
 };
 
@@ -18,7 +19,7 @@ function initialsFor(name: string) {
     .toUpperCase();
 }
 
-export default function UserStripRow({ user, detail, onAdjust }: UserStripRowProps) {
+export default function UserStripRow({ user, detail, onActivateCard, onAdjust }: UserStripRowProps) {
   const strips = user.strippen ?? 0;
 
   return (
@@ -41,6 +42,11 @@ export default function UserStripRow({ user, detail, onAdjust }: UserStripRowPro
         <Pressable style={styles.adjustBtn} onPress={() => onAdjust(1)} hitSlop={10}>
           <Text style={styles.adjustBtnText}>+</Text>
         </Pressable>
+        {onActivateCard ? (
+          <Pressable style={styles.cardBtn} onPress={onActivateCard} hitSlop={6}>
+            <Text style={styles.cardBtnText}>+10</Text>
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
@@ -99,6 +105,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  cardBtn: {
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.teal,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardBtnText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12.5,
+    color: '#fff',
   },
   adjustBtnText: {
     fontFamily: fonts.bodySemiBold,

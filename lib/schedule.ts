@@ -17,7 +17,12 @@ export type ReservationRequest = { id: string; sessionId: string; date: string; 
 export type Cancellation = { sessionId: string; date: string; email: string; by: 'klant' | 'beheer' };
 // Lessons that don't take place (holiday); sessionId null = every lesson in the period.
 export type Closure = { id: string; from: string; to: string; sessionId: string | null; reason: string };
-export type Charge = 'strip' | 'open';
+// How a present attendee was settled when the admin confirmed the attendance list:
+// one strip, 'open' (no strips left, still to pay) or 'los' (walk-in without a card).
+export type Charge = 'strip' | 'open' | 'los';
+export type Attendee = { id: string; name: string; usesApp: boolean; walkIn?: boolean };
+export type AttendanceEntry = Attendee & { planned: boolean; present: boolean };
+export type Confirmation = { at: string; people: (AttendanceEntry & { charge: Charge | null })[] };
 
 export type ScheduleData = {
   sessions: Session[];
@@ -27,12 +32,14 @@ export type ScheduleData = {
   requests: ReservationRequest[];
   cancels: Cancellation[];
   closures: Closure[];
-  charged: Record<string, Record<string, Charge>>; // per email: lesson key → how it was paid
   capOverride: Record<string, number>; // per lesson key, when the admin changed one date
-  checkins: Record<string, Record<string, boolean>>; // per lesson key: attendee id → present
+  checkins: Record<string, Record<string, boolean>>; // per lesson key: attendee id → present (draft)
+  extras: Record<string, Attendee[]>; // per lesson key: people the admin added to the list
+  confirmed: Record<string, Confirmation>; // per lesson key — strips are only deducted here
 };
 
-export type LessonSource = 'vast' | 'los' | 'aanvraag';
+// 'extra' = not scheduled, but confirmed present by the admin.
+export type LessonSource = 'vast' | 'los' | 'aanvraag' | 'extra';
 export type LessonStatus = { source: LessonSource; cancelled: boolean; enrollment?: Enrollment };
 export type Lesson = { session: Session; date: string; status: LessonStatus; closure: Closure | undefined };
 export type Person = { email: string; name: string };
@@ -117,12 +124,19 @@ export function myLessons(data: ScheduleData, email: string, from: string, to: s
   }
   data.bookings.filter((b) => b.email === email).forEach((b) => add(b.sessionId, b.date));
   data.requests.filter((r) => r.email === email).forEach((r) => add(r.sessionId, r.date));
+  // Also lessons where the admin confirmed this customer as (extra) present.
+  for (const [key, confirmation] of Object.entries(data.confirmed)) {
+    if (confirmation.people.some((p) => p.id === email && p.present)) {
+      const [sessionId, date] = key.split('@');
+      add(sessionId, date);
+    }
+  }
 
   return [...found.values()]
     .map(({ session, date }) => ({
       session,
       date,
-      status: statusFor(data, email, session.id, date)!,
+      status: statusFor(data, email, session.id, date) ?? { source: 'extra' as const, cancelled: false },
       closure: closureOf(data, session.id, date),
     }))
     .sort((a, b) => startOf(a.session, a.date).getTime() - startOf(b.session, b.date).getTime());
@@ -155,39 +169,82 @@ export function closurePreview(
   return { lessons, scheduled };
 }
 
-// Every finished lesson a customer was scheduled for (not cancelled, not closed)
-// costs one strip; without strips left it's recorded as 'open' (still to pay).
-export function pendingCharges(
+/* ── Attendance & confirmation ─────────────────────────────────────────── */
+// Strips are only deducted when the admin confirms who was actually there —
+// the schedule is just the starting point of the attendance list.
+
+export const confirmationOf = (data: ScheduleData, sessionId: string, date: string) =>
+  data.confirmed[lessonKey(sessionId, date)];
+
+// Who should be there according to the schedule (app customers + regular attendees
+// without the app), plus anyone the admin added. Everyone starts as present.
+export function attendanceList(data: ScheduleData, people: Person[], sessionId: string, date: string): AttendanceEntry[] {
+  const key = lessonKey(sessionId, date);
+  const draft = data.checkins[key] ?? {};
+  const planned: Attendee[] = [
+    ...attendees(data, people, sessionId, date)
+      .filter((a) => a.status.source !== 'aanvraag')
+      .map(({ person }) => ({ id: person.email, name: person.name, usesApp: true })),
+    ...(data.roster[sessionId] ?? []).map((e) => ({ id: e.id, name: e.name, usesApp: false })),
+  ];
+  const added = (data.extras[key] ?? []).filter((x) => !planned.some((p) => p.id === x.id));
+  return [
+    ...planned.map((p) => ({ ...p, planned: true, present: draft[p.id] ?? true })),
+    ...added.map((p) => ({ ...p, planned: false, present: draft[p.id] ?? true })),
+  ];
+}
+
+// One strip per present attendee; without strips left it's 'open', a walk-in is 'los'.
+// Returns the confirmation plus the strip changes for app customers and roster entries.
+export function settleAttendance(
   data: ScheduleData,
-  customers: { email: string; strippen: number | null }[],
-  now: Date
-): { charges: { email: string; key: string; charge: Charge }[]; stripDeltas: Record<string, number> } | null {
-  const charges: { email: string; key: string; charge: Charge }[] = [];
-  const stripDeltas: Record<string, number> = {};
-  for (const customer of customers) {
-    let strips = customer.strippen ?? 0;
-    for (const lesson of myLessons(data, customer.email, '2000-01-01', isoOf(now))) {
-      const key = lessonKey(lesson.session.id, lesson.date);
-      if (
-        !isPast(lesson.session, lesson.date, now) ||
-        lesson.closure ||
-        lesson.status.cancelled ||
-        lesson.status.source === 'aanvraag' ||
-        data.charged[customer.email]?.[key]
-      ) {
-        continue;
-      }
-      if (strips > 0) {
-        strips--;
-        stripDeltas[customer.email] = (stripDeltas[customer.email] ?? 0) - 1;
-        charges.push({ email: customer.email, key, charge: 'strip' });
-      } else {
-        charges.push({ email: customer.email, key, charge: 'open' });
+  people: Person[],
+  sessionId: string,
+  date: string,
+  stripsOf: (email: string) => number | null,
+  at: string
+) {
+  const userDeltas: Record<string, number> = {};
+  const rosterDeltas: Record<string, number> = {};
+  const roster = data.roster[sessionId] ?? [];
+  const settled = attendanceList(data, people, sessionId, date).map((p) => {
+    if (!p.present) return { ...p, charge: null };
+    if (p.walkIn) return { ...p, charge: 'los' as const };
+    const strips = p.usesApp ? (stripsOf(p.id) ?? 0) : (roster.find((e) => e.id === p.id)?.strips ?? 0);
+    if (strips <= 0) return { ...p, charge: 'open' as const };
+    if (p.usesApp) userDeltas[p.id] = -1;
+    else rosterDeltas[p.id] = -1;
+    return { ...p, charge: 'strip' as const };
+  });
+  return { confirmation: { at, people: settled } as Confirmation, userDeltas, rosterDeltas };
+}
+
+// Started or finished lessons of the last `days` days that still need confirming, newest first.
+export function unconfirmedLessons(data: ScheduleData, now: Date, days = 14) {
+  const today = isoOf(now);
+  const result: { session: Session; date: string }[] = [];
+  for (let i = 0; i <= days; i++) {
+    const date = plusDays(today, -i);
+    for (const session of [...sessionsOn(data, date)].reverse()) {
+      if (hasStarted(session, date, now) && !closureOf(data, session.id, date) && !confirmationOf(data, session.id, date)) {
+        result.push({ session, date });
       }
     }
   }
-  return charges.length ? { charges, stripDeltas } : null;
+  return result;
 }
+
+// What was recorded for a customer at a past lesson; undefined = not confirmed yet.
+export function chargeFor(data: ScheduleData, email: string, sessionId: string, date: string): Charge | 'afwezig' | undefined {
+  const confirmation = confirmationOf(data, sessionId, date);
+  if (!confirmation) return undefined;
+  const entry = confirmation.people.find((p) => p.id === email);
+  return entry?.present ? (entry.charge ?? undefined) : 'afwezig';
+}
+
+export const openChargeCount = (data: ScheduleData, email: string) =>
+  Object.values(data.confirmed).filter((c) => c.people.some((p) => p.id === email && p.present && p.charge === 'open'))
+    .length;
 
 /* ── Seed data ─────────────────────────────────────────────────────────── */
 
@@ -204,7 +261,7 @@ function recentPast(session: Session, count: number, now: Date): string[] {
   return dates;
 }
 
-// A standing customer who has been attending for a few weeks; those lessons are already paid.
+// A standing customer who has been attending for a few weeks (see seedHistory for those lessons).
 function seedStanding(
   data: ScheduleData,
   email: string,
@@ -217,14 +274,28 @@ function seedStanding(
   const session = data.sessions.find((s) => s.id === sessionId)!;
   const dates = recentPast(session, pastWeeks, now);
   data.enrollments.push({ id: `e-${sessionId}-${email}`, sessionId, email, start: dates[0], weeks });
-  data.charged[email] = data.charged[email] ?? {};
   dates.forEach((date, i) => {
     if (cancelledWeeks.includes(i)) data.cancels.push({ sessionId, date, email, by: 'klant' });
-    else data.charged[email][lessonKey(sessionId, date)] = 'strip';
   });
 }
 
-export function initialScheduleData(now = new Date()): ScheduleData {
+// The last four weeks count as confirmed according to the schedule; the strip
+// balances in data/users.ts and data/roster.ts already reflect them.
+function seedHistory(data: ScheduleData, people: Person[], now: Date) {
+  const today = isoOf(now);
+  for (let i = 28; i >= 0; i--) {
+    const date = plusDays(today, -i);
+    for (const session of sessionsOn(data, date)) {
+      if (endOf(session, date) > now || closureOf(data, session.id, date)) continue;
+      data.confirmed[lessonKey(session.id, date)] = {
+        at: 'voorbeelddata',
+        people: attendanceList(data, people, session.id, date).map((p) => ({ ...p, charge: 'strip' })),
+      };
+    }
+  }
+}
+
+export function initialScheduleData(people: Person[], now = new Date()): ScheduleData {
   let year = now.getFullYear();
   if (new Date(year, 11, 21) < now) year++;
   const data: ScheduleData = {
@@ -235,12 +306,14 @@ export function initialScheduleData(now = new Date()): ScheduleData {
     requests: [],
     cancels: [],
     closures: [{ id: 'c-kerst', from: `${year}-12-21`, to: `${year + 1}-01-03`, sessionId: null, reason: 'Kerstvakantie' }],
-    charged: {},
     capOverride: {},
     checkins: {},
+    extras: {},
+    confirmed: {},
   };
   // Matches the strip balances in data/users.ts (7 and 5 left).
   seedStanding(data, 'marieke@soulfulyoga.nl', 'tue-1', 4, [1], ONGOING_WEEKS, now);
   seedStanding(data, 'marjolijn_n@hotmail.com', 'thu-2', 3, [], 12, now);
+  seedHistory(data, people, now);
   return data;
 }

@@ -4,51 +4,50 @@ import { colors, fonts } from '@/constants/theme';
 
 type RosterRowProps = {
   name: string;
-  strips: number;
-  checkedIn: boolean;
-  usesApp: boolean; // app customers pay automatically after the lesson
-  onToggleCheckIn: () => void;
-  onAdjustStrip: (delta: number) => void;
+  usesApp: boolean;
+  present: boolean;
+  detail: string;
+  onTogglePresent?: () => void; // omitted once the list is confirmed
+  onRemove?: () => void; // only for people the admin added
 };
 
 function initialsFor(name: string) {
   return name
     .split(' ')
+    .filter((w) => /^\p{L}/u.test(w))
     .map((w) => w[0])
     .join('')
     .slice(0, 2)
     .toUpperCase();
 }
 
-export default function RosterRow({ name, strips, checkedIn, usesApp, onToggleCheckIn, onAdjustStrip }: RosterRowProps) {
+// One attendee on the attendance list: present/absent toggle, name and status line.
+export default function RosterRow({ name, usesApp, present, detail, onTogglePresent, onRemove }: RosterRowProps) {
   return (
-    <View style={[styles.row, checkedIn && styles.rowChecked]}>
-      <Pressable
-        style={[styles.checkinBtn, checkedIn && styles.checkinBtnChecked]}
-        onPress={onToggleCheckIn}
-        hitSlop={10}>
-        {checkedIn ? <Text style={styles.checkmark}>✓</Text> : null}
-      </Pressable>
-
+    <View style={[styles.row, present && styles.rowChecked, !onTogglePresent && !present && styles.rowAbsent]}>
+      {onTogglePresent ? (
+        <Pressable
+          style={[styles.checkinBtn, present && styles.checkinBtnChecked]}
+          onPress={onTogglePresent}
+          hitSlop={10}>
+          {present ? <Text style={styles.checkmark}>✓</Text> : null}
+        </Pressable>
+      ) : null}
       <View style={styles.initials}>
         <Text style={styles.initialsText}>{initialsFor(name)}</Text>
       </View>
-
       <View style={styles.info}>
-        <Text style={styles.name}>{name}
+        <Text style={styles.name}>
+          {name}
           {usesApp ? ' 📱' : ''}
         </Text>
-        <Text style={styles.strip}>{strips} lessen over</Text>
+        <Text style={styles.detail}>{detail}</Text>
       </View>
-
-      <View style={styles.stripAdjust}>
-        <Pressable style={styles.adjustBtn} onPress={() => onAdjustStrip(-1)} hitSlop={10}>
-          <Text style={styles.adjustBtnText}>–</Text>
+      {onRemove ? (
+        <Pressable style={styles.removeBtn} onPress={onRemove} hitSlop={10}>
+          <Text style={styles.removeBtnText}>✕</Text>
         </Pressable>
-        <Pressable style={styles.adjustBtn} onPress={() => onAdjustStrip(1)} hitSlop={10}>
-          <Text style={styles.adjustBtnText}>+</Text>
-        </Pressable>
-      </View>
+      ) : null}
     </View>
   );
 }
@@ -68,6 +67,9 @@ const styles = StyleSheet.create({
   rowChecked: {
     backgroundColor: '#EAF3EE',
     borderColor: colors.teal,
+  },
+  rowAbsent: {
+    opacity: 0.55,
   },
   checkinBtn: {
     width: 40,
@@ -109,18 +111,13 @@ const styles = StyleSheet.create({
     fontSize: 14.5,
     color: colors.ink,
   },
-  strip: {
+  detail: {
     fontFamily: fonts.body,
     fontSize: 12,
     color: colors.mutedText,
     marginTop: 1,
   },
-  stripAdjust: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  adjustBtn: {
+  removeBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -130,10 +127,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  adjustBtnText: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 16,
-    color: colors.ink,
-    lineHeight: 18,
+  removeBtnText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: colors.rani,
   },
 });

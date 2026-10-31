@@ -13,7 +13,7 @@ import { useSchedule } from '@/contexts/ScheduleContext';
 import type { Lesson } from '@/contexts/ScheduleContext';
 import { useCurrentUser } from '@/contexts/UsersContext';
 import { capitalize, isoOf, monthStart, MONTHS, shortDate, toDate } from '@/lib/dutchDate';
-import { currentStandingSession, lessonKey, MONTHS_AHEAD, startTimeOf } from '@/lib/schedule';
+import { currentStandingSession, MONTHS_AHEAD, startTimeOf } from '@/lib/schedule';
 
 type Segment = 'komend' | 'afgenomen';
 
@@ -46,7 +46,11 @@ export default function MijnLessenScreen() {
   const all = schedule.myLessons(user.email, '2000-01-01', isoOf(horizon));
   const upcoming = all.filter((l) => !schedule.isPast(l.session, l.date));
   const past = all.filter((l) => schedule.isPast(l.session, l.date) && l.status.source !== 'aanvraag').reverse();
-  const counts = (list: Lesson[]) => list.filter((l) => !l.status.cancelled && !l.closure).length;
+  const upcomingCount = upcoming.filter((l) => !l.status.cancelled && !l.closure).length;
+  const takenCount = past.filter((l) => {
+    const charge = schedule.chargeFor(user.email, l.session.id, l.date);
+    return charge === 'strip' || charge === 'open' || charge === 'los';
+  }).length;
 
   const standing = currentStandingSession(schedule.data, user.email, schedule.today);
   const lessonName = (l: Lesson) =>
@@ -65,19 +69,25 @@ export default function MijnLessenScreen() {
 
   const renderCard = (l: Lesson, isPastLesson: boolean) => {
     const key = `${l.session.id}-${l.date}`;
-    const dimmed = l.status.cancelled || !!l.closure;
+    const dimmed =
+      l.status.cancelled || !!l.closure || (isPastLesson && schedule.chargeFor(user.email, l.session.id, l.date) === 'afwezig');
     let tag: { label: string; tone: TagTone };
     let action: { label: string; tone: 'rani' | 'teal'; onPress: () => void } | undefined;
 
     if (l.closure) {
       tag = { label: `${isPastLesson ? 'Vervallen' : 'Vervalt'} · ${l.closure.reason.toLowerCase()} · geen strip`, tone: 'muted' };
     } else if (isPastLesson) {
-      const charge = schedule.data.charged[user.email]?.[lessonKey(l.session.id, l.date)];
+      // Strips only go once the teacher has confirmed the attendance.
+      const charge = schedule.chargeFor(user.email, l.session.id, l.date);
       tag = l.status.cancelled
         ? { label: 'Afgemeld · telde niet mee', tone: 'muted' }
-        : charge === 'open'
-          ? { label: 'Geen strip · openstaand', tone: 'rani' }
-          : { label: 'Afgenomen · −1 strip', tone: 'teal' };
+        : charge === undefined
+          ? { label: 'Wacht op bevestiging docent', tone: 'pending' }
+          : charge === 'afwezig'
+            ? { label: 'Niet aanwezig · geen strip', tone: 'muted' }
+            : charge === 'open'
+              ? { label: 'Aanwezig · geen strippen, openstaand', tone: 'rani' }
+              : { label: 'Afgenomen · −1 strip', tone: 'teal' };
     } else if (l.status.cancelled) {
       tag = { label: 'Afgemeld · telt niet mee', tone: 'muted' };
       if (schedule.occupancy(l.session.id, l.date).available > 0) {
@@ -150,7 +160,7 @@ export default function MijnLessenScreen() {
           {(['komend', 'afgenomen'] as const).map((s) => (
             <Pressable key={s} style={[styles.segmentBtn, segment === s && styles.segmentBtnOn]} onPress={() => setSegment(s)}>
               <Text style={[styles.segmentText, segment === s && styles.segmentTextOn]}>
-                {s === 'komend' ? `Komend (${counts(upcoming)})` : `Afgenomen (${counts(past)})`}
+                {s === 'komend' ? `Komend (${upcomingCount})` : `Afgenomen (${takenCount})`}
               </Text>
             </Pressable>
           ))}
