@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Soulful Yoga Ontwerp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,500&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<style>
+  *{box-sizing:border-box; margin:0;}
+  html,body{background:var(--stageBg); font-family:var(--body); color:var(--ink);}
+  body{min-height:100vh;}
+
+  /* ── Bord ──────────────────────────────────────────────────────────── */
+  .board-head{position:sticky; top:0; z-index:100; background:color-mix(in srgb,var(--stageBg) 92%,transparent);
+    backdrop-filter:blur(8px); border-bottom:1px solid #d8ccb6; padding:14px 24px; display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center;}
+  .board-head h1{font-family:var(--display); font-size:22px; font-weight:600;}
+  .board-head .sub{font-size:13px; color:#7d7262;}
+  .board-head .spacer{flex:1;}
+  .ctrl{display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:600; color:#5c5246;}
+  .btn{font:600 12.5px var(--body); border:1px solid #cdbfa6; background:#fff; color:var(--ink); border-radius:10px; padding:8px 12px; cursor:pointer;}
+  .btn:hover{border-color:var(--ink);}
+  .btn.primary{background:var(--ink); color:var(--ivory); border-color:var(--ink);}
+
+  .layout{display:flex; align-items:flex-start;}
+  aside.tokens{position:sticky; top:65px; width:270px; flex:none; height:calc(100vh - 65px); overflow:auto;
+    padding:20px; border-right:1px solid #d8ccb6; background:#f4eee2;}
+  aside h2{font-family:var(--display); font-size:16px; font-weight:600; margin-bottom:4px;}
+  aside p.hint{font-size:12px; color:#7d7262; margin-bottom:14px; line-height:1.5;}
+  aside h3{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:#8a7f6e; margin:18px 0 8px;}
+  .tok{display:flex; align-items:center; gap:10px; padding:5px 0; font-size:12.5px;}
+  .tok input[type=color]{width:30px; height:30px; border:1px solid #cdbfa6; border-radius:8px; padding:2px; background:#fff; cursor:pointer;}
+  .tok .nm{flex:1; font-weight:600;}
+  .tok .val{font-family:ui-monospace,monospace; font-size:11px; color:#8a7f6e;}
+  .tok.changed .nm::after{content:' •'; color:var(--rani);}
+  .tok input[type=range]{flex:1;}
+  .tok .rv{width:34px; text-align:right; font-family:ui-monospace,monospace; font-size:11px;}
+  aside .actions{display:flex; flex-direction:column; gap:8px; margin-top:20px;}
+
+  main{flex:1; min-width:0; padding:24px 28px 80px;}
+  .group-title{font-family:var(--display); font-size:20px; font-weight:600; margin:8px 0 4px;}
+  .group-sub{font-size:13px; color:#7d7262; margin-bottom:18px;}
+  .grid{display:flex; flex-wrap:wrap; gap:36px 28px; margin-bottom:48px;}
+
+  .shot{display:flex; flex-direction:column; gap:10px; width:calc(395px * var(--zoom));}
+  .shot-head{display:flex; align-items:baseline; gap:8px;}
+  .shot-num{font:700 11px var(--body); background:var(--ink); color:var(--ivory); border-radius:6px; padding:2px 6px;}
+  .shot-name{font-weight:600; font-size:14px;}
+  .shot-src{font-family:ui-monospace,monospace; font-size:10.5px; color:#8a7f6e;}
+  .flag{font-size:11.5px; line-height:1.45; background:#fff4dc; border:1px solid #efc97a; color:#6b4a0c; border-radius:10px; padding:7px 10px;}
+  .phone-wrap{width:calc(395px * var(--zoom)); height:calc(800px * var(--zoom));}
+  .notes{font:13px/1.45 var(--body); width:100%; min-height:64px; resize:vertical; border:1px solid #d3c5ac; border-radius:10px; padding:8px 10px; background:#fffdf8; color:var(--ink);}
+  .notes:focus{outline:2px solid var(--rani); outline-offset:1px;}
+  .notes.has{border-color:var(--rani); background:#fff;}
+
+
+  @media (max-width:860px){
+    .layout{flex-direction:column;}
+    aside.tokens{position:static; width:100%; height:auto; border-right:none; border-bottom:1px solid #d8ccb6;}
+    main{padding:20px 16px 60px;}
+    :root{--zoom:.78;}
+  }
+</style>
+</head>
+<body>
+
+<header class="board-head">
+  <div>
+    <h1>Soulful Yoga · Ontwerpbord</h1>
+    <div class="sub">Alle schermen zoals de app er nu uitziet. Schrijf per scherm je opmerkingen, of pas links de kleuren aan.</div>
+  </div>
+  <div class="spacer"></div>
+  <label class="ctrl">Zoom <input type="range" id="zoom" min="50" max="100" value="85"></label>
+  <a class="btn" href="demo.html" style="text-decoration:none">Open klikbare demo →</a>
+  <button class="btn primary" id="exportNotes">Kopieer alle notities</button>
+</header>
+
+<div class="layout">
+  <aside class="tokens">
+    <h2>Ontwerp-tokens</h2>
+    <p class="hint">Waarden uit <code>constants/theme.ts</code>. Wijzigingen zie je direct op alle schermen en worden in deze browser onthouden.</p>
+    <h3>Kleuren</h3>
+    <div id="colorTokens"></div>
+    <h3>Afronding</h3>
+    <div id="radiusTokens"></div>
+    <div class="actions">
+      <button class="btn primary" id="copyTheme">Kopieer als theme.ts</button>
+      <button class="btn" id="resetTokens">Terug naar origineel</button>
+    </div>
+  </aside>
+
+  <main>
+    <div class="group-title">Leerling</div>
+    <div class="group-sub">Wat een bezoeker of leerling ziet.</div>
+    <div class="grid" id="grid-student"></div>
+
+    <div class="group-title">Beheerder</div>
+    <div class="group-sub">Ingelogd als beheer@soulfulyoga.nl.</div>
+    <div class="grid" id="grid-admin"></div>
+  </main>
+</div>
+
+<script>
+/* ── Data — gelijk aan data/*.ts ─────────────────────────────────────── */
+const STYLE = {
+  yin:{label:'Yin Yoga', dot:'Yin'}, flow:{label:'Flow Yoga', dot:'Flow'}, gentle:{label:'Gentle Yoga', dot:'Gtl'},
+};
+const SCHEDULE = [
+  {day:'Maandag', classes:[{s:'yin',t:'19.00 – 20.00',c:10,a:8},{s:'yin',t:'20.15 – 21.15',c:10,a:3}]},
+  {day:'Dinsdag', classes:[{s:'yin',t:'19.00 – 20.00',c:10,a:5}]},
+  {day:'Woensdag', classes:[{s:'flow',t:'09.00 – 10.00',c:12,a:0}]},
+  {day:'Donderdag', classes:[{s:'yin',t:'19.00 – 20.00',c:10,a:10},{s:'yin',t:'20.15 – 21.15',c:10,a:6}]},
+  {day:'Vrijdag', classes:[{s:'gentle',t:'09.00 – 10.00',c:8,a:4},{s:'yin',t:'10.15 – 11.15',c:10,a:9}]},
+];
+const DESC = {
+  yin:'Een zeer rustige, ontspannen en mindful vorm van yoga. Je houdt posities vast voor 3 tot 5 minuten, wat spieren, bindweefsel en fascia de tijd geeft om mee te komen in de rek. Je ervaart diepe rust en stilte.',
+  flow:'Met Flow Yoga laat je je meevoeren met de muziek — elke in- en uitademing wordt een beweging, tot er een soort yogadans ontstaat. De les wordt een maand lang herhaald zodat je volledig zonder nadenken in de Flow komt.',
+  gentle:'Een milde vorm van yoga waarin je met aandacht beweegt, diep ademhaalt en het lichaam souplesse geeft. De houdingen zijn voor iedereen goed te volgen en aan te passen waar nodig.',
+};
+const VIDEOS = [
+  {t:'Yin Yoga — diepe ontspanning', s:'yin', m:45, l:'alle niveaus'},
+  {t:'Flow Yoga — vloeiende beweging', s:'flow', m:50, l:'gevorderd'},
+  {t:'Gentle Yoga — zachte start', s:'gentle', m:30, l:'beginners'},
+  {t:'Yin Yoga — lage rug & heupen', s:'yin', m:40, l:'alle niveaus'},
+];
+
+/* Zelfde datumlogica als lib/dutchDate.ts */
+const OFFSET = {Maandag:0, Dinsdag:1, Woensdag:2, Donderdag:3, Vrijdag:4};
+function dateFor(day, week){
+  const d = new Date(); const wd = d.getDay();
+  d.setDate(d.getDate() + (wd === 0 ? -6 : 1 - wd) + OFFSET[day] + week*7);
+  return `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
+}
+const MONTHS = ['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
+const WEEKDAYS = ['Zondag','Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag'];
+const now = new Date();
+const todayLabel = `${WEEKDAYS[now.getDay()]} ${now.getDate()} ${MONTHS[now.getMonth()]}`;
+
+/* ── Bouwstenen ─────────────────────────────────────────────────────── */
+const ICON = {
+  rooster:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>',
+  videos:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9l6 3-6 3z" fill="currentColor" stroke="none"/></svg>',
+  profiel:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4.5 5-6 8-6s6.5 1.5 8 6"/></svg>',
+};
+const header = ({eyebrow, title, subtitle='', back}) => `
+  <div class="topbar">
+    ${back ? `<div class="back">‹ ${back}</div>` : ''}
+    <div class="hrow"><div class="txt">
+      ${eyebrow ? `<div class="eyebrow">${eyebrow}</div>` : ''}
+      <h1>${title}</h1><p>${subtitle}</p>
+    </div><img src="logo-mark.png" alt=""></div>
+  </div>`;
+const tabbar = (on) => `<div class="tabbar">${[['rooster','Rooster'],['videos',"Video's"],['profiel','Profiel']]
+  .map(([k,l]) => `<div class="tab ${on===k?'on':''}">${ICON[k]}${l}</div>`).join('')}</div>`;
+const dot = (s, sm) => `<div class="dot ${sm?'sm':''} ${s}">${STYLE[s].dot}</div>`;
+const classCard = (c) => `<div class="ccard">${dot(c.s)}<div class="meta"><div class="nm">${STYLE[c.s].label}</div><div class="tm">${c.t}</div></div>
+  <div class="spots ${c.a<=0?'full':''}">${c.a<=0?'Vol':`${c.a}/${c.c} beschikbaar`}</div><div class="chev">›</div></div>`;
+const scheduleList = (weeks=2) => {
+  let h = '';
+  for (let w=0; w<weeks; w++) SCHEDULE.forEach((d,i) => {
+    h += `<div class="day ${w===0&&i===0?'first':''} ${w>0&&i===0?'week':''}">${d.day} - ${dateFor(d.day,w)}</div>${d.classes.map(classCard).join('')}`;
+  });
+  return `<div class="content">${h}</div>`;
+};
+const phone = (inner, overlay='') => `<div class="phone"><div class="island"></div>${inner}${overlay}</div>`;
+const screen = (body, tab) => `<div class="scroll">${body}</div>${tab ? tabbar(tab) : ''}`;
+const sheetBase = (inner) => `<div class="backdrop"><div class="sheet"><div class="x">✕</div><div class="handle"></div>${inner}</div></div>`;
+const stepRow = (label, v) => `<div class="srow"><span>${label}</span><div class="stepper"><div class="sb">–</div><div class="sv">${v}</div><div class="sb">+</div></div></div>`;
+const roosterScreen = (eyebrow) => screen(header({eyebrow, title:'Soulful Yoga', subtitle:'Meer rust en ruimte voor jezelf'}) + scheduleList(), 'rooster');
+const profileFooter = `<div class="contact"><b>Soulful Yoga</b>Runselstraat 18, 5351 NJ Berghem<br>06 12 68 08 52 · info@soulfulyoga.nl</div><div class="logout">Uitloggen</div>`;
+const prices = `<div class="sect">Tarieven</div>${[['Gratis proefles','€0'],['Losse les','€15'],['10-strippenkaart','€110']]
+  .map(([l,p]) => `<div class="price"><span>${l}</span><b>${p}</b></div>`).join('')}`;
+const initials = (n) => n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+
+/* ── Schermen ───────────────────────────────────────────────────────── */
+const SCREENS = [
+  { id:'rooster', group:'student', name:'Rooster', src:'app/(tabs)/index.tsx',
+    flag:'Het rooster begint bij de maandag van déze week, dus dagen die al voorbij zijn staan er ook nog in.',
+    html: () => phone(roosterScreen()) },
+  { id:'les-detail', group:'student', name:'Les-detail (reserveren)', src:'components/BookingSheet.tsx',
+    html: () => phone(roosterScreen(), sheetBase(`<h2>Yin Yoga</h2><div class="s">Maandag · 20.15 – 21.15 · Berghem</div>
+      <div class="sp">3 / 10 plekken beschikbaar</div><div class="desc">${DESC.yin}</div><div class="cta">Plek reserveren</div>`)) },
+  { id:'les-vol', group:'student', name:'Les vol', src:'components/BookingSheet.tsx',
+    html: () => phone(roosterScreen(), sheetBase(`<h2>Flow Yoga</h2><div class="s">Woensdag · 09.00 – 10.00 · Berghem</div>
+      <div class="sp" style="color:var(--rani)">Vol</div><div class="desc">${DESC.flow}</div><div class="cta off">Vol — geen plekken meer</div>`)) },
+  { id:'aangevraagd', group:'student', name:'Reservering aangevraagd', src:'components/Toast.tsx',
+    html: () => phone(roosterScreen(), `<div class="toast">Reservering aangevraagd ✓</div>`) },
+  { id:'videos', group:'student', name:"Video's", src:'app/(tabs)/videos.tsx',
+    flag:"De video's zijn nog voorbeelden; aantikken doet nog niets.",
+    html: () => phone(screen(header({title:"Video's", subtitle:'Oefen op jouw moment, in jouw tempo'}) +
+      `<div class="filters">${['Alles','Yin','Flow','Gentle'].map((f,i)=>`<div class="chip ${i===0?'on':''}">${f}</div>`).join('')}</div>
+       <div style="padding:10px 0 24px">${VIDEOS.map(v=>`<div class="vcard"><div class="thumb ${v.s}"><div class="play"></div></div>
+       <div class="vinfo"><div class="nm">${v.t}</div><div class="sb2">${v.m} min · ${v.l}</div></div></div>`).join('')}</div>`, 'videos')) },
+  { id:'inloggen', group:'student', name:'Inloggen', src:'components/LoginScreen.tsx',
+    flag:'Er is nog geen "account aanmaken" of "wachtwoord vergeten".',
+    html: () => phone(screen(header({title:'Inloggen', subtitle:'Log in om je strippenkaart te bekijken'}) +
+      `<div style="padding:24px 20px 20px"><div class="field"><label>E-mailadres</label><div class="in">naam@voorbeeld.nl</div></div>
+       <div class="field"><label>Wachtwoord</label><div class="in">••••••••</div></div><div class="cta" style="margin-top:4px">Inloggen</div>
+       <div class="hint2">Demo-account: marieke@soulfulyoga.nl · yoga123<br>(of daan@soulfulyoga.nl · yoga123 voor een account zonder strippenkaart)</div></div>`, 'profiel')) },
+  { id:'profiel-kaart', group:'student', name:'Profiel — met strippenkaart', src:'app/(tabs)/profiel.tsx',
+    html: () => phone(screen(header({eyebrow:'Jouw account', title:'Profiel', subtitle:'Berghem · info@soulfulyoga.nl'}) +
+      `<div class="hero"><div class="avatar"></div><h2>Marieke Jansen</h2><p>marieke@soulfulyoga.nl</p></div>
+       <div class="strip"><div class="l">Strippenkaart</div><div class="c">7 / 10</div><div class="su">nog 7 lessen tegoed</div></div>${prices}${profileFooter}`, 'profiel')) },
+  { id:'profiel-leeg', group:'student', name:'Profiel — zonder strippenkaart', src:'app/(tabs)/profiel.tsx',
+    flag:'Er staat "koop een strippenkaart hieronder", maar je kunt hieronder (nog) niets kopen.',
+    html: () => phone(screen(header({eyebrow:'Jouw account', title:'Profiel', subtitle:'Berghem · info@soulfulyoga.nl'}) +
+      `<div class="hero"><div class="avatar"></div><h2>Daan de Vries</h2><p>daan@soulfulyoga.nl</p></div>
+       <div class="strip"><div class="l">Strippenkaart</div><div class="c e">Nog geen kaart</div><div class="su">koop een strippenkaart hieronder om te starten</div></div>${prices}${profileFooter}`, 'profiel')) },
+
+  { id:'admin-rooster', group:'admin', name:'Rooster (beheerder)', src:'app/(tabs)/index.tsx',
+    html: () => phone(roosterScreen('Beheerder')) },
+  { id:'admin-les', group:'admin', name:'Les-detail (beheerder)', src:'components/BookingSheet.tsx',
+    flag:'Twee manieren om plekken aan te passen: de tellers hier én de knop "Beschikbare plekken beheren".',
+    html: () => phone(roosterScreen('Beheerder'), sheetBase(`<h2>Yin Yoga</h2><div class="s">Maandag · 20.15 – 21.15 · Berghem</div>
+      <div class="sp">3 / 10 plekken beschikbaar</div><div class="desc">${DESC.yin}</div>
+      <div class="panel"><div class="lbl">Beheer plekken</div>${stepRow('Totaal aantal plekken',10)}${stepRow('Beschikbare plekken',3)}</div>
+      <div class="cta">Beschikbare plekken beheren</div>`)) },
+  { id:'admin-profiel', group:'admin', name:'Profiel (beheerder)', src:'app/(tabs)/profiel.tsx',
+    html: () => phone(screen(header({eyebrow:'Jouw account', title:'Profiel', subtitle:'Berghem · info@soulfulyoga.nl'}) +
+      `<div class="hero"><div class="avatar"></div><h2>Studio Beheer</h2><p>beheer@soulfulyoga.nl</p><div class="badge">Beheerder</div></div>
+       <div class="strip"><div class="l">Beheerdersaccount</div><div class="c e">Beheer je studio</div><div class="su">gebruik de knoppen hieronder om rooster en strippenkaarten bij te werken</div></div>
+       <div class="aactions">
+         <div class="abtn"><span class="ic">🗓️</span><span class="t">Rooster beheren</span><span class="chev">›</span></div>
+         <div class="abtn"><span class="ic">🎟️</span><span class="t">Strippenkaart beheren</span><span class="chev">›</span></div>
+         <div class="abtn"><span class="ic">📨</span><span class="t">Reservering aanvragen</span><span class="bdg">2</span><span class="chev">›</span></div>
+       </div>${profileFooter}`, 'profiel')) },
+  { id:'rooster-info', group:'admin', name:'Rooster beheren', src:'app/admin/rooster-info.tsx',
+    flag:'Dit scherm verwijst alleen door naar de Rooster-tab.',
+    html: () => phone(screen(header({back:'Terug', eyebrow:'Docentmodus', title:'Rooster beheren'}) +
+      `<div class="info-c"><div class="ic">🗓️</div><p>Ga naar de Rooster-tab en tik op de betreffende les om het aantal plekken aan te passen.</p><div class="cta">Naar Rooster</div></div>`)) },
+  { id:'plekken', group:'admin', name:'Plekken beheren', src:'app/admin/plekken.tsx',
+    html: () => phone(screen(header({back:'Rooster', eyebrow:'Yin Yoga', title:'20.15 – 21.15', subtitle:'Maandag · 3 / 10 plekken beschikbaar'}) +
+      `<div class="pad"><div class="cta" style="margin-bottom:16px">+ Klant toevoegen</div>
+       ${[['Marieke Jansen','marieke@soulfulyoga.nl','06 12345678',12],['Marjolijn N.','marjolijn_n@hotmail.com','06 34567890',4]]
+         .map(([n,e,p,w]) => `<div class="row"><div class="meta"><div class="nm">${n}</div><div class="dt">${e}</div><div class="dt">${p}</div><div class="wk">${w} weken</div></div><div class="circ rm">✕</div></div>`).join('')}</div>`)) },
+  { id:'klant-kiezen', group:'admin', name:'Klant kiezen', src:'app/admin/plekken.tsx',
+    html: () => phone(screen(header({back:'Rooster', eyebrow:'Yin Yoga', title:'20.15 – 21.15', subtitle:'Maandag · 3 / 10 plekken beschikbaar'}) +
+      `<div class="pad"><div class="sect" style="padding:0;margin-bottom:10px">Kies een klant</div>
+       <div class="row"><div class="meta"><div class="nm">Daan de Vries</div><div class="dt">daan@soulfulyoga.nl</div><div class="dt">06 23456789</div></div><div class="chev">›</div></div>
+       <div class="logout" style="margin-top:10px">Terug naar overzicht</div></div>`)) },
+  { id:'weken', group:'admin', name:'Hoeveel weken?', src:'components/WeeksPrompt.tsx',
+    flag:'De snelkeuze "99" betekent eigenlijk "altijd"; dat is niet direct duidelijk.',
+    html: () => phone(screen(header({back:'Rooster', eyebrow:'Yin Yoga', title:'20.15 – 21.15', subtitle:'Maandag · 3 / 10 plekken beschikbaar'})),
+      `<div class="backdrop center"><div class="wcard"><h3>Daan de Vries toevoegen voor hoeveel weken?</h3><div class="lb">Aantal weken</div>
+       <div class="stepper"><div class="sb">–</div><div class="sv">4</div><div class="sb">+</div></div>
+       <div class="quick"><span>1</span><span>4</span><span>12</span><span>99</span></div><div class="cta">Toevoegen</div><div class="cancel">Annuleren</div></div></div>`) },
+  { id:'reserveringen', group:'admin', name:'Reserveringen', src:'app/admin/reserveringen.tsx',
+    html: () => phone(screen(header({back:'Terug', eyebrow:'Docentmodus', title:'Reserveringen', subtitle:'Tik op een aanvraag om te beoordelen'}) +
+      `<div class="pad">${[['Marieke Jansen','yin','Maandag','19.00 – 20.00','marieke@soulfulyoga.nl'],['Daan de Vries','gentle','Vrijdag','09.00 – 10.00','daan@soulfulyoga.nl']]
+        .map(([n,s,d,t,e]) => `<div class="row" style="gap:14px">${dot(s,true)}<div class="meta"><div class="nm">${n}</div><div class="dt">${STYLE[s].label} · ${d} · ${t}</div><div class="em">${e}</div></div><div class="chev">›</div></div>`).join('')}</div>`)) },
+  { id:'aanvraag', group:'admin', name:'Aanvraag beoordelen', src:'components/RequestActionSheet.tsx',
+    html: () => phone(screen(header({back:'Terug', eyebrow:'Docentmodus', title:'Reserveringen', subtitle:'Tik op een aanvraag om te beoordelen'})),
+      sheetBase(`<h2>Marieke Jansen</h2><div class="s" style="margin-bottom:0">Yin Yoga · Maandag · 19.00 – 20.00</div>
+        <div class="em" style="font:400 12px var(--body);color:#A89BB5;margin:2px 0 22px">marieke@soulfulyoga.nl</div>
+        <div class="twobtn"><div class="cta" style="background:var(--teal)">✓ Goedkeuren</div><div class="cta">✕ Weigeren</div></div>`)) },
+  { id:'strippen', group:'admin', name:'Strippenkaarten', src:'app/admin/strippen.tsx',
+    html: () => phone(screen(header({back:'Terug', eyebrow:'Docentmodus', title:'Strippenkaarten', subtitle:'Pas het aantal strippen aan'}) +
+      `<div class="pad">${[['Marieke Jansen',7],['Daan de Vries',0],['Marjolijn N.',5]]
+        .map(([n,s]) => `<div class="row tight"><div class="ini">${initials(n)}</div><div class="meta"><div class="nm">${n}</div><div class="st">${s} lessen over</div></div><div class="adj"><div class="circ">–</div><div class="circ">+</div></div></div>`).join('')}</div>`)) },
+  { id:'vandaag', group:'admin', name:'Vandaag (Docentmodus)', src:'app/admin/index.tsx',
+    flag:'Dit scherm bestaat al, maar er is nog geen knop naartoe in de app.',
+    html: () => phone(screen(header({back:'Terug', eyebrow:'Docentmodus', title:'Vandaag', subtitle:todayLabel}) +
+      `<div class="pad">${SCHEDULE[0].classes.map(c => `<div class="acard">${dot(c.s)}<div class="meta"><div class="nm">${STYLE[c.s].label}</div><div class="tm">${c.t}</div></div><div class="pill">${c.c-c.a} / ${c.c}</div></div>`).join('')}</div>`)) },
+  { id:'inchecken', group:'admin', name:'Presentielijst (inchecken)', src:'app/admin/roster.tsx',
+    flag:'Alleen bereikbaar via "Vandaag", dat zelf nog geen ingang heeft.',
+    html: () => phone(screen(header({back:'Vandaag', eyebrow:'Yin Yoga', title:'20.15 – 21.15', subtitle:'Tik op een naam om in te checken'}) +
+      `<div class="cap"><span>Maximaal aantal plekken</span><div class="stepper"><div class="sb">–</div><div class="sv">10</div><div class="sb">+</div></div></div>
+       <div class="pad" style="padding-top:16px">${[['Marieke de Groot',3,1],['Sanne Verhoeven',0,0],['Petra Willems',6,1],['Anouk Bakker',1,0],['Noor Bos',5,0],['Eva de Wit',2,1],['Tessa Mulder',0,0]]
+        .map(([n,s,c]) => `<div class="row tight ${c?'checked':''}"><div class="chk ${c?'on':''}">${c?'✓':''}</div><div class="ini">${initials(n)}</div><div class="meta"><div class="nm">${n}</div><div class="st">${s} lessen over</div></div><div class="adj"><div class="circ">–</div><div class="circ">+</div></div></div>`).join('')}</div>`)) },
+];
+
+/* ── Bord opbouwen + notities ───────────────────────────────────────── */
+const store = {
+  get(k, f){ try { const v = localStorage.getItem(k); return v === null ? f : JSON.parse(v); } catch { return f; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+const notes = store.get('sy-notes', {});
+
+SCREENS.forEach((s, i) => {
+  const el = document.createElement('section');
+  el.className = 'shot';
+  el.innerHTML = `
+    <div class="shot-head"><span class="shot-num">${i+1}</span><span class="shot-name">${s.name}</span></div>
+    <div class="shot-src">${s.src}</div>
+    ${s.flag ? `<div class="flag">⚠ ${s.flag}</div>` : ''}
+    <div class="phone-wrap">${s.html()}</div>
+    <textarea class="notes" placeholder="Wat wil je hier anders? (bv. tekst, kleur, volgorde…)"></textarea>`;
+  const ta = el.querySelector('textarea');
+  ta.value = notes[s.id] || '';
+  ta.classList.toggle('has', !!ta.value.trim());
+  ta.addEventListener('input', () => {
+    notes[s.id] = ta.value; store.set('sy-notes', notes);
+    ta.classList.toggle('has', !!ta.value.trim());
+  });
+  document.getElementById(`grid-${s.group}`).appendChild(el);
+});
+
+function flash(btn, msg){ const o = btn.textContent; btn.textContent = msg; setTimeout(() => btn.textContent = o, 1600); }
+async function copy(text, btn){
+  try { await navigator.clipboard.writeText(text); flash(btn, 'Gekopieerd ✓'); }
+  catch { window.prompt('Kopieer deze tekst:', text); }
+}
+
+document.getElementById('exportNotes').addEventListener('click', (e) => {
+  const lines = SCREENS.map((s, i) => notes[s.id]?.trim() ? `## ${i+1}. ${s.name} (${s.src})\n${notes[s.id].trim()}\n` : null).filter(Boolean);
+  const changed = tokenDiff();
+  if (changed.length) lines.push(`## Ontwerp-tokens gewijzigd\n${changed.map(([k,o,n]) => `- ${k}: ${o} → ${n}`).join('\n')}\n`);
+  copy(lines.length ? `# Ontwerp-feedback Soulful Yoga\n\n${lines.join('\n')}` : 'Nog geen notities.', e.currentTarget);
+});
+
+/* ── Tokens ─────────────────────────────────────────────────────────── */
+const COLORS = {
+  ivory:['#FBF5EA','achtergrond'], ink:['#2E1F45','hoofdkleur / tekst'], marigold:['#E8A33D','Gentle'],
+  rani:['#C23B6E','Flow / knoppen'], teal:['#1C6B5E','Yin / bevestiging'], sand:['#E3D5BE','randen'],
+  card:['#FFFFFF','kaarten'], mutedText:['#7A7188','grijze tekst'], descText:['#4A3F5C','beschrijving'],
+};
+const RADII = { 'r-card':[18,'Kaarten'], 'r-row':[16,'Lijstrijen'], 'r-btn':[14,'Knoppen'], 'r-sheet':[26,'Sheets'] };
+const tokens = store.get('sy-tokens', {});
+const root = document.documentElement;
+
+function applyTokens(){
+  Object.keys(COLORS).forEach(k => root.style.setProperty(`--${k}`, tokens[k] || COLORS[k][0]));
+  Object.keys(RADII).forEach(k => root.style.setProperty(`--${k}`, `${tokens[k] ?? RADII[k][0]}px`));
+}
+function tokenDiff(){
+  return [
+    ...Object.entries(COLORS).filter(([k,[o]]) => tokens[k] && tokens[k].toUpperCase() !== o).map(([k,[o]]) => [k, o, tokens[k].toUpperCase()]),
+    ...Object.entries(RADII).filter(([k,[o]]) => tokens[k] !== undefined && tokens[k] !== o).map(([k,[o]]) => [k, o, tokens[k]]),
+  ];
+}
+function renderTokens(){
+  document.getElementById('colorTokens').innerHTML = Object.entries(COLORS).map(([k,[o,l]]) => {
+    const v = (tokens[k] || o).toUpperCase();
+    return `<label class="tok ${v !== o ? 'changed' : ''}"><input type="color" data-k="${k}" value="${v}"><span class="nm">${k}<br><span class="val">${l}</span></span><span class="val hex">${v}</span></label>`;
+  }).join('');
+  document.getElementById('radiusTokens').innerHTML = Object.entries(RADII).map(([k,[o,l]]) => {
+    const v = tokens[k] ?? o;
+    return `<label class="tok ${v !== o ? 'changed' : ''}"><span class="nm" style="flex:none;width:76px">${l}</span><input type="range" min="0" max="32" data-k="${k}" value="${v}"><span class="rv">${v}</span></label>`;
+  }).join('');
+  document.querySelectorAll('aside input').forEach(inp => inp.addEventListener('input', () => {
+    tokens[inp.dataset.k] = inp.type === 'range' ? Number(inp.value) : inp.value;
+    store.set('sy-tokens', tokens); applyTokens();
+    const row = inp.closest('.tok');
+    const orig = (COLORS[inp.dataset.k] || RADII[inp.dataset.k])[0];
+    row.classList.toggle('changed', String(tokens[inp.dataset.k]).toUpperCase() !== String(orig).toUpperCase());
+    row.querySelector('.hex, .rv').textContent = inp.type === 'range' ? inp.value : inp.value.toUpperCase();
+  }));
+}
+document.getElementById('resetTokens').addEventListener('click', () => {
+  Object.keys(tokens).forEach(k => delete tokens[k]); store.set('sy-tokens', tokens); applyTokens(); renderTokens();
+});
+document.getElementById('copyTheme').addEventListener('click', (e) => {
+  const c = (k) => (tokens[k] || COLORS[k][0]).toUpperCase();
+  const txt = `export const colors = {\n${Object.keys(COLORS).map(k => `  ${k}: '${c(k)}',`).join('\n')}\n  stageBg: '#EDE6D8',\n} as const;\n\n// Afronding: kaarten ${tokens['r-card'] ?? 18}, lijstrijen ${tokens['r-row'] ?? 16}, knoppen ${tokens['r-btn'] ?? 14}, sheets ${tokens['r-sheet'] ?? 26}`;
+  copy(txt, e.currentTarget);
+});
+applyTokens(); renderTokens();
+
+/* ── Zoom ───────────────────────────────────────────────────────────── */
+const zoom = document.getElementById('zoom');
+zoom.value = store.get('sy-zoom', 85);
+const setZoom = () => { root.style.setProperty('--zoom', zoom.value / 100); store.set('sy-zoom', Number(zoom.value)); };
+zoom.addEventListener('input', setZoom); setZoom();
+</script>
+</body>
+</html>

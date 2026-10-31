@@ -1,0 +1,994 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Soulful Yoga Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,500&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<style>
+  :root{ --zoom:1; }
+  *{box-sizing:border-box; margin:0;}
+  html,body{background:var(--stageBg); font-family:var(--body); color:var(--ink);}
+  body{min-height:100vh; display:flex; justify-content:center; align-items:flex-start; gap:32px; padding:24px 16px; flex-wrap:wrap;}
+
+  /* ── Testpaneel ────────────────────────────────────────────────────── */
+  .panel-side{width:300px; display:flex; flex-direction:column; gap:14px;}
+  .box{background:#f7f2e8; border:1px solid #d8ccb6; border-radius:16px; padding:16px;}
+  .box h1{font:600 20px var(--display);}
+  .box h2{font:600 11px var(--body); letter-spacing:.12em; text-transform:uppercase; color:#8a7f6e; margin-bottom:10px;}
+  .box p{font-size:12.5px; line-height:1.5; color:#6b6153;}
+  .who{display:flex; flex-direction:column; gap:6px;}
+  .who button{display:flex; align-items:center; gap:10px; text-align:left; font:inherit; background:#fff; border:1px solid #d8ccb6; border-radius:12px; padding:9px 11px; cursor:pointer; color:var(--ink);}
+  .who button:hover{border-color:var(--ink);}
+  .who button.on{border:2px solid var(--rani); padding:8px 10px;}
+  .who .av{width:30px; height:30px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center; font:700 11px var(--body); color:#fff; background:var(--teal);}
+  .who .av.admin{background:var(--ink);} .who .av.guest{background:#b7aec2;}
+  .who .n{font-weight:600; font-size:13px;} .who .d{font-size:11.5px; color:#7d7262;}
+  .sbtn{font:600 12.5px var(--body); border:1px solid #cdbfa6; background:#fff; color:var(--ink); border-radius:10px; padding:8px 12px; cursor:pointer; width:100%;}
+  .sbtn:hover{border-color:var(--ink);} .sbtn:disabled{opacity:.45; cursor:not-allowed;}
+  .sbtn + .sbtn{margin-top:8px;}
+  select.sbtn{appearance:auto;}
+  .log{list-style:none; padding:0; display:flex; flex-direction:column; gap:6px; max-height:220px; overflow:auto;}
+  .log li{font-size:12px; line-height:1.4; color:#4d4438; border-left:3px solid var(--sand); padding-left:8px;}
+  .log li time{color:#a09581; font-variant-numeric:tabular-nums; margin-right:4px;}
+  .tips{padding-left:18px; font-size:12.5px; line-height:1.55; color:#4d4438;}
+  .tips li + li{margin-top:4px;}
+  .link{font-size:12.5px; color:var(--rani); font-weight:600;}
+
+  /* ── Interactie in de telefoon ─────────────────────────────────────── */
+  .phone{height:min(800px, calc(100vh - 48px)); min-height:620px; flex:none;}
+  .phone [data-act]{cursor:pointer;}
+  .phone [data-act="noop"]{cursor:default;}
+  .ccard,.row,.acard,.abtn,.vcard{transition:transform .12s ease;}
+  .ccard:active,.row[data-act]:active,.acard:active,.abtn:active{transform:scale(.98);}
+  .cta[data-act]:hover{filter:brightness(1.06);}
+  .cta.off{cursor:not-allowed !important;}
+  .sb[data-act]:active,.circ[data-act]:active{transform:scale(.9);}
+  .sheet{animation:up .22s ease-out;}
+  .wcard{animation:pop .18s ease-out;}
+  .toast{animation:drop .25s ease-out;}
+  @keyframes up{from{transform:translateY(100%);}}
+  @keyframes pop{from{transform:scale(.94); opacity:0;}}
+  @keyframes drop{from{transform:translate(-50%,-20px); opacity:0;}}
+  .field input{width:100%; font:400 14.5px var(--body); color:var(--ink); background:var(--card); border:1px solid var(--sand); border-radius:var(--r-btn); padding:13px 16px;}
+  .field input:focus{outline:2px solid var(--rani); outline-offset:0; border-color:transparent;}
+  .err{font:500 12.5px var(--body); color:var(--rani); margin-bottom:14px;}
+  .quick span[data-act].on{background:var(--ink); color:var(--ivory); border-color:var(--ink);}
+
+  @media (max-width:720px){ .panel-side{width:100%; max-width:395px; order:2;} }
+</style>
+</head>
+<body>
+
+<div class="phone" id="phone"></div>
+
+<div class="panel-side" id="side"></div>
+
+<script>
+/* ── Startdata — gelijk aan data/*.ts ───────────────────────────────── */
+const STYLE = { yin:{label:'Yin Yoga', dot:'Yin'}, flow:{label:'Flow Yoga', dot:'Flow'}, gentle:{label:'Gentle Yoga', dot:'Gtl'} };
+const DESC = {
+  yin:'Een zeer rustige, ontspannen en mindful vorm van yoga. Je houdt posities vast voor 3 tot 5 minuten, wat spieren, bindweefsel en fascia de tijd geeft om mee te komen in de rek. Je ervaart diepe rust en stilte.',
+  flow:'Met Flow Yoga laat je je meevoeren met de muziek — elke in- en uitademing wordt een beweging, tot er een soort yogadans ontstaat. De les wordt een maand lang herhaald zodat je volledig zonder nadenken in de Flow komt.',
+  gentle:'Een milde vorm van yoga waarin je met aandacht beweegt, diep ademhaalt en het lichaam souplesse geeft. De houdingen zijn voor iedereen goed te volgen en aan te passen waar nodig.',
+};
+const VIDEOS = [
+  {t:'Yin Yoga — diepe ontspanning', s:'yin', m:45, l:'alle niveaus'},
+  {t:'Flow Yoga — vloeiende beweging', s:'flow', m:50, l:'gevorderd'},
+  {t:'Gentle Yoga — zachte start', s:'gentle', m:30, l:'beginners'},
+  {t:'Yin Yoga — lage rug & heupen', s:'yin', m:40, l:'alle niveaus'},
+];
+// CONCEPT — vervang door de echte voorwaarden van Soulful Yoga. [..] = nog in te vullen.
+const TERMS_VERSION = 'Concept · versie 0.1';
+const TERMS = [
+  ['1. Toepasselijkheid', '<p>Deze voorwaarden gelden voor alle lessen, strippenkaarten en reserveringen bij Soulful Yoga, Runselstraat 18, 5351 NJ Berghem. Door een les te reserveren of een strippenkaart te kopen ga je akkoord met deze voorwaarden.</p>'],
+  ['2. Proefles, losse les en strippenkaart', '<ul><li>Een proefles is eenmalig en gratis.</li><li>Een losse les kost €15, een 10-strippenkaart €110.</li><li>Een strippenkaart is [aantal] maanden geldig na aankoop en is persoonsgebonden.</li><li>Niet gebruikte strippen worden niet terugbetaald.</li></ul>'],
+  ['3. Reserveren', '<p>Je reserveert een plek via de app. Een reservering is pas definitief wanneer de docent deze heeft goedgekeurd. Bij het inchecken voor een les wordt één strip afgeschreven.</p>'],
+  ['4. Annuleren', '<p>Je kunt een reservering tot [aantal] uur voor aanvang kosteloos annuleren. Annuleer je later of kom je niet, dan wordt de strip afgeschreven.</p>'],
+  ['5. Gezondheid en eigen verantwoordelijkheid', '<p>Deelname is op eigen risico. Meld lichamelijke klachten, blessures of zwangerschap vóór de les bij de docent. Raadpleeg bij twijfel eerst je huisarts. Soulful Yoga is niet aansprakelijk voor letsel of schade, behalve bij opzet of grove nalatigheid.</p>'],
+  ['6. Rooster en wijzigingen', '<p>Soulful Yoga mag het rooster, de docent of de lesinhoud wijzigen. Valt een les uit, dan krijg je je strip terug of mag je een andere les kiezen.</p>'],
+  ['7. Privacy', '<p>We gebruiken je naam, e-mailadres en telefoonnummer alleen voor je reserveringen en strippenkaart. We delen je gegevens niet met derden. Lees meer in onze privacyverklaring [link].</p>'],
+  ['8. Huisregels', '<ul><li>Kom op tijd, zodat de les rustig kan beginnen.</li><li>Zet je telefoon op stil.</li><li>Neem een handdoek mee; matten zijn aanwezig.</li></ul>'],
+];
+
+/* ── Lessen per week — gelijk aan data/schedule.ts ──────────────────── */
+const WEEK = [
+  {day:'Maandag', classes:[{id:'mon-1',style:'yin',time:'19.00 – 20.00',capacity:10},{id:'mon-2',style:'yin',time:'20.15 – 21.15',capacity:10}]},
+  {day:'Dinsdag', classes:[{id:'tue-1',style:'yin',time:'19.00 – 20.00',capacity:10}]},
+  {day:'Woensdag', classes:[{id:'wed-1',style:'flow',time:'09.00 – 10.00',capacity:12}]},
+  {day:'Donderdag', classes:[{id:'thu-1',style:'yin',time:'19.00 – 20.00',capacity:10},{id:'thu-2',style:'yin',time:'20.15 – 21.15',capacity:10}]},
+  {day:'Vrijdag', classes:[{id:'fri-1',style:'gentle',time:'09.00 – 10.00',capacity:8},{id:'fri-2',style:'yin',time:'10.15 – 11.15',capacity:10}]},
+];
+// Lessen staan in de toestand (S.sessions) zodat de beheerder ze kan aanpassen; SES is de index op id.
+let SES = Object.fromEntries(WEEK.flatMap(d => d.classes.map(c => [c.id, {...c, day:d.day}])));
+
+// Vaste deelnemers zonder app-account (presentielijst) — tellen elke week mee in de bezetting.
+const ROSTER_SEED = {
+  'mon-1':[['Lotte Jansen',4],['Femke van Dijk',2]],
+  'mon-2':[['Marieke de Groot',3],['Sanne Verhoeven',0],['Petra Willems',6],['Anouk Bakker',1],['Noor Bos',5],['Eva de Wit',2],['Tessa Mulder',0]],
+  'tue-1':[['Iris Vermeulen',3],['Sophie de Boer',7],['Julia Hendriks',1],['Fleur Dekker',4],['Lisa Kok',2]],
+  'wed-1':[['Maud Willemsen',5],['Roos Meijer',0],['Nina Kuiper',3],['Vera Postma',8],['Anna Brouwer',2],['Elke Visser',1],['Carla Smeets',6],['Marloes Timmer',4],['Yara van Beek',0],['Britt Kramer',3],['Esmee Sanders',5],['Amber Groen',2]],
+  'thu-1':[],
+  'thu-2':[['Wendy Hoekstra',4],['Suzanne Blom',1],['Karin Dijkstra',6],['Nadia Peeters',2]],
+  'fri-1':[['Hans Peters',4],['Ingrid Smit',2],['Manon Verheul',0],['Merel Aarts',5]],
+  'fri-2':[['Loes Verweij',3]],
+};
+
+/* ── Datum & tijd ───────────────────────────────────────────────────── */
+const DAY = 86400000;
+const WEEKDAYS = ['Zondag','Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag'];
+const MONTHS = ['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
+const MONTHS_AHEAD = 3;
+let S; // toestand, zie onder
+const now = () => new Date(Date.now() + (S?.offsetDays || 0) * DAY);
+const isoOf = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const toDate = (iso, hm = '00.00') => { const [y,m,d] = iso.split('-').map(Number); const [h,mi] = hm.split('.').map(Number); return new Date(y, m-1, d, h, mi); };
+const plusDays = (iso, n) => { const d = toDate(iso); d.setDate(d.getDate() + n); return isoOf(d); };
+const daysBetween = (a, b) => Math.round((toDate(b) - toDate(a)) / DAY);
+const startOf = (sid, d) => toDate(d, SES[sid].time.split(' – ')[0]);
+const endOf = (sid, d) => toDate(d, SES[sid].time.split(' – ')[1]);
+const isPast = (sid, d) => endOf(sid, d) <= now();
+const hasStarted = (sid, d) => startOf(sid, d) <= now();
+const weekdayOf = (iso) => WEEKDAYS[toDate(iso).getDay()];
+const dateLabel = (iso) => { const d = toDate(iso); return `${WEEKDAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`; };
+const shortDate = (iso) => { const d = toDate(iso); return `${WEEKDAYS[d.getDay()].slice(0,2).toLowerCase()} ${d.getDate()} ${MONTHS[d.getMonth()].slice(0,3)}`; };
+const cap1 = (s) => s[0].toUpperCase() + s.slice(1);
+const monthStart = (offset) => { const n = now(); return new Date(n.getFullYear(), n.getMonth() + offset, 1); };
+const horizonEnd = () => { const m = monthStart(MONTHS_AHEAD); return isoOf(new Date(m.getFullYear(), m.getMonth() + 1, 0)); };
+const key = (sid, d) => `${sid}@${d}`;
+
+/* ── Startdata ──────────────────────────────────────────────────────── */
+// De laatste n keer dat een les (echt) voorbij is, oudste eerst.
+function recentPast(sid, n){
+  const out = []; const d = new Date(); d.setHours(0,0,0,0);
+  while (out.length < n) {
+    const iso = isoOf(d);
+    if (WEEKDAYS[d.getDay()] === SES[sid].day && endOf(sid, iso) <= new Date()) out.unshift(iso);
+    d.setDate(d.getDate() - 1);
+  }
+  return out;
+}
+// Vaste klant die al een paar weken meedoet; afgenomen lessen zijn al afgeschreven.
+function seedVast(s, email, sid, pastWeeks, cancelledIdx, weeks){
+  const dates = recentPast(sid, pastWeeks);
+  s.enrollments.push({id:`e-${sid}-${email}`, sessionId:sid, email, start:dates[0], weeks});
+  s.charged[email] = s.charged[email] || {};
+  dates.forEach((d, i) => cancelledIdx.includes(i)
+    ? s.cancels.push({sessionId:sid, date:d, email, by:'klant'})
+    : s.charged[email][key(sid, d)] = 'strip');
+}
+// Weekrooster + voorbeeld-vakantie. Eenmalige extra lessen zijn lessen met from === until.
+function baseSchedule(){
+  const n = new Date(); let y = n.getFullYear();
+  if (new Date(y, 11, 21) < n) y++;
+  return {
+    sessions: WEEK.flatMap(d => d.classes.map(c => ({...c, day:d.day, from:null, until:null}))),
+    closures: [{id:'c-kerst', from:`${y}-12-21`, to:`${y+1}-01-03`, sessionId:null, reason:'Kerstvakantie'}],
+  };
+}
+function initialState(){
+  const s = {
+    users: [
+      {email:'marieke@soulfulyoga.nl', password:'yoga123', name:'Marieke Jansen', phone:'06 12345678', strippen:7, total:10, role:'student', termsAcceptedAt:null},
+      {email:'daan@soulfulyoga.nl', password:'yoga123', name:'Daan de Vries', phone:'06 23456789', strippen:null, total:10, role:'student', termsAcceptedAt:null},
+      {email:'beheer@soulfulyoga.nl', password:'admin123', name:'Studio Beheer', phone:'06 12680852', strippen:null, total:10, role:'admin', termsAcceptedAt:null},
+      {email:'marjolijn_n@hotmail.com', password:'0000', name:'Marjolijn N.', phone:'06 34567890', strippen:5, total:10, role:'student', termsAcceptedAt:null},
+    ],
+    roster: Object.fromEntries(Object.entries(ROSTER_SEED).map(([sid, list]) => [sid, list.map(([name, strips], i) => ({id:`${sid}-${i+1}`, name, strips}))])),
+    enrollments: [],   // vaste klanten: {sessionId, email, start, weeks}
+    bookings: [],      // goedgekeurde losse lessen: {sessionId, date, email}
+    requests: [],      // aanvragen die wachten op goedkeuring
+    cancels: [],       // afmeldingen: {sessionId, date, email, by}
+    charged: {},       // afgeschreven lessen per klant: {email: {sessie@datum: 'strip' | 'open'}}
+    capOverride: {},   // aantal plekken per les-datum (als de beheerder het aanpast)
+    checkins: {},      // presentielijst per les-datum
+    email: null, log: [], offsetDays: 0,
+  };
+  Object.assign(s, baseSchedule());
+  seedVast(s, 'marieke@soulfulyoga.nl', 'tue-1', 4, [1], 99);    // dinsdagavond, 1× afgemeld
+  seedVast(s, 'marjolijn_n@hotmail.com', 'thu-2', 3, [], 12);
+  return s;
+}
+
+/* ── Toestand (blijft bewaard tot "Demo resetten") ──────────────────── */
+const SAVE_KEY = 'sy-demo-v2';
+try { S = JSON.parse(localStorage.getItem(SAVE_KEY)) || null; } catch { S = null; }
+if (!S) S = initialState();
+if (!S.sessions) Object.assign(S, baseSchedule());   // bewaarde demo van vóór "Rooster beheren"
+const reindex = () => { SES = Object.fromEntries(S.sessions.map(s => [s.id, s])); };
+reindex();
+const save = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch {} };
+
+// Navigatie en tijdelijke UI — niet bewaard
+const UI = { form:{}, formError:null, tab:'rooster', month:0, myTab:'komend', stack:[], sheet:null, prompt:null, confirm:null, toast:null, filter:'alles', picking:false, loginError:null, loginEmail:'', loginPw:'' };
+
+const me = () => S.users.find(u => u.email === S.email) || null;
+const isAdmin = () => me()?.role === 'admin';
+const students = () => S.users.filter(u => u.role === 'student');
+const userBy = (email) => S.users.find(u => u.email === email);
+function log(msg){
+  const t = now().toLocaleString('nl-NL', {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
+  S.log.unshift({t, msg}); S.log = S.log.slice(0, 60);
+}
+
+/* ── Wie zit waar? Alles per les-datum ──────────────────────────────── */
+const isExtra = (s) => !!s.from && s.from === s.until;
+const activeOn = (s, d) => s.day === weekdayOf(d) && (!s.from || d >= s.from) && (!s.until || d <= s.until);
+const sessionsOn = (d) => S.sessions.filter(s => activeOn(s, d)).sort((a, b) => a.time.localeCompare(b.time));
+const closureOf = (sid, d) => S.closures.find(c => d >= c.from && d <= c.to && (!c.sessionId || c.sessionId === sid));
+const covers = (e, d) => { const n = daysBetween(e.start, d); return n >= 0 && n % 7 === 0 && n / 7 < e.weeks; };
+const enrollmentOf = (email, sid, d) => S.enrollments.find(e => e.email === email && e.sessionId === sid && covers(e, d));
+const isCancelled = (email, sid, d) => S.cancels.some(c => c.email === email && c.sessionId === sid && c.date === d);
+const requestOf = (email, sid, d) => S.requests.find(r => r.email === email && r.sessionId === sid && r.date === d);
+
+// Hoe staat een klant ingepland voor één les-datum?
+function statusFor(email, sid, d){
+  const e = enrollmentOf(email, sid, d);
+  const b = S.bookings.find(x => x.email === email && x.sessionId === sid && x.date === d);
+  if (e || b) return {source: e ? 'vast' : 'los', cancelled: isCancelled(email, sid, d), enrollment: e};
+  if (requestOf(email, sid, d)) return {source:'aanvraag', cancelled:false};
+  return null;
+}
+// App-klanten die op deze datum meedoen (aanvragen houden ook een plek vast)
+const attendees = (sid, d) => students().map(u => ({user:u, st:statusFor(u.email, sid, d)})).filter(x => x.st && !x.st.cancelled);
+function occ(sid, d){
+  const cap = S.capOverride[key(sid, d)] ?? SES[sid].capacity;
+  const booked = (S.roster[sid] || []).length + attendees(sid, d).length;
+  return {cap, booked, available: Math.max(0, cap - booked)};
+}
+// Alle lessen van een klant tussen twee datums, op volgorde
+function myLessons(email, from, to){
+  const seen = new Map();
+  const add = (sid, d) => { if (d >= from && d <= to && SES[sid] && activeOn(SES[sid], d)) seen.set(key(sid, d), {sid, d}); };
+  S.enrollments.filter(e => e.email === email).forEach(e => {
+    for (let k = 0; k < e.weeks; k++) { const d = plusDays(e.start, 7 * k); if (d > to) break; add(e.sessionId, d); }
+  });
+  S.bookings.filter(b => b.email === email).forEach(b => add(b.sessionId, b.date));
+  S.requests.filter(r => r.email === email).forEach(r => add(r.sessionId, r.date));
+  return [...seen.values()].map(l => ({...l, st:statusFor(email, l.sid, l.d), closed:closureOf(l.sid, l.d)})).sort((a, b) => startOf(a.sid, a.d) - startOf(b.sid, b.d));
+}
+
+/* ── Automatisch afschrijven ────────────────────────────────────────── */
+// Elke les die voorbij is en waarvoor een klant ingepland stond (en niet afgemeld) kost één strip.
+function settle(){
+  let changed = false;
+  for (const u of students()) {
+    S.charged[u.email] = S.charged[u.email] || {};
+    for (const l of myLessons(u.email, '2000-01-01', isoOf(now()))) {
+      const k = key(l.sid, l.d);
+      if (!isPast(l.sid, l.d) || l.closed || l.st.cancelled || l.st.source === 'aanvraag' || S.charged[u.email][k]) continue;
+      const label = `${STYLE[SES[l.sid].style].label} ${shortDate(l.d)} ${SES[l.sid].time.split(' – ')[0]}`;
+      if (u.strippen > 0) {
+        u.strippen -= 1; S.charged[u.email][k] = 'strip';
+        log(`${label} voorbij — ${u.name} −1 strip (${u.strippen} over)`);
+      } else {
+        S.charged[u.email][k] = 'open';
+        log(`${label} voorbij — ${u.name} heeft geen strippen: openstaand`);
+      }
+      changed = true;
+    }
+  }
+  if (changed) save();
+}
+
+// Hoeveel lessen (en ingeplande klanten) raakt een vakantie?
+function closurePreview(f){
+  if (!f.from || !f.to || f.to < f.from || daysBetween(f.from, f.to) > 400) return null;
+  let lessons = 0, people = 0;
+  for (let d = f.from; d <= f.to; d = plusDays(d, 1)) {
+    for (const s of sessionsOn(d)) {
+      if (f.scope && s.id !== f.scope) continue;
+      lessons++; people += attendees(s.id, d).length;
+    }
+  }
+  return {lessons, people};
+}
+const checkTimes = (f) => !f.start || !f.end ? 'Vul een begin- en eindtijd in.' : f.end <= f.start ? 'De eindtijd moet na de begintijd liggen.' : '';
+const timeOf = (f) => `${f.start.replace(':', '.')} – ${f.end.replace(':', '.')}`;
+
+/* ── Acties op de data ──────────────────────────────────────────────── */
+function requestLesson(sid, d, u){
+  if (statusFor(u.email, sid, d) || occ(sid, d).available <= 0) return false;
+  S.requests.unshift({id:`r-${Date.now()}`, sessionId:sid, date:d, email:u.email, name:u.name});
+  return true;
+}
+function cancelLesson(email, sid, d, by){ if (!isCancelled(email, sid, d)) S.cancels.push({sessionId:sid, date:d, email, by}); }
+const undoCancel = (email, sid, d) => { S.cancels = S.cancels.filter(c => !(c.email === email && c.sessionId === sid && c.date === d)); };
+function addVast(sid, d, email, weeks){
+  if (occ(sid, d).available <= 0 || enrollmentOf(email, sid, d)) return false;
+  S.enrollments.push({id:`e-${Date.now()}`, sessionId:sid, email, start:d, weeks});
+  return true;
+}
+// Vaste klant afmelden voor N weken vanaf deze datum; 99 (of meer dan er over is) = vaste les stoppen.
+function removeVast(sid, d, email, weeks){
+  const e = enrollmentOf(email, sid, d);
+  const idx = daysBetween(e.start, d) / 7;
+  if (weeks >= e.weeks - idx) {
+    e.weeks = idx;
+    if (e.weeks === 0) S.enrollments = S.enrollments.filter(x => x !== e);
+    return 'gestopt';
+  }
+  for (let k = 0; k < weeks; k++) cancelLesson(email, sid, plusDays(d, 7 * k), 'beheer');
+  return `${weeks} ${weeks === 1 ? 'week' : 'weken'} afgemeld`;
+}
+
+/* ── Bouwstenen ─────────────────────────────────────────────────────── */
+const esc = (s) => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ICON = {
+  rooster:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>',
+  lessen:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M8.5 14.5l2.5 2.5 4.5-5"/></svg>',
+  videos:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9l6 3-6 3z" fill="currentColor" stroke="none"/></svg>',
+  profiel:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4.5 5-6 8-6s6.5 1.5 8 6"/></svg>',
+};
+const header = ({eyebrow, title, subtitle='', back}) => `
+  <div class="topbar">
+    ${back ? `<div class="back" data-act="back">‹ ${back}</div>` : ''}
+    <div class="hrow"><div class="txt">
+      ${eyebrow ? `<div class="eyebrow">${esc(eyebrow)}</div>` : ''}
+      <h1>${esc(title)}</h1><p>${esc(subtitle)}</p>
+    </div><img src="logo-mark.png" alt=""></div>
+  </div>`;
+const tabs = () => isAdmin()
+  ? [['rooster','Rooster'],['videos',"Video's"],['profiel','Profiel']]
+  : [['rooster','Rooster'],['lessen','Mijn lessen'],['videos',"Video's"],['profiel','Profiel']];
+const tabbar = () => `<div class="tabbar">${tabs().map(([k,l]) => `<div class="tab ${UI.tab===k?'on':''}" data-act="tab" data-v="${k}">${ICON[k]}${l}</div>`).join('')}</div>`;
+const dot = (s, sm) => `<div class="dot ${sm?'sm':''} ${s}">${STYLE[s].dot}</div>`;
+const stepper = (act, v, extra='') => `<div class="stepper"><div class="sb" data-act="${act}" data-d="-1" ${extra}>–</div><div class="sv">${v}</div><div class="sb" data-act="${act}" data-d="1" ${extra}>+</div></div>`;
+const initials = (n) => n.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+const at = (sid, d) => `data-sid="${sid}" data-date="${d}"`;
+const vastLabel = (u) => { const e = S.enrollments.find(x => x.email === u.email && plusDays(x.start, 7 * x.weeks) > isoOf(now())); return e ? `${SES[e.sessionId].day.toLowerCase()} ${SES[e.sessionId].time.split(' – ')[0]}` : null; };
+
+/* ── Tab: Rooster (één maand per pagina) ────────────────────────────── */
+function monthDays(offset){
+  const first = monthStart(offset);
+  const from = offset === 0 ? isoOf(now()) : isoOf(first);
+  const out = [];
+  for (let d = from; toDate(d).getMonth() === first.getMonth(); d = plusDays(d, 1)) {
+    const classes = sessionsOn(d).filter(c => !hasStarted(c.id, d));
+    if (classes.length) out.push({d, classes});
+  }
+  return out;
+}
+function spotLabel(sid, d){
+  if (closureOf(sid, d)) return ['Vervalt', ''];
+  const u = me();
+  if (u?.role === 'student') {
+    const st = statusFor(u.email, sid, d);
+    if (st?.cancelled) return ['Afgemeld', ''];
+    if (st?.source === 'aanvraag') return ['Aangevraagd', 'pend'];
+    if (st) return ['✓ Ingepland', 'mine'];
+  }
+  const o = occ(sid, d);
+  return o.available <= 0 ? ['Vol', 'full'] : [`${o.available}/${o.cap} beschikbaar`, ''];
+}
+function roosterTab(){
+  const m = UI.month;
+  const label = (o) => { const d = monthStart(o); return `${cap1(MONTHS[d.getMonth()])} ${d.getFullYear()}`; };
+  const nav = `<div class="monthnav">
+    <div class="mbtn ${m === 0 ? 'off' : ''}" ${m === 0 ? '' : 'data-act="month" data-d="-1"'}>‹</div>
+    <div class="mlabel">${label(m)}${m === 0 ? '<small>resterende lessen</small>' : ''}</div>
+    <div class="mbtn ${m === MONTHS_AHEAD ? 'off' : ''}" ${m === MONTHS_AHEAD ? '' : 'data-act="month" data-d="1"'}>›</div></div>`;
+  const days = monthDays(m);
+  const h = days.length ? days.map(({d, classes}, i) =>
+    `<div class="day ${i === 0 ? 'first' : ''} ${i > 0 && toDate(d).getDay() === 1 ? 'week' : ''}">${dateLabel(d)}</div>` +
+    classes.map(c => { const [txt, cls] = spotLabel(c.id, d);
+      const cl = closureOf(c.id, d);
+      return `<div class="ccard ${cl ? 'closed' : ''}" data-act="openClass" ${at(c.id, d)}>${dot(c.style)}<div class="meta"><div class="nm">${STYLE[c.style].label}${isExtra(c) ? ' <span class="tag pend" style="margin:0 0 0 4px">Extra</span>' : ''}</div><div class="tm">${c.time}${cl ? ` · ${esc(cl.reason)}` : ''}</div></div>
+        <div class="spots ${cls}">${txt}</div><div class="chev">›</div></div>`; }).join('')).join('')
+    : `<div class="empty" style="margin-top:36px">Geen lessen meer in ${MONTHS[monthStart(m).getMonth()]}.</div>
+       ${m < MONTHS_AHEAD ? `<div class="cta" style="margin-top:18px" data-act="month" data-d="1">Bekijk ${MONTHS[monthStart(m + 1).getMonth()]} ›</div>` : ''}`;
+  return header({eyebrow: isAdmin() ? 'Beheerder' : undefined, title:'Soulful Yoga', subtitle:'Meer rust en ruimte voor jezelf'}) + nav + `<div class="content">${h}</div>`;
+}
+
+/* ── Tab: Mijn lessen ───────────────────────────────────────────────── */
+function lessonCard(l, past){
+  const s = SES[l.sid]; const dt = toDate(l.d);
+  const dim = l.st.cancelled || l.closed;
+  let tag, btn = '';
+  if (l.closed) {
+    tag = `<span class="tag off">${past ? 'Vervallen' : 'Vervalt'} · ${esc(l.closed.reason.toLowerCase())} · geen strip</span>`;
+  } else if (past) {
+    const c = S.charged[S.email]?.[key(l.sid, l.d)];
+    tag = l.st.cancelled ? '<span class="tag off">Afgemeld · telde niet mee</span>'
+      : c === 'open' ? '<span class="tag open">Geen strip · openstaand</span>' : '<span class="tag paid">Afgenomen · −1 strip</span>';
+  } else if (l.st.cancelled) {
+    tag = '<span class="tag off">Afgemeld · telt niet mee</span>';
+    if (occ(l.sid, l.d).available > 0) btn = `<div class="obtn teal" data-act="undoCancel" ${at(l.sid, l.d)}>Aanmelden</div>`;
+  } else if (l.st.source === 'aanvraag') {
+    tag = '<span class="tag pend">Aangevraagd · wacht op goedkeuring</span>';
+  } else {
+    tag = `<span class="tag ${l.st.source}">${l.st.source === 'vast' ? 'Vaste les' : 'Losse les'}</span>`;
+    if (!hasStarted(l.sid, l.d)) btn = `<div class="obtn" data-act="askCancel" ${at(l.sid, l.d)}>Afmelden</div>`;
+  }
+  return `<div class="lcard ${dim ? 'dim' : ''}"><div class="datebox ${s.style}"><b>${dt.getDate()}</b><span>${WEEKDAYS[dt.getDay()].slice(0,2)}</span></div>
+    <div class="meta"><div class="nm">${STYLE[s.style].label}</div><div class="tm">${s.time}</div>${tag}</div>${btn}</div>`;
+}
+function lessenTab(){
+  const u = me();
+  if (!u) return header({title:'Mijn lessen', subtitle:'Je planning en geschiedenis'}) +
+    `<div class="info-c"><div class="ic">🧘</div><p>Log in om te zien voor welke lessen je bent ingepland.</p><div class="cta" data-act="tab" data-v="profiel">Inloggen</div></div>`;
+  const today = isoOf(now());
+  const all = myLessons(u.email, '2000-01-01', horizonEnd());
+  const upcoming = all.filter(l => !isPast(l.sid, l.d));
+  const past = all.filter(l => isPast(l.sid, l.d) && l.st.source !== 'aanvraag').reverse();
+  const vast = vastLabel(u);
+  const strip = u.strippen === null ? 'Geen kaart' : `${u.strippen} <small>/ ${u.total} over</small>`;
+  let list = '';
+  if (UI.myTab === 'komend') {
+    let lastMonth = -1;
+    list = upcoming.length ? upcoming.map(l => {
+      const m = toDate(l.d).getMonth();
+      const head = m !== lastMonth ? `<div class="sect" style="padding:0;margin:${lastMonth === -1 ? 4 : 18}px 0 8px">${cap1(MONTHS[m])}</div>` : '';
+      lastMonth = m; return head + lessonCard(l, false);
+    }).join('') : `<div class="empty">Je staat nog nergens voor ingepland.</div><div class="cta" style="margin-top:18px" data-act="tab" data-v="rooster">Bekijk het rooster</div>`;
+  } else {
+    list = past.length ? past.map(l => lessonCard(l, true)).join('') : '<div class="empty">Nog geen lessen afgenomen.</div>';
+  }
+  return header({title:'Mijn lessen', subtitle: vast ? `Vaste les: ${vast}` : 'Geen vaste les'}) +
+    `<div class="ministrip"><span class="l">Strippenkaart</span><span class="c">${strip}</span></div>
+     <div class="seg"><div class="${UI.myTab === 'komend' ? 'on' : ''}" data-act="myTab" data-v="komend">Komend (${upcoming.filter(l => !l.st.cancelled && !l.closed).length})</div>
+       <div class="${UI.myTab === 'afgenomen' ? 'on' : ''}" data-act="myTab" data-v="afgenomen">Afgenomen (${past.filter(l => !l.st.cancelled && !l.closed).length})</div></div>
+     <div class="pad" style="padding-top:8px">${list}</div>`;
+}
+
+/* ── Tab: Video's ───────────────────────────────────────────────────── */
+function videosTab(){
+  const list = VIDEOS.filter(v => UI.filter === 'alles' || v.s === UI.filter);
+  return header({title:"Video's", subtitle:'Oefen op jouw moment, in jouw tempo'}) +
+    `<div class="filters">${[['alles','Alles'],['yin','Yin'],['flow','Flow'],['gentle','Gentle']].map(([k,l]) => `<div class="chip ${UI.filter===k?'on':''}" data-act="filter" data-v="${k}">${l}</div>`).join('')}</div>
+     <div style="padding:10px 0 24px">${list.map(v => `<div class="vcard"><div class="thumb ${v.s}"><div class="play"></div></div><div class="vinfo"><div class="nm">${v.t}</div><div class="sb2">${v.m} min · ${v.l}</div></div></div>`).join('')}</div>`;
+}
+
+/* ── Tab: Profiel ───────────────────────────────────────────────────── */
+function loginScreen(){
+  return header({title:'Inloggen', subtitle:'Log in om je strippenkaart te bekijken'}) + `<div style="padding:24px 20px 20px">
+    <div class="field"><label>E-mailadres</label><input id="loginEmail" type="email" placeholder="naam@voorbeeld.nl" value="${esc(UI.loginEmail)}" autocomplete="off"></div>
+    <div class="field"><label>Wachtwoord</label><input id="loginPw" type="password" placeholder="••••••••" value="${esc(UI.loginPw)}"></div>
+    ${UI.loginError ? `<div class="err">${UI.loginError}</div>` : ''}
+    <div class="cta" style="margin-top:4px" data-act="login">Inloggen</div>
+    <div class="hint2">Demo-account: marieke@soulfulyoga.nl · yoga123<br>(of daan@soulfulyoga.nl · yoga123 voor een account zonder strippenkaart)</div></div>`;
+}
+const profileFooter = `<div class="contact"><b>Soulful Yoga</b>Runselstraat 18, 5351 NJ Berghem<br>06 12 68 08 52 · info@soulfulyoga.nl</div><div class="logout" data-act="logout">Uitloggen</div>`;
+function termsCount(){ const st = students(); return `${st.filter(u => u.termsAcceptedAt).length} van ${st.length} klanten akkoord`; }
+function profielTab(){
+  const u = me();
+  if (!u) return loginScreen();
+  const top = header({eyebrow:'Jouw account', title:'Profiel', subtitle:'Berghem · info@soulfulyoga.nl'}) +
+    `<div class="hero"><div class="avatar"></div><h2>${esc(u.name)}</h2><p>${esc(u.email)}</p>${u.role==='admin'?'<div class="badge">Beheerder</div>':''}</div>`;
+  if (u.role === 'admin') return top + `
+    <div class="strip"><div class="l">Beheerdersaccount</div><div class="c e">Beheer je studio</div><div class="su">gebruik de knoppen hieronder om rooster en strippenkaarten bij te werken</div></div>
+    <div class="aactions">
+      <div class="abtn" data-act="push" data-v="rooster-beheer"><span class="ic">🗓️</span><span class="t">Rooster beheren</span><span class="chev">›</span></div>
+      <div class="abtn" data-act="push" data-v="strippen"><span class="ic">🎟️</span><span class="t">Strippenkaart beheren</span><span class="chev">›</span></div>
+      <div class="abtn" data-act="push" data-v="reserveringen"><span class="ic">📨</span><span class="t">Reservering aanvragen</span>${S.requests.length ? `<span class="bdg">${S.requests.length}</span>` : ''}<span class="chev">›</span></div>
+      <div class="abtn" data-act="push" data-v="voorwaarden-overzicht"><span class="ic">📄</span><span class="t">Algemene voorwaarden<small class="abtn-sub">${termsCount()}</small></span><span class="chev">›</span></div>
+    </div>${profileFooter}`;
+  const card = u.strippen !== null
+    ? `<div class="c">${u.strippen} / ${u.total}</div><div class="su">nog ${u.strippen} lessen tegoed</div>`
+    : `<div class="c e">Nog geen kaart</div><div class="su">koop een strippenkaart hieronder om te starten</div>`;
+  const terms = u.termsAcceptedAt ? `<div class="dt ok">✓ Akkoord op ${u.termsAcceptedAt}</div>` : `<div class="dt todo">Nog niet akkoord</div>`;
+  return top + `<div class="strip"><div class="l">Strippenkaart</div>${card}</div>
+    <div class="sect">Tarieven</div>${[['Gratis proefles','€0'],['Losse les','€15'],['10-strippenkaart','€110']].map(([l,p]) => `<div class="price"><span>${l}</span><b>${p}</b></div>`).join('')}
+    <div class="linkrow" data-act="push" data-v="voorwaarden"><span class="ic">📄</span><div class="meta"><div class="nm">Algemene voorwaarden</div>${terms}</div><div class="chev">›</div></div>${profileFooter}`;
+}
+
+/* ── Gestapelde schermen ────────────────────────────────────────────── */
+const STACK = {
+  voorwaarden: () => {
+    const u = me(); const on = !!u?.termsAcceptedAt;
+    return header({back: UI.stack.length > 1 ? 'Terug' : 'Profiel', eyebrow:'Soulful Yoga', title:'Algemene voorwaarden'}) +
+      `<div class="terms"><div class="concept">⚠ Conceptversie — de definitieve tekst volgt nog.</div><div class="ver">${TERMS_VERSION}</div>
+        ${TERMS.map(([h, body]) => `<h3>${h}</h3>${body}`).join('')}</div>
+       ${u?.role === 'student' ? `<div class="accept"><div class="lbl">Ik ga akkoord met de algemene voorwaarden<small>${on ? `Akkoord gegeven op ${u.termsAcceptedAt}` : 'Zet het schuifje aan om akkoord te gaan'}</small></div>
+         <div class="switch ${on ? 'on' : ''}" data-act="toggleTerms" role="switch" aria-checked="${on}"></div></div>` : ''}`;
+  },
+
+  'voorwaarden-overzicht': () => {
+    const list = students().sort((a, b) => !!a.termsAcceptedAt - !!b.termsAcceptedAt || a.name.localeCompare(b.name));
+    return header({back:'Terug', eyebrow:'Docentmodus', title:'Algemene voorwaarden', subtitle:termsCount()}) +
+      `<div class="pad">${list.map(u => `<div class="row tight"><div class="ini">${initials(u.name)}</div>
+        <div class="meta"><div class="nm">${esc(u.name)}</div><div class="em" style="margin-top:1px">${esc(u.email)}</div></div>
+        ${u.termsAcceptedAt ? `<div class="tstat ok">✓ ${u.termsAcceptedAt}</div>` : '<div class="tstat todo">Nog niet</div>'}</div>`).join('')}
+        <div class="logout" style="margin-top:14px" data-act="push" data-v="voorwaarden">Bekijk de tekst (${TERMS_VERSION.toLowerCase()})</div></div>`;
+  },
+
+  // Weekrooster + uitzonderingen (extra lessen en vervallen lessen)
+  'rooster-beheer': () => {
+    const today = isoOf(now());
+    const order = (s) => (WEEKDAYS.indexOf(s.day) + 6) % 7;
+    const weekly = S.sessions.filter(s => !isExtra(s) && (!s.until || s.until >= today) && (!s.from || !s.until || s.until >= s.from))
+      .sort((a, b) => order(a) - order(b) || a.time.localeCompare(b.time));
+    const extras = S.sessions.filter(s => isExtra(s) && s.from >= today).sort((a, b) => a.from.localeCompare(b.from));
+    const closures = S.closures.filter(c => c.to >= today).sort((a, b) => a.from.localeCompare(b.from));
+    const period = (s) => [s.from && s.from > today ? `vanaf ${shortDate(s.from)}` : '', s.until ? `t/m ${shortDate(s.until)}` : ''].filter(Boolean).join(' · ');
+    return header({back:'Terug', eyebrow:'Docentmodus', title:'Rooster beheren', subtitle:'Weekrooster en uitzonderingen'}) +
+      `<div class="pad">
+        <div class="actgrid">
+          <div class="actbtn" data-act="newForm" data-v="vast"><b>＋</b>Vaste les</div>
+          <div class="actbtn" data-act="newForm" data-v="extra"><b>＋</b>Extra les</div>
+          <div class="actbtn" data-act="newForm" data-v="vervallen"><b>🌴</b>Vakantie</div>
+        </div>
+        <div class="sect" style="padding:0;margin:18px 0 10px">Weekrooster</div>
+        ${weekly.map(s => `<div class="row" data-act="push" data-v="les-bewerken" data-sid="${s.id}">${dot(s.style, true)}
+          <div class="meta"><div class="nm">${s.day} · ${s.time.split(' – ')[0]}</div><div class="dt">${STYLE[s.style].label} · ${s.capacity} plekken</div>${period(s) ? `<span class="tag pend">${period(s)}</span>` : ''}</div><div class="chev">›</div></div>`).join('')}
+        <div class="sect" style="padding:0;margin:18px 0 10px">Uitzonderingen</div>
+        ${closures.map(c => `<div class="row"><div class="ini" style="background:#FCF1DE">🌴</div>
+          <div class="meta"><div class="nm">${esc(c.reason)}</div><div class="dt">${c.from === c.to ? dateLabel(c.from) : `${shortDate(c.from)} – ${shortDate(c.to)}`}</div>
+          <span class="tag off">${c.sessionId ? `Alleen ${SES[c.sessionId].day.toLowerCase()} ${SES[c.sessionId].time.split(' – ')[0]}` : 'Alle lessen'} vervallen</span></div>
+          <div class="circ rm" data-act="askRemoveClosure" data-cid="${c.id}">✕</div></div>`).join('')}
+        ${extras.map(s => `<div class="row">${dot(s.style, true)}<div class="meta"><div class="nm">Extra: ${STYLE[s.style].label}</div><div class="dt">${dateLabel(s.from)} · ${s.time}</div><span class="tag pend">Eenmalig · ${s.capacity} plekken</span></div>
+          <div class="circ rm" data-act="askRemoveExtra" data-sid="${s.id}">✕</div></div>`).join('')}
+        ${closures.length || extras.length ? '' : '<div class="small-note">Geen vakanties of extra lessen gepland.</div>'}
+      </div>`;
+  },
+
+  // Formulier: vaste les, extra les of vakantie
+  form: () => {
+    const f = UI.form;
+    const input = (k, type, extra = '') => `<input type="${type}" data-f="${k}" value="${esc(f[k] ?? '')}" ${extra}>`;
+    const field = (label, html) => `<div class="field"><label>${label}</label>${html}</div>`;
+    const err = UI.formError ? `<div class="err">${UI.formError}</div>` : '';
+    if (f.kind === 'vervallen') {
+      const weekly = S.sessions.filter(s => !isExtra(s));
+      const p = closurePreview(f);
+      return header({back:'Terug', eyebrow:'Rooster beheren', title:'Lessen laten vervallen', subtitle:'Bijvoorbeeld voor een vakantie'}) +
+        `<div class="pad form">
+          ${field('Reden', input('reason', 'text', 'placeholder="Vakantie"'))}
+          <div class="frow">${field('Van', input('from', 'date'))}${field('Tot en met', input('to', 'date'))}</div>
+          ${field('Welke lessen', `<select data-f="scope"><option value="">Alle lessen</option>${weekly.map(s => `<option value="${s.id}" ${f.scope === s.id ? 'selected' : ''}>${s.day} ${s.time.split(' – ')[0]} · ${STYLE[s.style].label}</option>`).join('')}</select>`)}
+          ${p ? `<div class="preview">${p.lessons} ${p.lessons === 1 ? 'les vervalt' : 'lessen vervallen'}${p.people ? `; ${p.people} keer stond er een klant ingepland. Er gaat daarvoor geen strip af.` : '.'}</div>` : ''}
+          ${err}<div class="cta" data-act="saveClosure">Opslaan</div></div>`;
+    }
+    const extra = f.kind === 'extra';
+    return header({back:'Terug', eyebrow:'Rooster beheren', title: extra ? 'Extra les' : 'Vaste les toevoegen', subtitle: extra ? 'Eenmalig, op één datum' : 'Komt elke week terug'}) +
+      `<div class="pad form">
+        ${extra ? field('Datum', input('date', 'date'))
+          : field('Dag', `<select data-f="day">${WEEKDAYS.slice(1).concat('Zondag').map(d => `<option ${f.day === d ? 'selected' : ''}>${d}</option>`).join('')}</select>`) +
+            `<div class="frow">${field('Eerste les vanaf', input('from', 'date'))}${field('Tot en met <small>(optioneel)</small>', input('until', 'date'))}</div>`}
+        <div class="frow">${field('Begintijd', input('start', 'time'))}${field('Eindtijd', input('end', 'time'))}</div>
+        ${field('Soort les', `<div class="chips">${Object.entries(STYLE).map(([k, v]) => `<div class="chip ${f.style === k ? 'on' : ''}" data-act="fSet" data-k="style" data-v="${k}">${v.label}</div>`).join('')}</div>`)}
+        <div class="panel" style="margin-bottom:16px"><div class="srow" style="margin:0"><span>Aantal plekken</span>${stepper('fCap', f.capacity)}</div></div>
+        ${err}<div class="cta" data-act="${extra ? 'saveExtra' : 'saveVast'}">Opslaan</div></div>`;
+  },
+
+  // Vaste les aanpassen: standaard plekken, stoppen, vakantie voor alleen deze les
+  'les-bewerken': ({sid}) => {
+    const s = SES[sid];
+    const klanten = new Set(S.enrollments.filter(e => e.sessionId === sid && plusDays(e.start, 7 * e.weeks) > isoOf(now())).map(e => e.email)).size;
+    return header({back:'Terug', eyebrow:STYLE[s.style].label, title:`${s.day} ${s.time.split(' – ')[0]}`, subtitle:`${s.time} · ${klanten} vaste ${klanten === 1 ? 'klant' : 'klanten'} met de app`}) +
+      `<div class="pad form">
+        <div class="panel"><div class="srow" style="margin:0"><span>Standaard aantal plekken</span>${stepper('tplCap', s.capacity, `data-sid="${sid}"`)}</div>
+          <div class="small-note" style="margin:8px 0 0">Geldt voor elke week, behalve datums die je apart hebt aangepast.</div></div>
+        <div class="sect" style="padding:0;margin:4px 0 8px">Vaste les stoppen</div>
+        ${s.until ? `<div class="note muted">Laatste les: ${dateLabel(s.until)}</div><div class="cta outline" style="border-color:var(--teal);color:var(--teal)" data-act="resumeVast" data-sid="${sid}">Toch laten doorlopen</div>`
+          : `<div class="field"><label>Laatste les op</label><input type="date" data-f="until" value="${esc(UI.form.until ?? '')}"></div>
+             ${UI.formError ? `<div class="err">${UI.formError}</div>` : ''}<div class="cta outline" data-act="stopVast" data-sid="${sid}">Stoppen na deze datum</div>`}
+        <div class="sect" style="padding:0;margin:20px 0 8px">Tijdelijk niet</div>
+        <div class="cta" style="background:var(--ink)" data-act="newForm" data-v="vervallen" data-sid="${sid}">🌴 Vakantie voor alleen deze les</div>
+      </div>`;
+  },
+
+  strippen: () => header({back:'Terug', eyebrow:'Docentmodus', title:'Strippenkaarten', subtitle:'Pas het aantal strippen aan'}) +
+    `<div class="pad">${students().map(u => { const v = vastLabel(u); return `<div class="row tight"><div class="ini">${initials(u.name)}</div>
+      <div class="meta"><div class="nm">${esc(u.name)}</div><div class="st">${u.strippen ?? 0} lessen over${v ? ` · vast: ${v}` : ''}</div></div>
+      <div class="adj"><div class="circ" data-act="userStrip" data-email="${u.email}" data-d="-1">–</div><div class="circ" data-act="userStrip" data-email="${u.email}" data-d="1">+</div></div></div>`; }).join('')}</div>`,
+
+  reserveringen: () => header({back:'Terug', eyebrow:'Docentmodus', title:'Reserveringen', subtitle:'Tik op een aanvraag om te beoordelen'}) +
+    `<div class="pad">${S.requests.length ? S.requests.map(r => { const s = SES[r.sessionId]; return `<div class="row" style="gap:14px" data-act="openRequest" data-id="${r.id}">${dot(s.style, true)}
+      <div class="meta"><div class="nm">${esc(r.name)}</div><div class="dt">${STYLE[s.style].label} · ${dateLabel(r.date)} · ${s.time}</div><div class="em">${esc(r.email)}</div></div><div class="chev">›</div></div>`; }).join('')
+      : '<div class="empty" style="margin-top:40px">Nog geen aanvragen</div>'}</div>`,
+
+  plekken: ({sid, d}) => {
+    const s = SES[sid]; const o = occ(sid, d); const started = hasStarted(sid, d);
+    const top = header({back:'Terug', eyebrow:STYLE[s.style].label, title:s.time, subtitle:`${dateLabel(d)} · ${o.available} / ${o.cap} plekken vrij`});
+    if (UI.picking) {
+      const pickable = students().filter(u => !enrollmentOf(u.email, sid, d));
+      return top + `<div class="pad"><div class="sect" style="padding:0;margin-bottom:6px">Kies een vaste klant</div>
+        <div class="small-note">Wordt ingepland vanaf ${dateLabel(d)}, elke ${s.day.toLowerCase()}.</div>
+        ${pickable.length ? pickable.map(u => `<div class="row" data-act="pickUser" data-email="${u.email}"><div class="meta"><div class="nm">${esc(u.name)}</div><div class="dt">${esc(u.email)}</div><div class="dt">${u.phone}</div></div><div class="chev">›</div></div>`).join('')
+          : '<div class="empty">Alle klanten zijn al vaste klant</div>'}
+        <div class="logout" style="margin-top:10px" data-act="stopPick">Terug naar overzicht</div></div>`;
+    }
+    const att = attendees(sid, d);
+    const off = students().filter(u => statusFor(u.email, sid, d)?.cancelled);
+    const canAdd = o.available > 0 && !started;
+    const srcLabel = (st) => {
+      if (st.source === 'aanvraag') return '<span class="tag pend">Aanvraag</span>';
+      if (st.source === 'los') return '<span class="tag los">Losse les</span>';
+      const left = st.enrollment.weeks - daysBetween(st.enrollment.start, d) / 7;
+      return `<span class="tag vast">Vaste klant${st.enrollment.weeks >= 99 ? '' : ` · nog ${left} ${left === 1 ? 'week' : 'weken'}`}</span>`;
+    };
+    return top + `<div class="pad"><div class="cta ${canAdd ? '' : 'off'}" style="margin-bottom:16px" ${canAdd ? 'data-act="startPick"' : ''}>${started ? 'Les is al begonnen' : o.available > 0 ? '+ Vaste klant toevoegen' : 'Vol — geen plekken meer'}</div>
+      <div class="sect" style="padding:0;margin-bottom:10px">Ingepland op ${dateLabel(d).toLowerCase()}</div>
+      ${att.map(({user, st}) => `<div class="row"><div class="meta"><div class="nm">${esc(user.name)}</div><div class="dt">${esc(user.email)}</div>${srcLabel(st)}</div>
+        ${!started && st.source !== 'aanvraag' ? `<div class="circ rm" data-act="askRemove" data-email="${user.email}">✕</div>` : ''}</div>`).join('')}
+      ${off.map(u => `<div class="row" style="opacity:.6"><div class="meta"><div class="nm">${esc(u.name)}</div><div class="dt">${esc(u.email)}</div><span class="tag off">Afgemeld</span></div></div>`).join('')}
+      <div class="small-note" style="margin-top:8px">${att.length ? '' : 'Nog geen app-klanten ingepland. '}+ ${(S.roster[sid] || []).length} vaste deelnemers op de presentielijst.</div></div>`;
+  },
+
+  vandaag: () => {
+    const d = isoOf(now());
+    const classes = sessionsOn(d);
+    return header({back:'Terug', eyebrow:'Docentmodus', title:'Vandaag', subtitle:dateLabel(d)}) +
+      `<div class="pad">${classes.length ? classes.map(c => { const o = occ(c.id, d); const cl = closureOf(c.id, d);
+        if (cl) return `<div class="acard closed">${dot(c.style)}<div class="meta"><div class="nm">${STYLE[c.style].label}</div><div class="tm">${c.time} · ${esc(cl.reason)}</div></div><div class="pill" style="background:var(--sand);color:var(--ink)">Vervalt</div></div>`;
+        return `<div class="acard" data-act="push" data-v="roster" ${at(c.id, d)}>${dot(c.style)}<div class="meta"><div class="nm">${STYLE[c.style].label}</div><div class="tm">${c.time}</div></div><div class="pill ${o.booked>=o.cap?'full':''}">${o.booked} / ${o.cap}</div></div>`; }).join('')
+        : '<div class="empty">Geen lessen vandaag</div>'}</div>`;
+  },
+
+  roster: ({sid, d}) => {
+    const s = SES[sid]; const ci = S.checkins[key(sid, d)] || {};
+    const people = [
+      ...attendees(sid, d).filter(x => x.st.source !== 'aanvraag').map(({user}) => ({pid:user.email, name:user.name, strips:user.strippen ?? 0, app:true})),
+      ...(S.roster[sid] || []).map(e => ({pid:e.id, name:e.name, strips:e.strips, app:false})),
+    ];
+    return header({back:'Vandaag', eyebrow:STYLE[s.style].label, title:s.time, subtitle:'Tik op een naam om in te checken'}) +
+      `<div class="cap"><span>Plekken deze les</span>${stepper('adjCap', occ(sid, d).cap, at(sid, d))}</div>
+       <div class="pad" style="padding-top:16px"><div class="small-note">Klanten met de app (📱): de strip gaat automatisch af na de les.</div>
+       ${people.map(p => { const on = !!ci[p.pid]; return `<div class="row tight ${on?'checked':''}">
+         <div class="chk ${on?'on':''}" data-act="toggleCheck" ${at(sid, d)} data-pid="${p.pid}">${on?'✓':''}</div><div class="ini">${initials(p.name)}</div>
+         <div class="meta"><div class="nm">${esc(p.name)}${p.app ? ' 📱' : ''}</div><div class="st">${p.strips} lessen over</div></div>
+         <div class="adj"><div class="circ" data-act="rosterStrip" ${at(sid, d)} data-pid="${p.pid}" data-d="-1">–</div><div class="circ" data-act="rosterStrip" ${at(sid, d)} data-pid="${p.pid}" data-d="1">+</div></div></div>`; }).join('')}</div>`;
+  },
+};
+
+/* ── Overlays ───────────────────────────────────────────────────────── */
+const sheetWrap = (inner) => `<div class="backdrop" data-act="closeSheet"><div class="sheet" data-act="noop"><div class="x" data-act="closeSheet">✕</div><div class="handle"></div>${inner}</div></div>`;
+function bookingSheet({sid, d}){
+  const s = SES[sid]; const u = me(); const o = occ(sid, d); const started = hasStarted(sid, d);
+  let body = `<h2>${STYLE[s.style].label}</h2><div class="s">${dateLabel(d)} · ${s.time} · Berghem</div>
+    <div class="sp" ${o.available <= 0 ? 'style="color:var(--rani)"' : ''}>${o.available <= 0 ? 'Vol' : `${o.available} / ${o.cap} plekken beschikbaar`}</div><div class="desc">${DESC[s.style]}</div>`;
+  const cl = closureOf(sid, d);
+  if (cl) {
+    body += `<div class="note muted">Deze les vervalt: ${esc(cl.reason)}${cl.from !== cl.to ? ` (${shortDate(cl.from)} – ${shortDate(cl.to)})` : ''}</div>`;
+    if (!isAdmin()) return sheetWrap(body + '<div class="cta off">Les vervalt</div>');
+    const single = cl.from === cl.to && cl.sessionId === sid;
+    return sheetWrap(body + (single
+      ? `<div class="cta" style="background:var(--teal)" data-act="reopen" data-cid="${cl.id}">Les toch laten doorgaan</div>`
+      : '<div class="small-note">Aanpassen via Profiel → Rooster beheren.</div>'));
+  }
+  if (isAdmin()) {
+    return sheetWrap(body + `<div class="panel"><div class="lbl">Beheer plekken · ${dateLabel(d).toLowerCase()}</div>
+      <div class="srow"><span>Totaal aantal plekken</span>${stepper('adjCap', o.cap, at(sid, d))}</div>
+      <div class="srow" style="margin-bottom:0"><span>Bezet</span><span style="font-weight:600">${o.booked}</span></div></div>
+      <div class="cta" data-act="manageSpots">Deelnemers beheren</div>
+      ${started ? '' : `<div class="cta outline" style="margin-top:10px" data-act="askCloseOne" ${at(sid, d)}>Les laten vervallen op deze datum</div>`}`);
+  }
+  if (!u) return sheetWrap(body + `<div class="cta" data-act="loginRequired">Inloggen</div>`);
+  const st = statusFor(u.email, sid, d);
+  if (st && !st.cancelled && st.source !== 'aanvraag') {
+    body += `<div class="note">✓ Je staat ingepland (${st.source === 'vast' ? 'vaste les' : 'losse les'})</div>` +
+      (started ? '<div class="cta off">Les is al begonnen</div>' : `<div class="cta outline" data-act="askCancel" ${at(sid, d)}>Afmelden voor deze les</div>`);
+  } else if (st?.cancelled) {
+    body += `<div class="note muted">Je hebt je afgemeld voor deze les</div>` +
+      (!started && o.available > 0 ? `<div class="cta" style="background:var(--teal)" data-act="undoCancel" ${at(sid, d)}>Toch weer aanmelden</div>` : '<div class="cta off">Geen plek meer vrij</div>');
+  } else if (st?.source === 'aanvraag') {
+    body += '<div class="cta off">Aangevraagd — wacht op goedkeuring</div>';
+  } else {
+    body += o.available <= 0 ? '<div class="cta off">Vol — geen plekken meer</div>' : '<div class="cta" data-act="book">Plek reserveren</div>';
+  }
+  return sheetWrap(body);
+}
+function requestSheet({id}){
+  const r = S.requests.find(x => x.id === id);
+  if (!r) return '';
+  const s = SES[r.sessionId];
+  return sheetWrap(`<h2>${esc(r.name)}</h2><div class="s" style="margin-bottom:0">${STYLE[s.style].label} · ${dateLabel(r.date)} · ${s.time}</div>
+    <div style="font:400 12px var(--body);color:#A89BB5;margin:2px 0 22px">${esc(r.email)}</div>
+    <div class="twobtn"><div class="cta" style="background:var(--teal)" data-act="resolve" data-v="1">✓ Goedkeuren</div><div class="cta" data-act="resolve" data-v="0">✕ Weigeren</div></div>`);
+}
+function weeksPrompt(){
+  const p = UI.prompt;
+  const title = p.kind === 'add' ? `${p.name} vast inplannen voor hoeveel weken?` : `${p.name} afmelden voor hoeveel weken?`;
+  const hint = p.kind === 'add' ? 'Kies 99 voor een doorlopende vaste les.' : 'Kies 99 om de vaste les helemaal te stoppen.';
+  return `<div class="backdrop center" data-act="cancelPrompt"><div class="wcard" data-act="noop"><h3>${esc(title)}</h3><p class="wtxt">${hint}</p><div class="lb">Aantal weken</div>
+    ${stepper('weeks', p.weeks)}
+    <div class="quick">${[1,4,12,99].map(n => `<span data-act="weeksSet" data-v="${n}" class="${p.weeks===n?'on':''}">${n}</span>`).join('')}</div>
+    <div class="cta" data-act="confirmPrompt">${p.kind === 'add' ? 'Inplannen' : 'Afmelden'}</div><div class="cancel" data-act="cancelPrompt">Annuleren</div></div></div>`;
+}
+const confirmBox = () => `<div class="backdrop center" data-act="closeConfirm"><div class="wcard" data-act="noop"><h3>${esc(UI.confirm.title)}</h3><p class="wtxt">${UI.confirm.text}</p>
+  <div class="cta" data-act="${UI.confirm.act}">${UI.confirm.ok}</div><div class="cancel" data-act="closeConfirm">Annuleren</div></div></div>`;
+
+/* ── Render ─────────────────────────────────────────────────────────── */
+const phoneEl = document.getElementById('phone');
+const scrollMemory = {};
+const screenKey = () => UI.stack.length ? JSON.stringify(UI.stack.at(-1)) : `tab:${UI.tab}:${UI.tab === 'rooster' ? UI.month : UI.myTab}`;
+
+function render(){
+  settle();
+  if (!tabs().some(([k]) => k === UI.tab)) UI.tab = 'rooster';
+  const old = phoneEl.querySelector('.scroll');
+  if (old) scrollMemory[old.dataset.key] = old.scrollTop;
+  const k = screenKey();
+  const top = UI.stack.at(-1);
+  const body = top ? STACK[top.screen](top) : {rooster:roosterTab, lessen:lessenTab, videos:videosTab, profiel:profielTab}[UI.tab]();
+  let overlay = '';
+  if (UI.sheet?.type === 'booking') overlay = bookingSheet(UI.sheet);
+  if (UI.sheet?.type === 'request') overlay = requestSheet(UI.sheet);
+  if (UI.prompt) overlay += weeksPrompt();
+  if (UI.confirm) overlay += confirmBox();
+  if (UI.toast) overlay += `<div class="toast">${UI.toast}</div>`;
+  phoneEl.innerHTML = `<div class="island"></div><div class="scroll" data-key="${esc(k)}">${body}</div>${top ? '' : tabbar()}${overlay}`;
+  phoneEl.querySelector('.scroll').scrollTop = scrollMemory[k] || 0;
+  renderSide();
+}
+function showToast(msg){
+  UI.toast = msg; render();
+  clearTimeout(showToast.t);
+  showToast.t = setTimeout(() => { UI.toast = null; render(); }, 2200);
+}
+
+/* ── Acties ─────────────────────────────────────────────────────────── */
+const num = (v) => Number(v);
+const lessonName = (sid, d) => `${STYLE[SES[sid].style].label} ${shortDate(d)} ${SES[sid].time.split(' – ')[0]}`;
+const ACTIONS = {
+  noop(){},
+  tab(el){ UI.tab = el.dataset.v; UI.stack = []; },
+  back(){ UI.stack.pop(); UI.picking = false; },
+  push(el){ UI.stack.push({screen:el.dataset.v, sid:el.dataset.sid, d:el.dataset.date}); UI.picking = false; UI.form = {}; UI.formError = null; },
+  goRooster(){ UI.stack = []; UI.tab = 'rooster'; },
+  filter(el){ UI.filter = el.dataset.v; },
+  month(el){ UI.month = Math.max(0, Math.min(MONTHS_AHEAD, UI.month + num(el.dataset.d))); },
+  myTab(el){ UI.myTab = el.dataset.v; },
+
+  openClass(el){ UI.sheet = {type:'booking', sid:el.dataset.sid, d:el.dataset.date}; },
+  closeSheet(){ UI.sheet = null; },
+  loginRequired(){ UI.sheet = null; UI.tab = 'profiel'; UI.stack = []; },
+  book(){
+    const {sid, d} = UI.sheet; const u = me();
+    if (!requestLesson(sid, d, u)) return;
+    log(`${u.name} vraagt ${lessonName(sid, d)} aan`);
+    UI.sheet = null; save(); showToast('Reservering aangevraagd ✓'); return 'rendered';
+  },
+
+  // Klant meldt zich af — met bevestiging
+  askCancel(el){
+    const {sid, date: d} = el.dataset;
+    UI.confirm = {title:'Afmelden voor deze les?', text:`${lessonName(sid, d)}. Deze les telt dan niet mee en er gaat geen strip af.`, ok:'Afmelden', act:'doCancel', sid, d};
+  },
+  doCancel(){
+    const {sid, d} = UI.confirm; const u = me();
+    cancelLesson(u.email, sid, d, 'klant'); log(`${u.name} meldt zich af voor ${lessonName(sid, d)}`);
+    UI.confirm = null; UI.sheet = null; save(); showToast('Afgemeld — telt niet mee'); return 'rendered';
+  },
+  closeConfirm(){ UI.confirm = null; },
+  undoCancel(el){
+    const {sid, date: d} = el.dataset; const u = me();
+    if (occ(sid, d).available <= 0) return;
+    undoCancel(u.email, sid, d); log(`${u.name} meldt zich weer aan voor ${lessonName(sid, d)}`);
+    UI.sheet = null; save(); showToast('Weer aangemeld ✓'); return 'rendered';
+  },
+
+  adjCap(el){
+    const {sid, date: d} = el.dataset; const k = key(sid, d);
+    S.capOverride[k] = Math.max(0, occ(sid, d).cap + num(el.dataset.d));
+    log(`Plekken ${lessonName(sid, d)}: ${S.capOverride[k]}`); save();
+  },
+  // Rooster beheren
+  newForm(el){
+    const k = el.dataset.v; const today = isoOf(now());
+    UI.form = k === 'vervallen'
+      ? {kind:k, reason:'Vakantie', from:today, to:plusDays(today, 6), scope:el.dataset.sid || ''}
+      : {kind:k, day:'Maandag', from:today, until:'', date:today, start:'19:00', end:'20:00', style:'yin', capacity:10};
+    UI.formError = null; UI.stack.push({screen:'form'});
+  },
+  fSet(el){ UI.form[el.dataset.k] = el.dataset.v; },
+  fCap(el){ UI.form.capacity = Math.max(1, UI.form.capacity + num(el.dataset.d)); },
+  saveVast(){
+    const f = UI.form;
+    const err = checkTimes(f) || (!f.from ? 'Kies vanaf wanneer de les start.' : '') || (f.until && f.until < f.from ? 'De einddatum ligt vóór de startdatum.' : '');
+    if (err) { UI.formError = err; return; }
+    S.sessions.push({id:`s-${Date.now()}`, day:f.day, style:f.style, time:timeOf(f), capacity:f.capacity, from:f.from, until:f.until || null}); reindex();
+    log(`Vaste les toegevoegd: ${f.day.toLowerCase()} ${timeOf(f)} ${STYLE[f.style].label}, vanaf ${shortDate(f.from)}${f.until ? ` t/m ${shortDate(f.until)}` : ''}`);
+    UI.stack.pop(); save(); showToast('Vaste les toegevoegd ✓'); return 'rendered';
+  },
+  saveExtra(){
+    const f = UI.form;
+    const err = (!f.date ? 'Kies een datum.' : f.date < isoOf(now()) ? 'Die datum is al voorbij.' : '') || checkTimes(f);
+    if (err) { UI.formError = err; return; }
+    S.sessions.push({id:`s-${Date.now()}`, day:weekdayOf(f.date), style:f.style, time:timeOf(f), capacity:f.capacity, from:f.date, until:f.date}); reindex();
+    log(`Extra les: ${STYLE[f.style].label} ${shortDate(f.date)} ${timeOf(f)}`);
+    UI.stack.pop(); save(); showToast('Extra les toegevoegd ✓'); return 'rendered';
+  },
+  saveClosure(){
+    const f = UI.form;
+    if (!f.from || !f.to) { UI.formError = 'Kies een begin- en einddatum.'; return; }
+    if (f.to < f.from) { UI.formError = 'De einddatum ligt vóór de begindatum.'; return; }
+    const p = closurePreview(f);
+    const reason = (f.reason || '').trim() || 'Vakantie';
+    S.closures.push({id:`c-${Date.now()}`, from:f.from, to:f.to, sessionId:f.scope || null, reason});
+    log(`${reason}: ${shortDate(f.from)} – ${shortDate(f.to)}, ${p ? p.lessons : 0} lessen vervallen`);
+    UI.stack.pop(); save(); showToast('Opgeslagen ✓'); return 'rendered';
+  },
+  askCloseOne(el){
+    const {sid, date: d} = el.dataset;
+    UI.confirm = {title:'Les laten vervallen?', text:`${lessonName(sid, d)}. Wie ingepland staat ziet "Vervalt" en krijgt geen strip afgeschreven.`, ok:'Laten vervallen', act:'doCloseOne', sid, d};
+  },
+  doCloseOne(){
+    const {sid, d} = UI.confirm;
+    S.closures.push({id:`c-${Date.now()}`, from:d, to:d, sessionId:sid, reason:'Les vervalt'});
+    log(`${lessonName(sid, d)} vervalt`); UI.confirm = null; save();
+  },
+  reopen(el){
+    const c = S.closures.find(x => x.id === el.dataset.cid);
+    S.closures = S.closures.filter(x => x !== c);
+    log(`${c.sessionId ? lessonName(c.sessionId, c.from) : c.reason} gaat toch door`); save();
+  },
+  askRemoveClosure(el){ UI.confirm = {title:'Uitzondering verwijderen?', text:'De lessen in deze periode gaan dan gewoon door.', ok:'Verwijderen', act:'doRemoveClosure', cid:el.dataset.cid}; },
+  doRemoveClosure(){
+    const c = S.closures.find(x => x.id === UI.confirm.cid);
+    S.closures = S.closures.filter(x => x !== c); log(`Uitzondering verwijderd: ${c.reason}`);
+    UI.confirm = null; save();
+  },
+  askRemoveExtra(el){ const s = SES[el.dataset.sid]; UI.confirm = {title:'Extra les verwijderen?', text:`${lessonName(s.id, s.from)}. Aanvragen en boekingen voor deze les vervallen ook.`, ok:'Verwijderen', act:'doRemoveExtra', sid:s.id}; },
+  doRemoveExtra(){
+    const sid = UI.confirm.sid; const name = lessonName(sid, SES[sid].from);
+    S.sessions = S.sessions.filter(s => s.id !== sid);
+    for (const k of ['bookings', 'requests', 'cancels', 'enrollments']) S[k] = S[k].filter(x => x.sessionId !== sid);
+    reindex(); log(`Extra les verwijderd: ${name}`); UI.confirm = null; save();
+  },
+  tplCap(el){ const s = SES[el.dataset.sid]; s.capacity = Math.max(1, s.capacity + num(el.dataset.d)); log(`Standaard plekken ${s.day.toLowerCase()} ${s.time.split(' – ')[0]}: ${s.capacity}`); save(); },
+  stopVast(el){
+    const s = SES[el.dataset.sid]; const until = UI.form.until;
+    if (!until) { UI.formError = 'Kies de datum van de laatste les.'; return; }
+    if (until < isoOf(now())) { UI.formError = 'Die datum is al voorbij.'; return; }
+    s.until = until; UI.formError = null; log(`Vaste les ${s.day.toLowerCase()} ${s.time.split(' – ')[0]} stopt na ${shortDate(until)}`); save();
+  },
+  resumeVast(el){ const s = SES[el.dataset.sid]; s.until = null; log(`Vaste les ${s.day.toLowerCase()} ${s.time.split(' – ')[0]} loopt weer door`); save(); },
+
+  manageSpots(){ const {sid, d} = UI.sheet; UI.sheet = null; UI.stack.push({screen:'plekken', sid, d}); UI.picking = false; },
+
+  login(){
+    const email = (document.getElementById('loginEmail').value || '').trim().toLowerCase();
+    const pw = document.getElementById('loginPw').value || '';
+    UI.loginEmail = email;
+    if (!email || !pw) { UI.loginError = 'Vul je e-mailadres en wachtwoord in.'; return; }
+    const u = S.users.find(x => x.email.toLowerCase() === email && x.password === pw);
+    if (!u) { UI.loginError = 'Onjuist e-mailadres of wachtwoord.'; return; }
+    UI.loginError = null; UI.loginEmail = ''; UI.loginPw = '';
+    S.email = u.email; log(`Ingelogd als ${u.name}`); save();
+  },
+  logout(){ log(`${me()?.name} logt uit`); S.email = null; UI.stack = []; UI.sheet = null; save(); },
+
+  toggleTerms(){
+    const u = me();
+    if (u.termsAcceptedAt) { u.termsAcceptedAt = null; log(`${u.name} trekt akkoord algemene voorwaarden in`); }
+    else { const n = now(); u.termsAcceptedAt = `${String(n.getDate()).padStart(2,'0')}-${String(n.getMonth()+1).padStart(2,'0')}-${n.getFullYear()}`; log(`${u.name} gaat akkoord met de algemene voorwaarden`); }
+    save();
+  },
+  userStrip(el){ const u = userBy(el.dataset.email); u.strippen = Math.max(0, (u.strippen ?? 0) + num(el.dataset.d)); log(`Strippen ${u.name}: ${u.strippen}`); save(); },
+
+  openRequest(el){ UI.sheet = {type:'request', id:el.dataset.id}; },
+  resolve(el){
+    const r = S.requests.find(x => x.id === UI.sheet.id); const ok = el.dataset.v === '1';
+    S.requests = S.requests.filter(x => x !== r);
+    if (ok) S.bookings.push({sessionId:r.sessionId, date:r.date, email:r.email});
+    log(`Aanvraag ${r.name} (${lessonName(r.sessionId, r.date)}) ${ok ? 'goedgekeurd' : 'geweigerd — plek vrijgegeven'}`);
+    UI.sheet = null; save();
+  },
+
+  startPick(){ UI.picking = true; },
+  stopPick(){ UI.picking = false; },
+  pickUser(el){ const u = userBy(el.dataset.email); UI.prompt = {kind:'add', email:u.email, name:u.name, weeks:1}; },
+  askRemove(el){
+    const {sid, d} = UI.stack.at(-1); const u = userBy(el.dataset.email); const st = statusFor(u.email, sid, d);
+    if (st.source === 'vast') { UI.prompt = {kind:'remove', email:u.email, name:u.name, weeks:1}; return; }
+    UI.confirm = {title:`${u.name} afmelden?`, text:`Losse les ${lessonName(sid, d)}. De plek komt weer vrij.`, ok:'Afmelden', act:'doRemoveBooking', email:u.email, sid, d};
+  },
+  doRemoveBooking(){
+    const {email, sid, d} = UI.confirm;
+    cancelLesson(email, sid, d, 'beheer'); log(`Beheer meldt ${userBy(email).name} af voor ${lessonName(sid, d)}`);
+    UI.confirm = null; save();
+  },
+  weeks(el){ UI.prompt.weeks = Math.max(1, UI.prompt.weeks + num(el.dataset.d)); },
+  weeksSet(el){ UI.prompt.weeks = num(el.dataset.v); },
+  cancelPrompt(){ UI.prompt = null; },
+  confirmPrompt(){
+    const {sid, d} = UI.stack.at(-1); const p = UI.prompt;
+    if (p.kind === 'add') {
+      if (addVast(sid, d, p.email, p.weeks)) log(`${p.name} vast ingepland op ${SES[sid].day.toLowerCase()} ${SES[sid].time.split(' – ')[0]} vanaf ${shortDate(d)} (${p.weeks >= 99 ? 'doorlopend' : `${p.weeks} weken`})`);
+    } else {
+      log(`${p.name}: vaste les ${SES[sid].day.toLowerCase()} ${removeVast(sid, d, p.email, p.weeks)} vanaf ${shortDate(d)}`);
+    }
+    UI.prompt = null; UI.picking = false; save();
+  },
+
+  toggleCheck(el){
+    const {sid, date: d, pid} = el.dataset; const k = key(sid, d);
+    S.checkins[k] = S.checkins[k] || {};
+    const on = !S.checkins[k][pid]; S.checkins[k][pid] = on;
+    const seeded = (S.roster[sid] || []).find(e => e.id === pid);
+    if (seeded) seeded.strips += on ? -1 : 1;   // deelnemers zonder app: strip bij inchecken (zoals nu in de app)
+    log(`${seeded ? seeded.name : userBy(pid).name} ${on ? 'ingecheckt' : 'check-in ongedaan'}${seeded ? (on ? ' (−1 strip)' : ' (+1 strip)') : ''}`); save();
+  },
+  rosterStrip(el){
+    const {sid, pid} = el.dataset; const dd = num(el.dataset.d);
+    const seeded = (S.roster[sid] || []).find(e => e.id === pid);
+    if (seeded) seeded.strips = Math.max(0, seeded.strips + dd);
+    else { const u = userBy(pid); u.strippen = Math.max(0, (u.strippen ?? 0) + dd); }
+    save();
+  },
+
+  // Testpaneel
+  quickLogin(el){
+    const email = el.dataset.email || null;
+    if (email === S.email) return;
+    S.email = email; UI.stack = []; UI.sheet = null; UI.prompt = null; UI.confirm = null; UI.picking = false; UI.loginError = null;
+    log(email ? `Gewisseld naar ${me().name}` : 'Uitgelogd (gast)'); save();
+  },
+  timeTravel(el){
+    S.offsetDays += num(el.dataset.v);
+    log(`⏩ Tijd vooruit naar ${now().toLocaleDateString('nl-NL', {weekday:'long', day:'numeric', month:'long'})}`);
+    UI.month = 0; save();
+  },
+  openVandaag(){ UI.sheet = null; UI.prompt = null; UI.confirm = null; UI.stack = [{screen:'vandaag'}]; },
+  reset(){
+    if (!confirm('Alle wijzigingen in de demo wissen en opnieuw beginnen?')) return;
+    try { localStorage.removeItem(SAVE_KEY); } catch {}
+    location.reload();
+  },
+};
+
+function handle(e){
+  const el = e.target.closest('[data-act]');
+  if (!el) return;
+  const fn = ACTIONS[el.dataset.act];
+  if (!fn) return;
+  if (fn(el) !== 'rendered') render();
+}
+document.addEventListener('click', handle);
+document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.closest('#phone input')) { ACTIONS.login(); render(); } });
+document.addEventListener('input', (e) => {
+  if (e.target.id === 'loginEmail') UI.loginEmail = e.target.value;
+  if (e.target.id === 'loginPw') UI.loginPw = e.target.value;
+  if (e.target.dataset.f) UI.form[e.target.dataset.f] = e.target.value;
+});
+// Datum/keuze bevestigd → opnieuw tekenen (bv. voor het aantal vervallen lessen)
+document.addEventListener('change', (e) => { if (e.target.dataset?.f && e.target.type !== 'text') { UI.form[e.target.dataset.f] = e.target.value; render(); } });
+
+/* ── Testpaneel ─────────────────────────────────────────────────────── */
+function renderSide(){
+  const u = me();
+  const profiles = [
+    ...S.users.map(x => ({email:x.email, name:x.name, pw:x.password,
+      desc: x.role === 'admin' ? 'Beheerder' : x.strippen === null ? 'Klant · geen strippenkaart' : `Klant · ${x.strippen} strippen`,
+      cls: x.role === 'admin' ? 'admin' : ''})),
+    {email:'', name:'Gast', desc:'Niet ingelogd', cls:'guest'},
+  ];
+  const n = now();
+  document.getElementById('side').innerHTML = `
+    <div class="box"><h1>Klikbare demo</h1>
+      <p style="margin-top:4px">Werkt zoals de app: dezelfde schermen, regels en voorbeelddata. Wissel hieronder van profiel om te zien wat klant en beheerder zien. Je wijzigingen blijven bewaard tot je de demo reset.</p>
+      <p style="margin-top:8px"><a class="link" href="index.html">← Naar het ontwerpbord</a></p></div>
+    <div class="box"><h2>Inloggen als</h2><div class="who">
+      ${profiles.map(p => `<button data-act="quickLogin" data-email="${p.email}" class="${(S.email || '') === p.email ? 'on' : ''}">
+        <span class="av ${p.cls}">${p.email ? initials(p.name) : '?'}</span>
+        <span><span class="n">${esc(p.name)}</span><br><span class="d">${p.desc}${p.pw ? ` · ${esc(p.email)} / ${esc(p.pw)}` : ''}</span></span></button>`).join('')}
+    </div></div>
+    <div class="box"><h2>Demo-tijd</h2>
+      <p style="font:600 15px var(--display); color:var(--ink); margin-bottom:6px">${cap1(n.toLocaleDateString('nl-NL', {weekday:'long', day:'numeric', month:'long', year:'numeric'}))} · ${n.toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit'})}</p>
+      <p style="margin-bottom:10px">Spoel de tijd vooruit: lessen die voorbij gaan worden automatisch afgeschreven voor wie ingepland stond.</p>
+      <div style="display:flex; gap:8px"><button class="sbtn" data-act="timeTravel" data-v="1">+1 dag</button><button class="sbtn" style="margin-top:0" data-act="timeTravel" data-v="7">+1 week</button></div>
+      <button class="sbtn" style="margin-top:8px" data-act="openVandaag" ${u?.role === 'admin' ? '' : 'disabled title="Alleen als beheerder"'}>Open Docentmodus · Vandaag</button>
+      <p style="margin-top:6px; font-size:11.5px">"Vandaag" en de presentielijst hebben in de app nog geen knop.</p>
+    </div>
+    <div class="box"><h2>Probeer eens</h2><ol class="tips">
+      <li>Open als <b>Marieke</b> de tab <b>Mijn lessen</b>: haar vaste dinsdagavond, komende en afgenomen lessen.</li>
+      <li>Meld je af voor een komende les, en spoel de tijd vooruit met <b>+1 week</b>: alleen lessen waarvoor je ingepland stond kosten een strip.</li>
+      <li>Reserveer als Marieke een losse les en keur hem als <b>Beheer</b> goed onder Profiel → Reservering aanvragen.</li>
+      <li>Plan als beheerder via een les → "Deelnemers beheren" <b>Daan</b> vast in, en kijk als Daan bij Mijn lessen.</li>
+      <li>Zet als Marieke het schuifje bij de Algemene voorwaarden aan; bekijk als Beheer wie akkoord heeft.</li>
+      <li>Ga als <b>Beheer</b> naar Profiel → Rooster beheren: voeg een vaste of extra les toe, of plan een vakantie. Kijk daarna als Marieke bij Mijn lessen.</li>
+    </ol></div>
+    <div class="box"><h2>Wat er gebeurde</h2>
+      ${S.log.length ? `<ul class="log">${S.log.map(l => `<li><time>${l.t}</time> ${esc(l.msg)}</li>`).join('')}</ul>` : '<p>Nog niets. Klik rond in de app.</p>'}
+      <button class="sbtn" style="margin-top:12px" data-act="reset">Demo resetten</button>
+    </div>`;
+}
+
+render();
+</script>
+</body>
+</html>
