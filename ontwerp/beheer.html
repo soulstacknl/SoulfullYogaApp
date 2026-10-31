@@ -1,0 +1,607 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Soulful Yoga Beheer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,500&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<style>
+  *{box-sizing:border-box; margin:0;}
+  html,body{background:var(--ivory); font-family:var(--body); color:var(--ink); font-size:14px;}
+  button{font:inherit; color:inherit;}
+  [data-act]{cursor:pointer;}
+  input,select{font:inherit; color:var(--ink);}
+
+  /* ── Shell ─────────────────────────────────────────────────────────── */
+  .shell{display:flex; min-height:100vh;}
+  .side{width:240px; flex:none; background:var(--ink); color:var(--ivory); display:flex; flex-direction:column; position:sticky; top:0; height:100vh;}
+  .brand{display:flex; align-items:center; gap:10px; padding:22px 20px 18px;}
+  .brand img{width:46px; height:34px; object-fit:contain;}
+  .brand b{display:block; font:600 18px var(--display);}
+  .brand small{font:600 10.5px var(--body); letter-spacing:.16em; text-transform:uppercase; color:var(--marigold);}
+  .nav{display:flex; flex-direction:column; gap:2px; padding:8px 10px; flex:1;}
+  .nav a{display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; color:#D9CFE8; font-weight:500; text-decoration:none;}
+  .nav a:hover{background:rgba(255,255,255,.06);}
+  .nav a.on{background:rgba(255,255,255,.12); color:#fff; font-weight:600;}
+  .nav a .ic{width:20px; text-align:center;}
+  .nav a .bdg{margin-left:auto; background:var(--rani); color:#fff; font:700 11px var(--body); border-radius:10px; min-width:20px; padding:2px 6px; text-align:center;}
+  .side-foot{padding:16px 20px 20px; border-top:1px solid rgba(255,255,255,.1); font-size:12.5px; color:#CABFDB;}
+  .side-foot b{display:block; color:#fff; font-size:13.5px;}
+  .side-foot a{color:var(--marigold); text-decoration:none; font-weight:600;}
+  .side-foot .row2{display:flex; justify-content:space-between; margin-top:10px;}
+
+  main{flex:1; min-width:0; padding:28px 36px 60px;}
+  .ph{display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:22px;}
+  .ph h1{font:600 28px var(--display);}
+  .ph p{color:var(--mutedText); margin-top:2px;}
+  .ph .acts{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+
+  /* ── Bouwstenen ────────────────────────────────────────────────────── */
+  .card{background:var(--card); border:1px solid var(--sand); border-radius:16px; padding:18px 20px;}
+  .card h2{font:italic 500 16px var(--display); color:var(--rani); margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; gap:8px;}
+  .card h2 small{font:400 12.5px var(--body); font-style:normal; color:var(--mutedText);}
+  .grid2{display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1fr); gap:18px; align-items:start;}
+  .stack{display:flex; flex-direction:column; gap:18px;}
+  .btn{display:inline-flex; align-items:center; gap:6px; border:1px solid var(--sand); background:var(--card); border-radius:10px; padding:8px 14px; font-weight:600; font-size:13px; white-space:nowrap;}
+  .btn:hover{border-color:var(--ink);}
+  .btn.primary{background:var(--rani); border-color:var(--rani); color:#fff;}
+  .btn.teal{background:var(--teal); border-color:var(--teal); color:#fff;}
+  .btn.ink{background:var(--ink); border-color:var(--ink); color:#fff;}
+  .btn.ghost-r{color:var(--rani); border-color:var(--rani); background:transparent;}
+  .btn.sm{padding:5px 10px; font-size:12.5px; border-radius:8px;}
+  .btn:disabled,.btn.off{opacity:.45; cursor:not-allowed;}
+  .icon-btn{width:30px; height:30px; border-radius:50%; border:1px solid var(--sand); background:#fff; display:inline-flex; align-items:center; justify-content:center; font-weight:700;}
+  .icon-btn:hover{border-color:var(--ink);}
+  .icon-btn.rm{color:var(--rani);}
+  .stepper{display:inline-flex; align-items:center; gap:8px;}
+  .stepper .sb{width:28px; height:28px; border-radius:50%; background:var(--ink); color:var(--ivory); display:flex; align-items:center; justify-content:center; font-weight:700;}
+  .stepper .sv{min-width:26px; text-align:center; font-weight:600;}
+  .tag{display:inline-block; font:600 11.5px var(--body); border-radius:20px; padding:2px 9px; white-space:nowrap;}
+  .tag.teal{background:#EAF3EE; color:var(--teal);} .tag.ink{background:#F1ECF7; color:var(--ink);}
+  .tag.pend{background:#FCF1DE; color:#9A6512;} .tag.muted{background:#EFE8DC; color:var(--mutedText);} .tag.rani{background:#FBE7EE; color:var(--rani);}
+  .dot{flex:none;}
+  .muted{color:var(--mutedText);}
+  .empty{color:var(--mutedText); padding:18px 0; text-align:center;}
+  .note{font-size:12.5px; color:var(--mutedText); line-height:1.5;}
+
+  /* Kerncijfers */
+  .tiles{display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:14px; margin-bottom:18px;}
+  .tile{background:var(--card); border:1px solid var(--sand); border-radius:16px; padding:16px 18px;}
+  .tile .lbl{font-size:12.5px; color:var(--mutedText); font-weight:500;}
+  .tile .val{font:600 30px var(--body); margin-top:4px; letter-spacing:-.5px;}
+  .tile .sub{font-size:12px; color:var(--mutedText); margin-top:2px;}
+  .tile[data-act]:hover{border-color:var(--ink);}
+
+  /* Bezettingsbalk: spoor = lichte stap van dezelfde kleur als de vulling */
+  .meter{display:flex; align-items:center; gap:10px;}
+  .meter .track{flex:1; height:8px; border-radius:4px; background:#DCEBE6; overflow:hidden; min-width:60px;}
+  .meter .fill{height:100%; border-radius:4px; background:var(--teal);}
+  .meter.warn .track{background:#F8E7C8;} .meter.warn .fill{background:var(--marigold);}
+  .meter.full .track{background:#F5D6E1;} .meter.full .fill{background:var(--rani);}
+  .meter .num{font-size:12.5px; font-weight:600; white-space:nowrap; min-width:64px; text-align:right;}
+
+  /* Lijsten en tabellen */
+  .list-row{display:flex; align-items:center; gap:12px; padding:11px 0; border-top:1px solid #F1EADC;}
+  .list-row:first-of-type{border-top:none;}
+  .list-row .meta{flex:1; min-width:0;}
+  .list-row .nm{font-weight:600;}
+  .list-row .dt{font-size:12.5px; color:var(--mutedText); margin-top:1px;}
+  .list-row[data-act]:hover .nm{color:var(--rani);}
+  table{width:100%; border-collapse:collapse;}
+  th{font:600 11.5px var(--body); letter-spacing:.06em; text-transform:uppercase; color:var(--mutedText); text-align:left; padding:0 10px 10px; border-bottom:1px solid var(--sand);}
+  td{padding:11px 10px; border-bottom:1px solid #F1EADC; vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  tr[data-act]:hover td{background:#FBF7EF;}
+  td .nm{font-weight:600;} td .dt{font-size:12px; color:var(--mutedText);}
+  .num-col{text-align:right;}
+
+  /* Weekkalender */
+  .weeknav{display:flex; align-items:center; gap:10px;}
+  .weeknav .wl{font:600 16px var(--display); min-width:220px; text-align:center;}
+  .cal{display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); gap:10px;}
+  .cal-day{background:#F7F1E6; border-radius:14px; padding:10px; min-height:180px;}
+  .cal-day.today{outline:2px solid var(--rani); outline-offset:-2px;}
+  .cal-day.past{opacity:.6;}
+  .cal-day h3{font:600 12.5px var(--body); margin-bottom:8px; display:flex; justify-content:space-between;}
+  .cal-day h3 span{color:var(--mutedText); font-weight:500;}
+  .lesson{background:var(--card); border:1px solid var(--sand); border-left:4px solid var(--teal); border-radius:10px; padding:8px 10px; margin-bottom:8px;}
+  .lesson:hover{border-color:var(--ink);}
+  .lesson.flow{border-left-color:var(--rani);} .lesson.gentle{border-left-color:var(--marigold);}
+  .lesson.closed{opacity:.6; border-style:dashed; background:transparent;}
+  .lesson .t{font-weight:600; font-size:13px;} .lesson .s{font-size:12px; color:var(--mutedText); margin:1px 0 6px;}
+  .lesson .meter .num{min-width:0;}
+
+  /* Formulieren */
+  .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px 14px;}
+  .form-grid .full{grid-column:1 / -1;}
+  label.f{display:flex; flex-direction:column; gap:5px; font-size:12.5px; font-weight:600;}
+  label.f input,label.f select{border:1px solid var(--sand); border-radius:10px; padding:9px 11px; background:#fff; font-weight:400; font-size:14px;}
+  label.f input:focus,label.f select:focus{outline:2px solid var(--rani); outline-offset:0; border-color:transparent;}
+  .seg{display:inline-flex; background:#EFE6D6; border-radius:10px; padding:3px; margin-bottom:14px;}
+  .seg span{padding:6px 14px; border-radius:8px; font-weight:600; font-size:13px; color:var(--mutedText);}
+  .seg span.on{background:#fff; color:var(--ink); box-shadow:0 1px 3px rgba(30,19,45,.1);}
+  .chips{display:flex; gap:6px; flex-wrap:wrap;}
+  .chip{padding:6px 12px; border-radius:20px; border:1px solid var(--sand); background:#fff; font-weight:600; font-size:12.5px;}
+  .chip.on{background:var(--ink); border-color:var(--ink); color:var(--ivory);}
+  .preview{background:#FCF1DE; color:#6B4A0C; border-radius:10px; padding:10px 12px; font-size:13px; line-height:1.45;}
+  .err{color:var(--rani); font-weight:500; font-size:13px;}
+
+  /* Zijpaneel */
+  .scrim{position:fixed; inset:0; background:rgba(30,19,45,.35); z-index:50;}
+  .drawer{position:fixed; top:0; right:0; bottom:0; width:min(480px, 100vw); background:var(--ivory); z-index:60; overflow-y:auto; box-shadow:-12px 0 40px rgba(30,15,45,.18); animation:slide .2s ease-out;}
+  @keyframes slide{from{transform:translateX(40px); opacity:0;}}
+  .drawer-head{background:var(--ink); color:var(--ivory); padding:22px 24px 18px; position:relative;}
+  .drawer-head .eyebrow{font:600 11px var(--body); letter-spacing:2px; text-transform:uppercase; color:var(--marigold);}
+  .drawer-head h2{font:600 24px var(--display); margin:4px 0 2px;}
+  .drawer-head p{color:#D9CFE8; font-size:13px;}
+  .drawer-head .x{position:absolute; top:16px; right:18px; color:#fff; font-size:20px; background:none; border:none;}
+  .drawer-body{padding:20px 24px 40px; display:flex; flex-direction:column; gap:16px;}
+  .drawer-body .card{padding:16px;}
+  .kv{display:flex; justify-content:space-between; align-items:center; padding:6px 0;}
+
+  /* Modaal */
+  .modal-bg{position:fixed; inset:0; background:rgba(30,19,45,.5); z-index:80; display:flex; align-items:center; justify-content:center; padding:24px;}
+  .modal{background:var(--ivory); border-radius:18px; padding:22px; width:min(420px, 100%); animation:pop .15s ease-out;}
+  @keyframes pop{from{transform:scale(.96); opacity:0;}}
+  .modal h3{font:600 19px var(--display); margin-bottom:8px;}
+  .modal p{color:var(--descText); line-height:1.5; margin-bottom:16px;}
+  .modal .acts{display:flex; justify-content:flex-end; gap:8px; margin-top:16px;}
+  .quick{display:flex; gap:6px; margin-top:8px;}
+
+  .ptoast{position:fixed; bottom:24px; right:24px; background:var(--teal); color:#fff; font-weight:600; padding:12px 18px; border-radius:12px; z-index:90; box-shadow:0 10px 30px rgba(30,15,45,.2); animation:pop .2s ease-out;}
+
+  /* Inloggen */
+  .login{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; background:var(--ink);}
+  .login-card{background:var(--ivory); border-radius:22px; padding:32px; width:min(400px, 100%);}
+  .login-card img{width:90px; height:66px; object-fit:contain; display:block; margin-bottom:6px; background:var(--ink); border-radius:14px; padding:6px;}
+  .login-card h1{font:600 26px var(--display); margin:10px 0 2px;}
+  .login-card p{color:var(--mutedText); margin-bottom:20px;}
+  .login-card .btn{width:100%; justify-content:center; padding:12px; margin-top:16px;}
+  .login-card .hint{font-size:12px; color:var(--mutedText); text-align:center; margin-top:16px; line-height:1.5;}
+
+  @media (max-width:1100px){ .tiles{grid-template-columns:repeat(2, minmax(0,1fr));} .grid2{grid-template-columns:1fr;} .cal{grid-template-columns:repeat(2, minmax(0,1fr));} }
+  @media (max-width:800px){
+    .shell{flex-direction:column;} .side{width:100%; height:auto; position:static;} .nav{flex-direction:row; overflow-x:auto;} .side-foot{display:none;}
+    main{padding:20px 16px 48px;} .form-grid{grid-template-columns:1fr;} .cal{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script src="demo-core.js"></script>
+<script>
+/* ── Portaal-UI (niet bewaard, behalve wie er is ingelogd) ─────────── */
+const AUTH_KEY = 'sy-portal-auth';
+const P = {
+  auth: (() => { try { return sessionStorage.getItem(AUTH_KEY); } catch { return null; } })(),
+  page: 'overzicht', week: 0, drawer: null, confirm: null, prompt: null, toast: null,
+  formKind: 'vast', form: {}, formError: null, loginError: null,
+  pres: {date: null, sid: null}, stopDates: {}, addVast: {email: '', weeks: 99}, av: {email: '', walkin: ''},
+};
+
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const initials = (n) => n.split(' ').filter(w => /^\p{L}/u.test(w)).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+const dot = (s) => `<div class="dot sm ${s}">${STYLE[s].dot}</div>`;
+const stepper = (act, v, attrs = '') => `<span class="stepper"><span class="sb" data-act="${act}" data-d="-1" ${attrs}>–</span><span class="sv">${v}</span><span class="sb" data-act="${act}" data-d="1" ${attrs}>+</span></span>`;
+const at = (sid, d) => `data-sid="${sid}" data-date="${d}"`;
+const today = () => isoOf(now());
+const startTime = (s) => s.time.split(' – ')[0];
+const standingOf = (email) => { const e = S.enrollments.find(x => x.email === email && plusDays(x.start, 7 * x.weeks) > today()); return e && SES[e.sessionId]; };
+const openCharges = openChargesOf;
+const mondayOf = (offset) => { const d = now(); const wd = d.getDay(); d.setDate(d.getDate() + (wd === 0 ? -6 : 1 - wd) + offset * 7); return isoOf(d); };
+const weekNumber = (iso) => { const d = toDate(iso); d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7); const w1 = new Date(d.getFullYear(), 0, 4); return 1 + Math.round(((d - w1) / DAY - 3 + (w1.getDay() + 6) % 7) / 7); };
+
+// Bezettingsbalk; het aantal staat er altijd als tekst bij (niet alleen kleur).
+function meter(o){
+  const pct = o.cap ? Math.min(100, Math.round(100 * o.booked / o.cap)) : 100;
+  const cls = o.booked >= o.cap ? 'full' : pct >= 80 ? 'warn' : '';
+  return `<div class="meter ${cls}" title="${o.booked} van ${o.cap} plekken bezet"><div class="track"><div class="fill" style="width:${pct}%"></div></div><span class="num">${o.booked >= o.cap ? 'Vol' : `${o.booked}/${o.cap}`}</span></div>`;
+}
+const sourceTag = (st, d) => {
+  if (st.source === 'aanvraag') return '<span class="tag pend">Aanvraag</span>';
+  if (st.source === 'los') return '<span class="tag ink">Losse les</span>';
+  const left = st.enrollment.weeks - daysBetween(st.enrollment.start, d) / 7;
+  return `<span class="tag teal">Vaste klant${st.enrollment.weeks >= 99 ? '' : ` · nog ${left} wk`}</span>`;
+};
+function act(msg){ log(`Portaal: ${msg}`); save(); }
+
+/* ── Pagina's ──────────────────────────────────────────────────────── */
+const NAV = [
+  ['overzicht', '🏠', 'Overzicht'],
+  ['rooster', '🗓️', 'Rooster'],
+  ['reserveringen', '📨', 'Reserveringen'],
+  ['klanten', '👥', 'Klanten'],
+  ['beheer', '🛠️', 'Rooster beheren'],
+  ['presentie', '✅', 'Presentielijst'],
+];
+
+function overzicht(){
+  const t = today(); const mon = mondayOf(0);
+  const week = Array.from({length: 7}, (_, i) => plusDays(mon, i));
+  const lessonsWeek = week.flatMap(d => sessionsOn(d).filter(s => !closureOf(s.id, d)).map(s => ({s, d})));
+  const remaining = lessonsWeek.filter(({s, d}) => !isPast(s.id, d)).length;
+  const next7 = Array.from({length: 7}, (_, i) => plusDays(t, i)).flatMap(d => sessionsOn(d).filter(s => !closureOf(s.id, d) && !isPast(s.id, d)).map(s => occ(s.id, d)));
+  const fillPct = next7.length ? Math.round(100 * next7.reduce((a, o) => a + Math.min(o.booked, o.cap), 0) / next7.reduce((a, o) => a + o.cap, 0)) : 0;
+  const st = students(); const agreed = st.filter(u => u.termsAcceptedAt).length;
+  const todo = unconfirmedLessons(14);
+  const todays = sessionsOn(t);
+  const closures = S.closures.filter(c => c.to >= t).sort((a, b) => a.from.localeCompare(b.from)).slice(0, 4);
+  const hour = now().getHours();
+  return `<div class="ph"><div><h1>${hour < 12 ? 'Goedemorgen' : hour < 18 ? 'Goedemiddag' : 'Goedenavond'}</h1><p>${dateLabel(t)}</p></div>
+      <div class="acts"><button class="btn" data-act="nav" data-v="rooster">Bekijk rooster</button><button class="btn ink" data-act="nav" data-v="beheer">＋ Les of vakantie</button></div></div>
+    <div class="tiles">
+      <div class="tile" data-act="nav" data-v="presentie"><div class="lbl">Presentie te bevestigen</div><div class="val">${todo.length}</div><div class="sub">${todo.length ? 'lessen · strippen nog niet verwerkt' : 'alles bevestigd'}</div></div>
+      <div class="tile"><div class="lbl">Bezetting komende 7 dagen</div><div class="val">${fillPct}%</div><div class="sub">${next7.length} lessen · deze week nog ${remaining} van ${lessonsWeek.length}</div></div>
+      <div class="tile" data-act="nav" data-v="reserveringen"><div class="lbl">Open aanvragen</div><div class="val">${S.requests.length}</div><div class="sub">${S.requests.length ? 'wachten op goedkeuring' : 'alles behandeld'}</div></div>
+      <div class="tile" data-act="nav" data-v="klanten"><div class="lbl">Voorwaarden akkoord</div><div class="val">${agreed} <span style="font-size:16px;color:var(--mutedText)">/ ${st.length}</span></div><div class="sub">klanten</div></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><h2>Vandaag <small>${dateLabel(t)}</small></h2>
+        ${todays.length ? todays.map(s => { const cl = closureOf(s.id, t);
+          const status = cl ? `Vervalt: ${esc(cl.reason)}` : confirmationOf(s.id, t) ? '✓ Presentie bevestigd' : hasStarted(s.id, t) ? 'Presentie nog bevestigen' : 'Nog te gaan';
+          return `<div class="list-row" data-act="openLesson" ${at(s.id, t)}>${dot(s.style)}<div class="meta"><div class="nm">${STYLE[s.style].label} · ${s.time}</div><div class="dt">${status}</div></div>
+            <div style="width:170px">${cl ? '<span class="tag muted">Vervalt</span>' : meter(occ(s.id, t))}</div></div>`; }).join('')
+          : `<div class="empty">Geen lessen vandaag.</div>`}
+      </div>
+      <div class="stack">
+        ${todo.length ? `<div class="card"><h2>Presentie bevestigen <small>${todo.length} ${todo.length === 1 ? 'les' : 'lessen'}</small></h2>
+          ${todo.slice(0, 5).map(l => { const s = SES[l.sid]; return `<div class="list-row" data-act="toPresentie" ${at(l.sid, l.d)}>${dot(s.style)}<div class="meta"><div class="nm">${dateLabel(l.d)}</div><div class="dt">${STYLE[s.style].label} · ${s.time} · ${attendanceList(l.sid, l.d).length} ingepland</div></div><button class="btn sm primary">Bevestigen</button></div>`; }).join('')}
+          ${todo.length > 5 ? `<button class="btn sm" data-act="nav" data-v="presentie">Alle ${todo.length} lessen</button>` : ''}</div>` : ''}
+        <div class="card"><h2>Aanvragen <small>${S.requests.length} open</small></h2>
+          ${S.requests.length ? S.requests.slice(0, 5).map(r => requestRow(r, true)).join('') : '<div class="empty">Geen open aanvragen.</div>'}
+          ${S.requests.length > 5 ? `<button class="btn sm" data-act="nav" data-v="reserveringen">Alle ${S.requests.length} aanvragen</button>` : ''}
+        </div>
+        <div class="card"><h2>Komende uitzonderingen</h2>
+          ${closures.length ? closures.map(c => `<div class="list-row"><span style="font-size:18px">🌴</span><div class="meta"><div class="nm">${esc(c.reason)}</div><div class="dt">${c.from === c.to ? dateLabel(c.from) : `${shortDate(c.from)} – ${shortDate(c.to)}`} · ${c.sessionId ? `alleen ${SES[c.sessionId].day.toLowerCase()} ${startTime(SES[c.sessionId])}` : 'alle lessen'}</div></div></div>`).join('') : '<div class="empty">Geen vakanties gepland.</div>'}
+        </div>
+      </div>
+    </div>`;
+}
+
+function requestRow(r, compact){
+  const s = SES[r.sessionId];
+  return `<div class="list-row">${dot(s.style)}<div class="meta"><div class="nm">${esc(r.name)}</div><div class="dt">${STYLE[s.style].label} · ${dateLabel(r.date)} · ${s.time}</div></div>
+    <button class="btn sm teal" data-act="resolve" data-id="${r.id}" data-v="1">✓${compact ? '' : ' Goedkeuren'}</button><button class="btn sm ghost-r" data-act="resolve" data-id="${r.id}" data-v="0">✕${compact ? '' : ' Weigeren'}</button></div>`;
+}
+
+function rooster(){
+  const mon = mondayOf(P.week); const t = today();
+  const days = Array.from({length: 7}, (_, i) => plusDays(mon, i));
+  return `<div class="ph"><div><h1>Rooster</h1><p>Klik op een les voor bezetting, deelnemers en plekken.</p></div>
+      <div class="acts weeknav"><button class="btn" data-act="week" data-d="-1">‹</button><span class="wl">Week ${weekNumber(mon)} · ${shortDate(mon)} – ${shortDate(days[6])}</span><button class="btn" data-act="week" data-d="1">›</button>
+      ${P.week !== 0 ? '<button class="btn" data-act="week" data-d="0">Deze week</button>' : ''}</div></div>
+    <div class="cal">${days.map(d => { const list = sessionsOn(d);
+      return `<div class="cal-day ${d === t ? 'today' : ''} ${d < t ? 'past' : ''}"><h3>${WEEKDAYS[toDate(d).getDay()]}<span>${toDate(d).getDate()} ${MONTHS[toDate(d).getMonth()].slice(0, 3)}</span></h3>
+        ${list.length ? list.map(s => { const cl = closureOf(s.id, d);
+          return `<div class="lesson ${s.style} ${cl ? 'closed' : ''}" data-act="openLesson" ${at(s.id, d)}><div class="t">${s.time}</div><div class="s">${STYLE[s.style].label}${isExtra(s) ? ' · extra' : ''}${cl ? ` · ${esc(cl.reason)}` : ''}</div>${cl ? '<span class="tag muted">Vervalt</span>' : meter(occ(s.id, d))}</div>`; }).join('')
+          : '<div class="note">Geen lessen</div>'}</div>`; }).join('')}</div>`;
+}
+
+function reserveringen(){
+  return `<div class="ph"><div><h1>Reserveringen</h1><p>Aanvragen voor losse lessen. Een aanvraag houdt de plek al vast.</p></div></div>
+    <div class="card">${S.requests.length ? `<table><thead><tr><th>Klant</th><th>Les</th><th>Datum</th><th>Bezetting</th><th></th></tr></thead><tbody>
+      ${S.requests.map(r => { const s = SES[r.sessionId];
+        return `<tr><td><div class="nm">${esc(r.name)}</div><div class="dt">${esc(r.email)}</div></td><td>${STYLE[s.style].label} · ${s.time}</td><td>${dateLabel(r.date)}</td><td style="width:180px">${meter(occ(r.sessionId, r.date))}</td>
+          <td class="num-col"><button class="btn sm teal" data-act="resolve" data-id="${r.id}" data-v="1">✓ Goedkeuren</button> <button class="btn sm ghost-r" data-act="resolve" data-id="${r.id}" data-v="0">✕ Weigeren</button></td></tr>`; }).join('')}
+      </tbody></table>` : '<div class="empty">Geen open aanvragen. Nieuwe aanvragen uit de app verschijnen hier direct.</div>'}</div>`;
+}
+
+function klanten(){
+  const list = [...students()].sort((a, b) => a.name.localeCompare(b.name));
+  return `<div class="ph"><div><h1>Klanten</h1><p>${list.length} klanten met de app · klik op een klant voor de lessen</p></div></div>
+    <div class="card"><table><thead><tr><th>Klant</th><th>Telefoon</th><th>Strippen</th><th>Vaste les</th><th>Voorwaarden</th><th>Openstaand</th></tr></thead><tbody>
+      ${list.map(u => { const v = standingOf(u.email); const open = openCharges(u.email);
+        return `<tr data-act="openKlant" data-email="${u.email}"><td><div class="nm">${esc(u.name)}</div><div class="dt">${esc(u.email)}</div></td><td>${esc(u.phone)}</td>
+          <td data-act="noop"><span style="display:inline-flex;gap:8px;align-items:center">${stepper('strip', u.strippen ?? 0, `data-email="${u.email}"`)}<button class="btn sm teal" data-act="askCard" data-email="${u.email}" title="Nieuwe 10-strippenkaart">+10</button></span></td>
+          <td>${v ? `${v.day} ${startTime(v)}` : '<span class="muted">—</span>'}</td>
+          <td>${u.termsAcceptedAt ? `<span class="tag teal">✓ ${u.termsAcceptedAt}</span>` : '<span class="tag rani">Nog niet</span>'}</td>
+          <td>${open ? `<span class="tag rani">${open} ${open === 1 ? 'les' : 'lessen'}</span>` : '<span class="muted">—</span>'}</td></tr>`; }).join('')}
+    </tbody></table></div>`;
+}
+
+function beheer(){
+  const t = today();
+  const order = (s) => (WEEKDAYS.indexOf(s.day) + 6) % 7;
+  const weekly = S.sessions.filter(s => !isExtra(s) && (!s.until || s.until >= t)).sort((a, b) => order(a) - order(b) || a.time.localeCompare(b.time));
+  const extras = S.sessions.filter(s => isExtra(s) && s.from >= t).sort((a, b) => a.from.localeCompare(b.from));
+  const closures = S.closures.filter(c => c.to >= t).sort((a, b) => a.from.localeCompare(b.from));
+  const standingCount = (sid) => new Set(S.enrollments.filter(e => e.sessionId === sid && plusDays(e.start, 7 * e.weeks) > t).map(e => e.email)).size;
+  return `<div class="ph"><div><h1>Rooster beheren</h1><p>Weekrooster, extra lessen en vakanties.</p></div></div>
+    <div class="grid2">
+      <div class="stack">
+        <div class="card"><h2>Weekrooster <small>${weekly.length} vaste lessen</small></h2>
+          <table><thead><tr><th>Les</th><th>Plekken</th><th>Vaste klanten</th><th>Stoppen</th></tr></thead><tbody>
+          ${weekly.map(s => `<tr><td><div style="display:flex;gap:10px;align-items:center">${dot(s.style)}<div><div class="nm">${s.day} ${startTime(s)}</div><div class="dt">${STYLE[s.style].label} · ${s.time}${s.from && s.from > t ? ` · vanaf ${shortDate(s.from)}` : ''}</div></div></div></td>
+            <td>${stepper('tplCap', s.capacity, `data-sid="${s.id}"`)}</td><td>${standingCount(s.id)}</td>
+            <td>${s.until ? `<span class="tag pend">laatste les ${shortDate(s.until)}</span> <button class="btn sm" data-act="resume" data-sid="${s.id}">Doorlopen</button>`
+              : `<div style="display:flex;gap:6px;align-items:center"><input type="date" data-stop="${s.id}" value="${P.stopDates[s.id] || ''}" min="${t}" style="border:1px solid var(--sand);border-radius:8px;padding:4px 6px;font-size:12.5px"><button class="btn sm" data-act="stopLesson" data-sid="${s.id}">Stop na</button></div>`}
+              <button class="btn sm" style="margin-top:6px" data-act="holidayFor" data-sid="${s.id}">🌴 Vakantie</button></td></tr>`).join('')}
+          </tbody></table></div>
+        <div class="card"><h2>Uitzonderingen</h2>
+          ${closures.map(c => `<div class="list-row"><span style="font-size:18px">🌴</span><div class="meta"><div class="nm">${esc(c.reason)}</div><div class="dt">${c.from === c.to ? dateLabel(c.from) : `${shortDate(c.from)} – ${shortDate(c.to)}`} · ${c.sessionId ? `alleen ${SES[c.sessionId].day.toLowerCase()} ${startTime(SES[c.sessionId])}` : 'alle lessen vervallen'}</div></div><button class="icon-btn rm" data-act="askRemoveClosure" data-id="${c.id}" title="Verwijderen">✕</button></div>`).join('')}
+          ${extras.map(s => `<div class="list-row">${dot(s.style)}<div class="meta"><div class="nm">Extra: ${STYLE[s.style].label}</div><div class="dt">${dateLabel(s.from)} · ${s.time} · ${s.capacity} plekken</div></div><button class="icon-btn rm" data-act="askRemoveExtra" data-sid="${s.id}" title="Verwijderen">✕</button></div>`).join('')}
+          ${closures.length || extras.length ? '' : '<div class="empty">Geen vakanties of extra lessen gepland.</div>'}
+        </div>
+      </div>
+      <div class="card"><h2>Toevoegen</h2>${addForm()}</div>
+    </div>`;
+}
+
+function addForm(){
+  const f = P.form; const k = P.formKind;
+  const input = (name, type, extra = '') => `<input type="${type}" data-f="${name}" value="${esc(f[name] ?? '')}" ${extra}>`;
+  const seg = `<div class="seg">${[['vast', 'Vaste les'], ['extra', 'Extra les'], ['vervallen', 'Vakantie']].map(([v, l]) => `<span class="${k === v ? 'on' : ''}" data-act="formKind" data-v="${v}">${l}</span>`).join('')}</div>`;
+  const err = P.formError ? `<div class="err full">${P.formError}</div>` : '';
+  if (k === 'vervallen') {
+    const p = closurePreview(f);
+    return seg + `<div class="form-grid">
+      <label class="f full">Reden${input('reason', 'text', 'placeholder="Vakantie"')}</label>
+      <label class="f">Van${input('from', 'date')}</label><label class="f">Tot en met${input('to', 'date')}</label>
+      <label class="f full">Welke lessen<select data-f="scope"><option value="">Alle lessen</option>${S.sessions.filter(s => !isExtra(s)).map(s => `<option value="${s.id}" ${f.scope === s.id ? 'selected' : ''}>${s.day} ${startTime(s)} · ${STYLE[s.style].label}</option>`).join('')}</select></label>
+      ${p ? `<div class="preview full">${p.lessons} ${p.lessons === 1 ? 'les vervalt' : 'lessen vervallen'}${p.people ? `; ${p.people} keer stond er een klant ingepland. Er gaat daarvoor geen strip af.` : '.'}</div>` : ''}
+      ${err}<div class="full"><button class="btn primary" data-act="saveForm">Vakantie opslaan</button></div></div>`;
+  }
+  const styleChips = `<div class="chips">${Object.entries(STYLE).map(([key2, v]) => `<span class="chip ${f.style === key2 ? 'on' : ''}" data-act="fStyle" data-v="${key2}">${v.label}</span>`).join('')}</div>`;
+  return seg + `<div class="form-grid">
+    ${k === 'extra' ? `<label class="f full">Datum${input('date', 'date', `min="${today()}"`)}</label>`
+      : `<label class="f full">Dag<select data-f="day">${[...WEEKDAYS.slice(1), WEEKDAYS[0]].map(d => `<option ${f.day === d ? 'selected' : ''}>${d}</option>`).join('')}</select></label>
+         <label class="f">Eerste les vanaf${input('from', 'date')}</label><label class="f">Tot en met <span class="muted" style="font-weight:400">(optioneel)</span>${input('until', 'date')}</label>`}
+    <label class="f">Begintijd${input('start', 'time')}</label><label class="f">Eindtijd${input('end', 'time')}</label>
+    <div class="full"><div style="font-size:12.5px;font-weight:600;margin-bottom:5px">Soort les</div>${styleChips}</div>
+    <div class="full kv"><span style="font-weight:600;font-size:12.5px">Aantal plekken</span>${stepper('fCap', f.capacity)}</div>
+    ${err}<div class="full"><button class="btn primary" data-act="saveForm">${k === 'extra' ? 'Extra les opslaan' : 'Vaste les opslaan'}</button></div></div>`;
+}
+
+const chargeTag = (p) => !p.present ? '<span class="tag muted">Afwezig · geen strip</span>'
+  : p.charge === 'strip' ? '<span class="tag teal">−1 strip</span>'
+  : p.charge === 'open' ? '<span class="tag rani">Geen strippen · openstaand</span>'
+  : '<span class="tag ink">Losse les</span>';
+const stripsOf = (p, sid) => p.app ? (userBy(p.pid)?.strippen ?? 0) : ((S.roster[sid] || []).find(e => e.id === p.pid)?.strips ?? 0);
+
+// Planning als startpunt; de beheerder corrigeert en bevestigt. Pas dan gaan de strippen af.
+function presentie(){
+  const d = P.pres.date || today();
+  const list = sessionsOn(d).filter(s => !closureOf(s.id, d));
+  const sid = list.some(s => s.id === P.pres.sid) ? P.pres.sid : list[0]?.id;
+  const todo = unconfirmedLessons(14);
+  let body = '<div class="empty">Geen lessen op deze dag.</div>';
+  if (sid) {
+    const s = SES[sid]; const conf = confirmationOf(sid, d); const started = hasStarted(sid, d);
+    if (conf) {
+      const present = conf.people.filter(p => p.present).length; const strips = conf.people.filter(p => p.charge === 'strip').length;
+      body = `<div class="preview" style="background:#EAF3EE;color:var(--teal);margin-bottom:12px">✓ Bevestigd (${conf.at}): ${present} aanwezig, ${strips} ${strips === 1 ? 'strip' : 'strippen'} afgeschreven.</div>
+        <table><thead><tr><th>Naam</th><th>Type</th><th>Verwerkt</th></tr></thead><tbody>
+        ${conf.people.map(p => `<tr style="${p.present ? '' : 'opacity:.55'}"><td><div class="nm">${esc(p.name)}</div></td><td>${p.walkin ? 'Losse deelnemer' : p.app ? '📱 App-klant' : 'Zonder app'}${p.planned ? '' : ' · toegevoegd'}</td><td>${chargeTag(p)}</td></tr>`).join('')}
+        </tbody></table><div style="margin-top:14px"><button class="btn ghost-r" data-act="askUndoConfirm" ${at(sid, d)}>Bevestiging ongedaan maken</button></div>`;
+    } else {
+      const people = attendanceList(sid, d); const presentN = people.filter(p => p.present).length;
+      const addable = students().filter(u => !people.some(p => p.pid === u.email));
+      body = `<p class="note" style="margin-bottom:12px">Volgens de planning staan deze mensen ingepland. Zet uit wie er niet is en voeg toe wie er extra is. De strippen gaan pas af als je bevestigt.</p>
+        <table><thead><tr><th style="width:90px">Aanwezig</th><th>Naam</th><th>Type</th><th class="num-col">Strippen</th><th></th></tr></thead><tbody>
+        ${people.map(p => `<tr style="${p.present ? '' : 'opacity:.6'}"><td><button class="icon-btn" style="${p.present ? 'background:var(--teal);border-color:var(--teal);color:#fff' : ''}" data-act="togglePresent" ${at(sid, d)} data-pid="${p.pid}">${p.present ? '✓' : ''}</button></td>
+          <td><div class="nm">${esc(p.name)}</div>${p.present ? '' : '<div class="dt">afwezig</div>'}</td>
+          <td>${p.walkin ? '<span class="tag ink">Losse deelnemer</span>' : p.app ? '<span class="tag teal">📱 App-klant</span>' : '<span class="tag muted">Zonder app</span>'}${p.planned ? '' : ' <span class="tag pend">toegevoegd</span>'}</td>
+          <td class="num-col">${p.walkin ? '—' : stripsOf(p, sid)}</td>
+          <td class="num-col">${p.planned ? '' : `<button class="icon-btn rm" data-act="removeAttendee" ${at(sid, d)} data-pid="${p.pid}" title="Verwijderen">✕</button>`}</td></tr>`).join('') || '<tr><td colspan="5" class="empty">Niemand ingepland.</td></tr>'}
+        </tbody></table>
+        <div class="form-grid" style="margin-top:14px">
+          ${addable.length ? `<label class="f">Klant toevoegen<span style="display:flex;gap:6px"><select data-av="email" style="flex:1"><option value="">Kies een klant…</option>${addable.map(u => `<option value="${u.email}" ${P.av.email === u.email ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}</select><button class="btn" data-act="addKlant" ${at(sid, d)}>Toevoegen</button></span></label>` : '<div></div>'}
+          <label class="f">Losse deelnemer<span style="display:flex;gap:6px"><input type="text" data-av="walkin" value="${esc(P.av.walkin)}" placeholder="Naam" style="flex:1"><button class="btn" data-act="addWalkin" ${at(sid, d)}>Toevoegen</button></span></label>
+        </div>
+        <div style="margin-top:16px;display:flex;align-items:center;gap:12px"><button class="btn primary ${started ? '' : 'off'}" ${started ? `data-act="askConfirmAttendance" ${at(sid, d)}` : 'disabled'}>Bevestig presentie (${presentN} aanwezig)</button>
+          ${started ? '' : `<span class="note">Bevestigen kan vanaf ${s.time.split(' – ')[0]}.</span>`}</div>`;
+    }
+  }
+  return `<div class="ph"><div><h1>Presentielijst</h1><p>Controleer wie er echt was. Pas na bevestigen worden de strippenkaarten bijgewerkt.</p></div>
+      <div class="acts"><input type="date" data-pres-date value="${d}" style="border:1px solid var(--sand);border-radius:10px;padding:7px 10px"><button class="btn" data-act="presToday">Vandaag</button></div></div>
+    <div class="grid2">
+      <div class="card">${list.length ? `<div class="seg">${list.map(x => `<span class="${x.id === sid ? 'on' : ''}" data-act="presLesson" data-sid="${x.id}">${startTime(x)} ${STYLE[x.style].label}${confirmationOf(x.id, d) ? ' ✓' : ''}</span>`).join('')}</div>` : ''}${body}</div>
+      <div class="card"><h2>Nog te bevestigen <small>laatste 14 dagen</small></h2>
+        ${todo.length ? todo.map(l => { const x = SES[l.sid]; return `<div class="list-row" data-act="toPresentie" ${at(l.sid, l.d)}>${dot(x.style)}<div class="meta"><div class="nm">${dateLabel(l.d)}</div><div class="dt">${STYLE[x.style].label} · ${x.time}</div></div>${l.d === d && l.sid === sid ? '<span class="tag pend">open</span>' : ''}</div>`; }).join('') : '<div class="empty">Alles is bevestigd.</div>'}</div>
+    </div>`;
+}
+
+/* ── Zijpanelen ────────────────────────────────────────────────────── */
+function lessonDrawer({sid, d}){
+  const s = SES[sid]; if (!s) return '';
+  const o = occ(sid, d); const cl = closureOf(sid, d); const started = hasStarted(sid, d);
+  const att = attendees(sid, d);
+  const off = students().filter(u => statusFor(u.email, sid, d)?.cancelled);
+  const pickable = students().filter(u => !enrollmentOf(u.email, sid, d));
+  const single = cl && cl.from === cl.to && cl.sessionId === sid;
+  return `<div class="drawer-head"><button class="x" data-act="closeDrawer">✕</button><div class="eyebrow">${STYLE[s.style].label}${isExtra(s) ? ' · extra les' : ''}</div><h2>${dateLabel(d)}</h2><p>${s.time} · Berghem</p></div>
+    <div class="drawer-body">
+      ${cl ? `<div class="card"><div class="kv"><b>Deze les vervalt</b><span class="tag muted">${esc(cl.reason)}</span></div>
+          ${single ? `<button class="btn teal" style="margin-top:8px" data-act="reopen" data-id="${cl.id}">Les toch laten doorgaan</button>` : `<p class="note" style="margin-top:6px">Onderdeel van ${esc(cl.reason)} (${shortDate(cl.from)} – ${shortDate(cl.to)}). Aanpassen via Rooster beheren.</p>`}</div>`
+        : `<div class="card"><div class="kv"><b>Bezetting</b><span style="width:200px">${meter(o)}</span></div>
+          <div class="kv"><span>Plekken op deze datum</span>${stepper('cap', o.cap, at(sid, d))}</div>
+          <div class="kv"><span>Vrij</span><b>${o.available}</b></div>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn" data-act="toPresentie" ${at(sid, d)}>✅ Presentielijst</button>
+          ${started ? '' : `<button class="btn ghost-r" data-act="askCloseOne" ${at(sid, d)}>Les laten vervallen</button>`}</div></div>`}
+      <div class="card"><h2>Deelnemers <small>${att.length} met de app · ${(S.roster[sid] || []).length} zonder</small></h2>
+        ${att.length ? att.map(({user, st}) => `<div class="list-row"><div class="meta"><div class="nm">${esc(user.name)}</div><div class="dt">${esc(user.email)}</div></div>${sourceTag(st, d)}
+          ${!started && st.source !== 'aanvraag' ? `<button class="icon-btn rm" data-act="askRemove" ${at(sid, d)} data-email="${user.email}" title="Afmelden">✕</button>` : ''}</div>`).join('') : '<div class="note">Nog geen app-klanten ingepland.</div>'}
+        ${off.map(u => `<div class="list-row" style="opacity:.6"><div class="meta"><div class="nm">${esc(u.name)}</div></div><span class="tag muted">Afgemeld</span></div>`).join('')}
+      </div>
+      ${!cl && !started ? `<div class="card"><h2>Vaste klant inplannen <small>vanaf ${shortDate(d)}</small></h2>
+        ${o.available > 0 && pickable.length ? `<div class="form-grid"><label class="f full">Klant<select data-av="email"><option value="">Kies een klant…</option>${pickable.map(u => `<option value="${u.email}" ${P.addVast.email === u.email ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}</select></label>
+          <label class="f">Aantal weken<input type="number" min="1" data-av="weeks" value="${P.addVast.weeks}"></label><div class="f" style="justify-content:flex-end"><button class="btn primary" data-act="addVast" ${at(sid, d)}>Inplannen</button></div></div>
+          <p class="note" style="margin-top:8px">99 weken = doorlopende vaste les.</p>`
+          : `<p class="note">${o.available <= 0 ? 'Deze les is vol.' : 'Alle klanten zijn al vaste klant.'}</p>`}</div>` : ''}
+    </div>`;
+}
+
+function klantDrawer({email}){
+  const u = userBy(email); if (!u) return '';
+  const all = myLessons(email, '2000-01-01', horizonEnd());
+  const upcoming = all.filter(l => !isPast(l.sid, l.d)).slice(0, 8);
+  const past = all.filter(l => isPast(l.sid, l.d) && l.st.source !== 'aanvraag').reverse().slice(0, 10);
+  const v = standingOf(email);
+  const row = (l, isPastRow) => { const s = SES[l.sid];
+    let tag;
+    if (l.closed) tag = '<span class="tag muted">Vervalt</span>';
+    else if (l.st.cancelled) tag = `<span class="tag muted">Afgemeld</span>`;
+    else if (isPastRow) { const c = chargeFor(email, l.sid, l.d);
+      tag = c === undefined ? '<span class="tag pend">Te bevestigen</span>' : c === 'afwezig' ? '<span class="tag muted">Afwezig</span>' : c === 'open' ? '<span class="tag rani">Openstaand</span>' : '<span class="tag teal">−1 strip</span>'; }
+    else tag = l.st.source === 'aanvraag' ? '<span class="tag pend">Aanvraag</span>' : l.st.source === 'vast' ? '<span class="tag teal">Vaste les</span>' : '<span class="tag ink">Losse les</span>';
+    return `<div class="list-row">${dot(s.style)}<div class="meta"><div class="nm">${dateLabel(l.d)}</div><div class="dt">${STYLE[s.style].label} · ${s.time}</div></div>${tag}</div>`; };
+  return `<div class="drawer-head"><button class="x" data-act="closeDrawer">✕</button><div class="eyebrow">Klant</div><h2>${esc(u.name)}</h2><p>${esc(u.email)} · ${esc(u.phone)}</p></div>
+    <div class="drawer-body">
+      <div class="card"><div class="kv"><span>Strippen</span><span style="display:inline-flex;gap:8px;align-items:center">${stepper('strip', u.strippen ?? 0, `data-email="${email}"`)}<button class="btn sm teal" data-act="askCard" data-email="${email}">+10 nieuwe kaart</button></span></div>
+        <div class="kv"><span>Vaste les</span><b>${v ? `${v.day} ${startTime(v)}` : '—'}</b></div>
+        <div class="kv"><span>Algemene voorwaarden</span>${u.termsAcceptedAt ? `<span class="tag teal">✓ ${u.termsAcceptedAt}</span>` : '<span class="tag rani">Nog niet akkoord</span>'}</div>
+        <div class="kv"><span>Openstaande lessen</span><b>${openCharges(email) || '—'}</b></div></div>
+      <div class="card"><h2>Komende lessen</h2>${upcoming.length ? upcoming.map(l => row(l, false)).join('') : '<div class="note">Niets ingepland.</div>'}</div>
+      <div class="card"><h2>Afgenomen</h2>${past.length ? past.map(l => row(l, true)).join('') : '<div class="note">Nog geen lessen afgenomen.</div>'}</div>
+    </div>`;
+}
+
+/* ── Render ────────────────────────────────────────────────────────── */
+const app = document.getElementById('app');
+function loginView(){
+  return `<div class="login"><div class="login-card"><img src="logo-mark.png" alt=""><h1>Beheerportaal</h1><p>Soulful Yoga · log in als beheerder</p>
+    <label class="f">E-mailadres<input id="pEmail" type="email" placeholder="beheer@soulfulyoga.nl" autocomplete="off"></label>
+    <label class="f" style="margin-top:12px">Wachtwoord<input id="pPw" type="password" placeholder="••••••••"></label>
+    ${P.loginError ? `<p class="err" style="margin:12px 0 0">${P.loginError}</p>` : ''}
+    <button class="btn primary" data-act="login">Inloggen</button>
+    <div class="hint">Demo: beheer@soulfulyoga.nl · admin123<br><a href="demo.html" style="color:var(--rani)">Naar de telefoon-demo</a></div></div></div>`;
+}
+function render(){
+  const admin = S.users.find(u => u.email === P.auth && u.role === 'admin');
+  if (!admin) { app.innerHTML = loginView(); return; }
+  const scrollY = window.scrollY;
+  const page = {overzicht, rooster, reserveringen, klanten, beheer, presentie}[P.page]();
+  let overlay = '';
+  if (P.drawer) overlay += `<div class="scrim" data-act="closeDrawer"></div><aside class="drawer">${P.drawer.type === 'les' ? lessonDrawer(P.drawer) : klantDrawer(P.drawer)}</aside>`;
+  if (P.prompt) overlay += `<div class="modal-bg" data-act="closePrompt"><div class="modal" data-act="noop"><h3>${esc(P.prompt.name)} afmelden voor hoeveel weken?</h3><p>Kies 99 om de vaste les helemaal te stoppen.</p>
+    <label class="f">Aantal weken<input type="number" min="1" id="pWeeks" value="${P.prompt.weeks}"></label><div class="quick">${[1, 4, 12, 99].map(n => `<button class="btn sm" data-act="weeksSet" data-v="${n}">${n}</button>`).join('')}</div>
+    <div class="acts"><button class="btn" data-act="closePrompt">Annuleren</button><button class="btn primary" data-act="confirmPrompt">Afmelden</button></div></div></div>`;
+  if (P.confirm) overlay += `<div class="modal-bg" data-act="closeConfirm"><div class="modal" data-act="noop"><h3>${esc(P.confirm.title)}</h3><p>${P.confirm.text}</p>
+    <div class="acts"><button class="btn" data-act="closeConfirm">Annuleren</button><button class="btn primary" data-act="doConfirm">${P.confirm.ok}</button></div></div></div>`;
+  if (P.toast) overlay += `<div class="ptoast">${P.toast}</div>`;
+  app.innerHTML = `<div class="shell"><nav class="side"><div class="brand"><img src="logo-mark.png" alt=""><div><b>Soulful Yoga</b><small>Beheerportaal</small></div></div>
+      <div class="nav">${NAV.map(([k, ic, l]) => `<a class="${P.page === k ? 'on' : ''}" data-act="nav" data-v="${k}"><span class="ic">${ic}</span>${l}${k === 'reserveringen' && S.requests.length ? `<span class="bdg">${S.requests.length}</span>` : ''}</a>`).join('')}</div>
+      <div class="side-foot"><b>${esc(admin.name)}</b>${esc(admin.email)}<div class="row2"><a href="demo.html" target="_blank">Telefoon-demo ↗</a><a data-act="logout">Uitloggen</a></div></div></nav>
+    <main>${page}</main></div>${overlay}`;
+  window.scrollTo(0, scrollY);
+}
+function toast(msg){ P.toast = msg; render(); clearTimeout(toast.t); toast.t = setTimeout(() => { P.toast = null; render(); }, 2200); }
+
+/* ── Acties ────────────────────────────────────────────────────────── */
+const n = (v) => Number(v);
+const resetForm = (kind) => {
+  P.formKind = kind; P.formError = null;
+  P.form = kind === 'vervallen'
+    ? {reason: 'Vakantie', from: today(), to: plusDays(today(), 6), scope: ''}
+    : {day: 'Maandag', from: today(), until: '', date: today(), start: '19:00', end: '20:00', style: 'yin', capacity: 10};
+};
+const ACTIONS = {
+  noop(){},
+  nav(el){ P.page = el.dataset.v; P.drawer = null; window.scrollTo(0, 0); },
+  login(){
+    const email = document.getElementById('pEmail').value.trim().toLowerCase(); const pw = document.getElementById('pPw').value;
+    const u = S.users.find(x => x.email === email && x.password === pw);
+    if (!u) { P.loginError = 'Onjuist e-mailadres of wachtwoord.'; return; }
+    if (u.role !== 'admin') { P.loginError = 'Alleen beheerders hebben toegang tot het portaal.'; return; }
+    P.auth = u.email; P.loginError = null; try { sessionStorage.setItem(AUTH_KEY, u.email); } catch {}
+  },
+  logout(){ P.auth = null; try { sessionStorage.removeItem(AUTH_KEY); } catch {} },
+  week(el){ P.week = el.dataset.d === '0' ? 0 : P.week + n(el.dataset.d); },
+  openLesson(el){ P.drawer = {type: 'les', sid: el.dataset.sid, d: el.dataset.date}; P.addVast = {email: '', weeks: 99}; },
+  openKlant(el){ P.drawer = {type: 'klant', email: el.dataset.email}; },
+  closeDrawer(){ P.drawer = null; },
+
+  resolve(el){ const r = resolveRequest(el.dataset.id, el.dataset.v === '1'); if (!r) return; act(`aanvraag ${r.name} (${lessonName(r.sessionId, r.date)}) ${el.dataset.v === '1' ? 'goedgekeurd' : 'geweigerd'}`); toast(el.dataset.v === '1' ? 'Goedgekeurd ✓' : 'Geweigerd'); return 'rendered'; },
+  cap(el){ const {sid, date} = el.dataset; setCapacity(sid, date, occ(sid, date).cap + n(el.dataset.d)); act(`plekken ${lessonName(sid, date)}: ${occ(sid, date).cap}`); },
+  strip(el){ const left = adjustUserStrip(el.dataset.email, n(el.dataset.d)); act(`strippen ${userBy(el.dataset.email).name}: ${left}`); },
+  askCard(el){ const u = userBy(el.dataset.email); P.confirm = {title: 'Nieuwe strippenkaart?', text: `${esc(u.name)} krijgt een nieuwe 10-strippenkaart: ${u.strippen ?? 0} → ${(u.strippen ?? 0) + CARD_SIZE} strippen.`, ok: 'Activeren', run: () => { activateCard(u.email); act(`nieuwe 10-strippenkaart voor ${u.name} (${u.strippen} strippen)`); }}; },
+  tplCap(el){ const s = SES[el.dataset.sid]; s.capacity = Math.max(1, s.capacity + n(el.dataset.d)); act(`standaard plekken ${s.day.toLowerCase()} ${startTime(s)}: ${s.capacity}`); },
+  stopLesson(el){ const s = SES[el.dataset.sid]; const d = P.stopDates[s.id]; if (!d) { toast('Kies eerst de datum van de laatste les'); return 'rendered'; } s.until = d; act(`vaste les ${s.day.toLowerCase()} ${startTime(s)} stopt na ${shortDate(d)}`); },
+  resume(el){ const s = SES[el.dataset.sid]; s.until = null; act(`vaste les ${s.day.toLowerCase()} ${startTime(s)} loopt weer door`); },
+  holidayFor(el){ resetForm('vervallen'); P.form.scope = el.dataset.sid; },
+
+  formKind(el){ resetForm(el.dataset.v); },
+  fStyle(el){ P.form.style = el.dataset.v; },
+  fCap(el){ P.form.capacity = Math.max(1, P.form.capacity + n(el.dataset.d)); },
+  saveForm(){
+    const f = P.form; const k = P.formKind;
+    if (k === 'vervallen') {
+      if (!f.from || !f.to) { P.formError = 'Kies een begin- en einddatum.'; return; }
+      if (f.to < f.from) { P.formError = 'De einddatum ligt vóór de begindatum.'; return; }
+      const p = closurePreview(f); const reason = (f.reason || '').trim() || 'Vakantie';
+      addClosure({from: f.from, to: f.to, sessionId: f.scope || null, reason});
+      act(`${reason}: ${shortDate(f.from)} – ${shortDate(f.to)}, ${p ? p.lessons : 0} lessen vervallen`);
+      resetForm('vervallen'); toast('Vakantie opgeslagen ✓'); return 'rendered';
+    }
+    const err = checkTimes(f) || (k === 'extra' ? (!f.date ? 'Kies een datum.' : f.date < today() ? 'Die datum is al voorbij.' : '') : (!f.from ? 'Kies vanaf wanneer de les start.' : f.until && f.until < f.from ? 'De einddatum ligt vóór de startdatum.' : ''));
+    if (err) { P.formError = err; return; }
+    if (k === 'extra') { addSession({day: weekdayOf(f.date), style: f.style, time: timeOf(f), capacity: f.capacity, from: f.date, until: f.date}); act(`extra les ${STYLE[f.style].label} ${shortDate(f.date)} ${timeOf(f)}`); }
+    else { addSession({day: f.day, style: f.style, time: timeOf(f), capacity: f.capacity, from: f.from, until: f.until || null}); act(`vaste les ${f.day.toLowerCase()} ${timeOf(f)} ${STYLE[f.style].label} vanaf ${shortDate(f.from)}`); }
+    resetForm(k); toast(k === 'extra' ? 'Extra les toegevoegd ✓' : 'Vaste les toegevoegd ✓'); return 'rendered';
+  },
+
+  askCloseOne(el){ const {sid, date} = el.dataset; P.confirm = {title: 'Les laten vervallen?', text: `${lessonName(sid, date)}. Wie ingepland staat ziet "Vervalt" en krijgt geen strip afgeschreven.`, ok: 'Laten vervallen', run: () => { addClosure({from: date, to: date, sessionId: sid, reason: 'Les vervalt'}); act(`${lessonName(sid, date)} vervalt`); }}; },
+  reopen(el){ const c = S.closures.find(x => x.id === el.dataset.id); removeClosure(c.id); act(`${lessonName(c.sessionId, c.from)} gaat toch door`); },
+  askRemoveClosure(el){ const c = S.closures.find(x => x.id === el.dataset.id); P.confirm = {title: 'Uitzondering verwijderen?', text: `${esc(c.reason)}. De lessen in deze periode gaan dan gewoon door.`, ok: 'Verwijderen', run: () => { removeClosure(c.id); act(`uitzondering verwijderd: ${c.reason}`); }}; },
+  askRemoveExtra(el){ const s = SES[el.dataset.sid]; P.confirm = {title: 'Extra les verwijderen?', text: `${lessonName(s.id, s.from)}. Aanvragen en boekingen voor deze les vervallen ook.`, ok: 'Verwijderen', run: () => { const name = lessonName(s.id, s.from); removeExtraSession(s.id); act(`extra les verwijderd: ${name}`); }}; },
+  askRemove(el){
+    const {sid, date, email} = el.dataset; const u = userBy(email); const st = statusFor(email, sid, date);
+    if (st.source === 'vast') { P.prompt = {sid, d: date, email, name: u.name, weeks: 1}; return; }
+    P.confirm = {title: `${u.name} afmelden?`, text: `Losse les ${lessonName(sid, date)}. De plek komt weer vrij.`, ok: 'Afmelden', run: () => { cancelLesson(email, sid, date, 'beheer'); act(`${u.name} afgemeld voor ${lessonName(sid, date)}`); }};
+  },
+  doConfirm(){ P.confirm.run(); P.confirm = null; save(); },
+  closeConfirm(){ P.confirm = null; },
+  weeksSet(el){ P.prompt.weeks = n(el.dataset.v); },
+  closePrompt(){ P.prompt = null; },
+  confirmPrompt(){
+    const p = P.prompt; const weeks = Math.max(1, n(document.getElementById('pWeeks').value) || 1);
+    act(`${p.name}: vaste les ${SES[p.sid].day.toLowerCase()} ${removeVast(p.sid, p.d, p.email, weeks)} vanaf ${shortDate(p.d)}`);
+    P.prompt = null;
+  },
+  addVast(el){
+    const {sid, date} = el.dataset; const {email, weeks} = P.addVast;
+    if (!email) { toast('Kies eerst een klant'); return 'rendered'; }
+    if (addVast(sid, date, email, Math.max(1, n(weeks) || 1))) { act(`${userBy(email).name} vast ingepland op ${SES[sid].day.toLowerCase()} ${startTime(SES[sid])} vanaf ${shortDate(date)}`); P.addVast = {email: '', weeks: 99}; toast('Vaste klant ingepland ✓'); return 'rendered'; }
+  },
+
+  toPresentie(el){ P.pres = {date: el.dataset.date, sid: el.dataset.sid}; P.page = 'presentie'; P.drawer = null; },
+  presToday(){ P.pres = {date: null, sid: null}; },
+  presLesson(el){ P.pres.sid = el.dataset.sid; },
+  togglePresent(el){ const {sid, date, pid} = el.dataset; const p = attendanceList(sid, date).find(x => x.pid === pid); setPresent(sid, date, pid, !p.present); save(); },
+  addKlant(el){ const {sid, date} = el.dataset; const u = userBy(P.av.email); if (!u) { toast('Kies eerst een klant'); return 'rendered'; } addAttendee(sid, date, {pid: u.email, name: u.name, app: true}); P.av.email = ''; act(`${u.name} toegevoegd aan presentielijst ${lessonName(sid, date)}`); },
+  addWalkin(el){ const {sid, date} = el.dataset; const name = P.av.walkin.trim(); if (!name) { toast('Vul een naam in'); return 'rendered'; } addAttendee(sid, date, {pid: `w-${Date.now()}`, name, app: false, walkin: true}); P.av.walkin = ''; act(`losse deelnemer ${name} toegevoegd aan ${lessonName(sid, date)}`); },
+  removeAttendee(el){ const {sid, date, pid} = el.dataset; removeAttendee(sid, date, pid); save(); },
+  askConfirmAttendance(el){ const {sid, date} = el.dataset; const list = attendanceList(sid, date); const present = list.filter(p => p.present).length;
+    P.confirm = {title: 'Presentie bevestigen?', text: `${lessonName(sid, date)}: ${present} aanwezig, ${list.length - present} afwezig. Bij elke aanwezige gaat nu één strip van de kaart.`, ok: 'Bevestigen',
+      run: () => { const people = confirmAttendance(sid, date); act(`presentie ${lessonName(sid, date)} bevestigd: ${people.filter(p => p.present).length} aanwezig, ${people.filter(p => p.charge === 'strip').length} strippen afgeschreven`); P.toast = 'Presentie bevestigd ✓'; setTimeout(() => { P.toast = null; render(); }, 2200); }}; },
+  askUndoConfirm(el){ const {sid, date} = el.dataset; P.confirm = {title: 'Bevestiging ongedaan maken?', text: `${lessonName(sid, date)}. De afgeschreven strippen komen terug en je kunt de lijst weer aanpassen.`, ok: 'Ongedaan maken', run: () => { undoConfirmation(sid, date); act(`bevestiging ${lessonName(sid, date)} ongedaan gemaakt`); }}; },
+};
+
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-act]');
+  if (!el || !ACTIONS[el.dataset.act]) return;
+  if (ACTIONS[el.dataset.act](el) !== 'rendered') render();
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.target.id === 'pEmail' || e.target.id === 'pPw')) { ACTIONS.login(); render(); } });
+document.addEventListener('input', (e) => {
+  const t = e.target;
+  if (t.dataset.f) P.form[t.dataset.f] = t.value;
+  if (t.dataset.av && P.page === 'presentie') P.av[t.dataset.av] = t.value;
+  else if (t.dataset.av) P.addVast[t.dataset.av] = t.value;
+  if (t.dataset.stop) P.stopDates[t.dataset.stop] = t.value;
+});
+document.addEventListener('change', (e) => {
+  const t = e.target;
+  if (t.dataset.f && t.type !== 'text') render();            // bv. voorvertoning vakantie bijwerken
+  if (t.hasAttribute('data-pres-date')) { P.pres = {date: t.value || null, sid: null}; render(); }
+});
+
+resetForm('vast');
+onExternalChange = render;   // wijzigingen uit de telefoon-demo direct tonen
+render();
+</script>
+</body>
+</html>
