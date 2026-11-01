@@ -27,6 +27,23 @@ export default function VideosScreen() {
 
   const visibleVideos = videos.filter((v) => filter === 'alles' || v.style === filter);
 
+  if (videos.length === 0) {
+    return (
+      <View style={styles.container}>
+        <ScreenHeader title="Video's" subtitle="Oefen op jouw moment, in jouw tempo" />
+        <View style={styles.soon}>
+          <View style={styles.soonIcon}>
+            <View style={[styles.playTriangle, styles.soonTriangle]} />
+          </View>
+          <Text style={styles.soonTitle}>Video's volgen binnenkort</Text>
+          <Text style={styles.soonText}>
+            Straks kun je hier thuis oefenen met video's van Yin, Flow en Gentle Yoga, op jouw moment en in jouw tempo.
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <ScreenHeader title="Video's" subtitle="Oefen op jouw moment, in jouw tempo" />
@@ -138,6 +155,43 @@ const styles = StyleSheet.create({
     borderTopColor: 'transparent',
     borderBottomColor: 'transparent',
     borderLeftColor: colors.ink,
+  },
+  soon: {
+    alignItems: 'center',
+    paddingHorizontal: 36,
+    paddingTop: 56,
+  },
+  soonIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.sand,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 18,
+  },
+  soonTriangle: {
+    borderTopWidth: 11,
+    borderBottomWidth: 11,
+    borderLeftWidth: 17,
+    marginLeft: 5,
+    borderLeftColor: colors.sand,
+  },
+  soonTitle: {
+    fontFamily: fonts.display,
+    fontSize: 19,
+    color: colors.ink,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  soonText: {
+    fontFamily: fonts.body,
+    fontSize: 13.5,
+    lineHeight: 20,
+    color: colors.descText,
+    textAlign: 'center',
   },
   info: {
     padding: 14,

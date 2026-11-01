@@ -119,12 +119,6 @@ const DESC = {
   flow:'Met Flow Yoga laat je je meevoeren met de muziek — elke in- en uitademing wordt een beweging, tot er een soort yogadans ontstaat. De les wordt een maand lang herhaald zodat je volledig zonder nadenken in de Flow komt.',
   gentle:'Een milde vorm van yoga waarin je met aandacht beweegt, diep ademhaalt en het lichaam souplesse geeft. De houdingen zijn voor iedereen goed te volgen en aan te passen waar nodig.',
 };
-const VIDEOS = [
-  {t:'Yin Yoga — diepe ontspanning', s:'yin', m:45, l:'alle niveaus'},
-  {t:'Flow Yoga — vloeiende beweging', s:'flow', m:50, l:'gevorderd'},
-  {t:'Gentle Yoga — zachte start', s:'gentle', m:30, l:'beginners'},
-  {t:'Yin Yoga — lage rug & heupen', s:'yin', m:40, l:'alle niveaus'},
-];
 
 /* Zelfde datumlogica als lib/dutchDate.ts */
 const OFFSET = {Maandag:0, Dinsdag:1, Woensdag:2, Donderdag:3, Vrijdag:4};
@@ -188,11 +182,9 @@ const SCREENS = [
   { id:'aangevraagd', group:'student', name:'Reservering aangevraagd', src:'components/Toast.tsx',
     html: () => phone(roosterScreen(), `<div class="toast">Reservering aangevraagd ✓</div>`) },
   { id:'videos', group:'student', name:"Video's", src:'app/(tabs)/videos.tsx',
-    flag:"De video's zijn nog voorbeelden; aantikken doet nog niets.",
+    flag:"Nog geen video's in de eerste versies; ze volgen later.",
     html: () => phone(screen(header({title:"Video's", subtitle:'Oefen op jouw moment, in jouw tempo'}) +
-      `<div class="filters">${['Alles','Yin','Flow','Gentle'].map((f,i)=>`<div class="chip ${i===0?'on':''}">${f}</div>`).join('')}</div>
-       <div style="padding:10px 0 24px">${VIDEOS.map(v=>`<div class="vcard"><div class="thumb ${v.s}"><div class="play"></div></div>
-       <div class="vinfo"><div class="nm">${v.t}</div><div class="sb2">${v.m} min · ${v.l}</div></div></div>`).join('')}</div>`, 'videos')) },
+      `<div class="soon"><div class="soon-ic"></div><h3>Video's volgen binnenkort</h3><p>Straks kun je hier thuis oefenen met video's van Yin, Flow en Gentle Yoga, op jouw moment en in jouw tempo.</p></div>`, 'videos')) },
   { id:'inloggen', group:'student', name:'Inloggen', src:'components/LoginScreen.tsx',
     flag:'Er is nog geen "wachtwoord vergeten".',
     html: () => phone(screen(header({title:'Inloggen', subtitle:'Log in om je strippenkaart te bekijken'}) +

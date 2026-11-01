@@ -255,3 +255,10 @@
 .mailprev .mh{font:600 11px var(--body); letter-spacing:1.5px; text-transform:uppercase; color:var(--mutedText); margin-bottom:8px;}
 .mailprev span{display:inline-block; width:78px; color:var(--mutedText);}
 .mailprev pre{white-space:pre-wrap; font:400 12.5px/18px var(--body); margin:10px 0 0; color:var(--ink);}
+
+/* Video's: nog leeg in de eerste versies */
+.soon{text-align:center; padding:56px 36px 24px;}
+.soon-ic{width:64px; height:64px; border-radius:50%; background:var(--card); border:1px solid var(--sand); margin:0 auto 18px; position:relative;}
+.soon-ic::after{content:''; position:absolute; left:26px; top:21px; border-style:solid; border-width:11px 0 11px 17px; border-color:transparent transparent transparent var(--sand);}
+.soon h3{font:600 19px var(--display); color:var(--ink); margin-bottom:8px;}
+.soon p{font:400 13.5px/20px var(--body); color:var(--descText);}

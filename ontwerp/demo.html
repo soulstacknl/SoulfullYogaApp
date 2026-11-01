@@ -195,6 +195,7 @@ function lessenTab(){
 /* ── Tab: Video's ───────────────────────────────────────────────────── */
 function videosTab(){
   const list = VIDEOS.filter(v => UI.filter === 'alles' || v.s === UI.filter);
+  if (!VIDEOS.length) return header({title:"Video's", subtitle:'Oefen op jouw moment, in jouw tempo'}) + `<div class="soon"><div class="soon-ic"></div><h3>Video's volgen binnenkort</h3><p>Straks kun je hier thuis oefenen met video's van Yin, Flow en Gentle Yoga, op jouw moment en in jouw tempo.</p></div>`;
   return header({title:"Video's", subtitle:'Oefen op jouw moment, in jouw tempo'}) +
     `<div class="filters">${[['alles','Alles'],['yin','Yin'],['flow','Flow'],['gentle','Gentle']].map(([k,l]) => `<div class="chip ${UI.filter===k?'on':''}" data-act="filter" data-v="${k}">${l}</div>`).join('')}</div>
      <div style="padding:10px 0 24px">${list.map(v => `<div class="vcard"><div class="thumb ${v.s}"><div class="play"></div></div><div class="vinfo"><div class="nm">${v.t}</div><div class="sb2">${v.m} min · ${v.l}</div></div></div>`).join('')}</div>`;

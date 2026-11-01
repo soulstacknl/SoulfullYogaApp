@@ -9,12 +9,8 @@ const DESC = {
   flow:'Met Flow Yoga laat je je meevoeren met de muziek — elke in- en uitademing wordt een beweging, tot er een soort yogadans ontstaat. De les wordt een maand lang herhaald zodat je volledig zonder nadenken in de Flow komt.',
   gentle:'Een milde vorm van yoga waarin je met aandacht beweegt, diep ademhaalt en het lichaam souplesse geeft. De houdingen zijn voor iedereen goed te volgen en aan te passen waar nodig.',
 };
-const VIDEOS = [
-  {t:'Yin Yoga — diepe ontspanning', s:'yin', m:45, l:'alle niveaus'},
-  {t:'Flow Yoga — vloeiende beweging', s:'flow', m:50, l:'gevorderd'},
-  {t:'Gentle Yoga — zachte start', s:'gentle', m:30, l:'beginners'},
-  {t:'Yin Yoga — lage rug & heupen', s:'yin', m:40, l:'alle niveaus'},
-];
+// Leeg in de eerste versies: het tabblad Video's toont "volgen binnenkort".
+const VIDEOS = [];
 // CONCEPT — vervang door de echte voorwaarden van Soulful Yoga. [..] = nog in te vullen.
 const TERMS_VERSION = 'Concept · versie 0.1';
 const TERMS = [
