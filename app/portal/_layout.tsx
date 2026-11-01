@@ -13,7 +13,8 @@ import { Btn, ErrorText, Field, Input } from '@/components/portal/ui';
 import { colors, fonts } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchedule } from '@/contexts/ScheduleContext';
-import { useCurrentUser, useUsers } from '@/contexts/UsersContext';
+import { useData } from '@/contexts/DataContext';
+import { useCurrentUser } from '@/contexts/UsersContext';
 
 const NAV = [
   { path: '/portal', icon: '🗓️', label: 'Rooster' },
@@ -26,6 +27,8 @@ const NAV = [
 // Admin portal for a laptop browser: shares the schedule and users with the app.
 export default function PortalLayout() {
   const user = useCurrentUser();
+  const { userId } = useAuth();
+  const { loading } = useData();
   const { logout } = useAuth();
   const schedule = useSchedule();
   const pathname = usePathname();
@@ -42,7 +45,14 @@ export default function PortalLayout() {
       </View>
     );
   }
-  if (user?.role !== 'admin') return <PortalLogin />;
+  if (userId && (loading || !user)) {
+    return (
+      <View style={styles.login}>
+        <Text style={[styles.loginSub, { color: colors.ivory }]}>Laden…</Text>
+      </View>
+    );
+  }
+  if (user?.role !== 'admin') return <PortalLogin signedInAs={user?.name ?? null} />;
 
   const toast = (message: string) => {
     setToastMessage(message);
@@ -97,20 +107,23 @@ export default function PortalLayout() {
               );
             })}
           </View>
-          {!narrow ? (
-            <View style={styles.sideFoot}>
-              <Text style={styles.footName}>{user.name}</Text>
-              <Text style={styles.footText}>{user.email}</Text>
-              <View style={styles.footRow}>
-                <Pressable onPress={() => router.navigate('/')}>
-                  <Text style={styles.footLink}>Naar de app</Text>
-                </Pressable>
-                <Pressable onPress={logout}>
-                  <Text style={styles.footLink}>Uitloggen</Text>
-                </Pressable>
-              </View>
+          {/* On a narrow screen only the links, below the menu. */}
+          <View style={[styles.sideFoot, narrow && styles.sideFootNarrow]}>
+            {!narrow ? (
+              <>
+                <Text style={styles.footName}>{user.name}</Text>
+                <Text style={styles.footText}>{user.email}</Text>
+              </>
+            ) : null}
+            <View style={[styles.footRow, narrow && { marginTop: 0 }]}>
+              <Pressable onPress={() => router.navigate('/')}>
+                <Text style={styles.footLink}>Naar de app</Text>
+              </Pressable>
+              <Pressable onPress={logout}>
+                <Text style={styles.footLink}>Uitloggen</Text>
+              </Pressable>
             </View>
-          ) : null}
+          </View>
         </View>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.main, narrow && { padding: 16 }]}>
           <Slot />
@@ -134,20 +147,29 @@ export default function PortalLayout() {
   );
 }
 
-function PortalLogin() {
-  const { findUser } = useUsers();
-  const { login } = useAuth();
+// `signedInAs`: a customer is signed in (e.g. in the app in this browser) — no access.
+function PortalLogin({ signedInAs }: { signedInAs: string | null }) {
+  const { login, logout } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const submit = () => {
-    const match = findUser(email.trim().toLowerCase(), password);
-    if (!match) return setError('Onjuist e-mailadres of wachtwoord.');
-    if (match.role !== 'admin') return setError('Alleen beheerders hebben toegang tot het portaal.');
-    setError(null);
-    login(match.email);
+  const submit = async () => {
+    if (!email.trim() || !password) return setError('Vul je e-mailadres en wachtwoord in.');
+    setError(await login(email.trim().toLowerCase(), password));
   };
+
+  if (signedInAs) {
+    return (
+      <View style={styles.login}>
+        <View style={styles.loginCard}>
+          <Text style={styles.loginTitle}>Geen toegang</Text>
+          <Text style={styles.loginSub}>Je bent ingelogd als {signedInAs}. Alleen beheerders hebben toegang tot het portaal.</Text>
+          <Btn label="Uitloggen" tone="primary" onPress={logout} />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.login}>
@@ -186,6 +208,7 @@ const styles = StyleSheet.create({
   navText: { fontFamily: fonts.bodyMedium, fontSize: 14, color: '#CFE0D4', flex: 1 },
   badge: { backgroundColor: colors.rani, color: '#fff', fontFamily: fonts.bodyBold, fontSize: 11, borderRadius: 10, minWidth: 20, paddingVertical: 2, paddingHorizontal: 6, textAlign: 'center', overflow: 'hidden' },
   sideFoot: { paddingTop: 16, paddingBottom: 20, paddingHorizontal: 20, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' },
+  sideFootNarrow: { paddingTop: 10, paddingBottom: 12 },
   footName: { fontFamily: fonts.bodySemiBold, fontSize: 13.5, color: '#fff' },
   footText: { fontFamily: fonts.body, fontSize: 12.5, color: '#BACDC0' },
   footRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },

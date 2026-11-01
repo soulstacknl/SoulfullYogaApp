@@ -9,7 +9,7 @@ import { styleMeta } from '@/constants/theme';
 import { useSchedule } from '@/contexts/ScheduleContext';
 import type { LessonStatus } from '@/contexts/ScheduleContext';
 import { useUsers } from '@/contexts/UsersContext';
-import type { MockUser } from '@/data/users';
+import type { AppUser } from '@/data/users';
 import { dateLabel, daysBetween, shortDate } from '@/lib/dutchDate';
 import { enrollmentOf, isExtra, ONGOING_WEEKS } from '@/lib/schedule';
 
@@ -28,7 +28,7 @@ export default function LessonDrawer({ sessionId, date }: { sessionId: string; d
   const portal = usePortal();
   const [pick, setPick] = useState('');
   const [weeks, setWeeks] = useState(String(ONGOING_WEEKS));
-  const [removing, setRemoving] = useState<MockUser | null>(null);
+  const [removing, setRemoving] = useState<AppUser | null>(null);
 
   const session = schedule.sessionById(sessionId);
   if (!session) return null;
@@ -42,7 +42,7 @@ export default function LessonDrawer({ sessionId, date }: { sessionId: string; d
   const lessonName = `${styleMeta[session.style].label} · ${dateLabel(date)} · ${session.time}`;
   const withoutApp = (schedule.data.roster[sessionId] ?? []).length;
 
-  const askRemove = (user: MockUser, status: LessonStatus) => {
+  const askRemove = (user: AppUser, status: LessonStatus) => {
     if (status.source === 'vast') return setRemoving(user);
     portal.confirm({
       title: `${user.name} afmelden?`,

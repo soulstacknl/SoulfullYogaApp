@@ -1,9 +1,11 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
+import { useData } from '@/contexts/DataContext';
 import { useUsers } from '@/contexts/UsersContext';
 import type { Session } from '@/data/schedule';
 import { daysBetween, isoOf, plusDays } from '@/lib/dutchDate';
+import { remote } from '@/lib/remote';
 import * as rules from '@/lib/schedule';
 import type {
   AttendanceEntry,
@@ -78,12 +80,12 @@ type ScheduleContextValue = {
 
 const ScheduleContext = createContext<ScheduleContextValue | null>(null);
 
-// Stands in for Supabase `classes`/`bookings`/`users` tables until that's
-// connected — shared so the student-facing screens and the Docentmodus admin
-// screens read and write the same per-date schedule.
+// The per-date schedule from Supabase (see DataContext). Checks run on the loaded
+// data first; writes go to the database, after which everything reloads — so the
+// student screens, the Docentmodus screens and the portal always agree.
 export function ScheduleProvider({ children }: { children: ReactNode }) {
-  const { users, students, applyStripDeltas } = useUsers();
-  const [data, setData] = useState<ScheduleData>(() => rules.initialScheduleData(students));
+  const { data, run } = useData();
+  const { users, students, userIdOf } = useUsers();
   const [now, setNow] = useState(() => new Date());
 
   // Keep "now" fresh so lessons move from upcoming to finished while the app is open.
@@ -92,56 +94,41 @@ export function ScheduleProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(timer);
   }, []);
 
-  const update = (updater: (prev: ScheduleData) => Partial<ScheduleData>) =>
-    setData((prev) => ({ ...prev, ...updater(prev) }));
+  // A person key is an e-mail for profiles we can see, otherwise already a user id.
+  const idOf = (key: string) => userIdOf(key) ?? key;
 
   const occupancy = (sessionId: string, date: string) => rules.occupancy(data, students, sessionId, date);
 
   const requestLesson = (sessionId: string, date: string, person: Person) => {
     if (rules.statusFor(data, person.email, sessionId, date) || occupancy(sessionId, date).available <= 0) return false;
-    update((prev) => ({
-      requests: [{ id: `r-${Date.now()}`, sessionId, date, email: person.email, name: person.name }, ...prev.requests],
-    }));
+    run(() => remote.requestLesson(sessionId, date, idOf(person.email)));
     return true;
   };
 
   const cancelLesson = (email: string, sessionId: string, date: string, by: 'klant' | 'beheer') => {
-    update((prev) =>
-      rules.isCancelled(prev, email, sessionId, date)
-        ? {}
-        : { cancels: [...prev.cancels, { sessionId, date, email, by }] }
-    );
+    if (!rules.isCancelled(data, email, sessionId, date)) run(() => remote.cancelLesson(sessionId, date, idOf(email), by));
   };
 
   // Coming back is only possible while the freed spot hasn't been taken.
   const undoCancel = (email: string, sessionId: string, date: string) => {
     if (occupancy(sessionId, date).available <= 0) return false;
-    update((prev) => ({
-      cancels: prev.cancels.filter((c) => !(c.email === email && c.sessionId === sessionId && c.date === date)),
-    }));
+    run(() => remote.undoCancel(sessionId, date, idOf(email)));
     return true;
   };
 
   // Approving turns the request into a booking; rejecting just drops it,
   // which releases the spot it was holding.
   const resolveRequest = (requestId: string, approved: boolean) => {
-    update((prev) => {
-      const request = prev.requests.find((r) => r.id === requestId);
-      if (!request) return {};
-      return {
-        requests: prev.requests.filter((r) => r.id !== requestId),
-        bookings: approved
-          ? [...prev.bookings, { sessionId: request.sessionId, date: request.date, email: request.email }]
-          : prev.bookings,
-      };
-    });
+    const request = data.requests.find((r) => r.id === requestId);
+    if (!request) return;
+    run(() =>
+      remote.resolveRequest(requestId, approved, { sessionId: request.sessionId, date: request.date, userId: idOf(request.email) })
+    );
   };
 
   const addStanding = (sessionId: string, date: string, email: string, weeks: number) => {
     if (occupancy(sessionId, date).available <= 0 || rules.enrollmentOf(data, email, sessionId, date)) return false;
-    update((prev) => ({
-      enrollments: [...prev.enrollments, { id: `e-${Date.now()}`, sessionId, email, start: date, weeks }],
-    }));
+    run(() => remote.addEnrollment(sessionId, date, idOf(email), weeks));
     return true;
   };
 
@@ -152,95 +139,66 @@ export function ScheduleProvider({ children }: { children: ReactNode }) {
     if (!enrollment) return 'afgemeld';
     const weekIndex = daysBetween(enrollment.start, date) / 7;
     if (weeks >= enrollment.weeks - weekIndex) {
-      update((prev) => ({
-        enrollments:
-          weekIndex === 0
-            ? prev.enrollments.filter((e) => e.id !== enrollment.id)
-            : prev.enrollments.map((e) => (e.id !== enrollment.id ? e : { ...e, weeks: weekIndex })),
-      }));
+      run(() => remote.setEnrollmentWeeks(enrollment.id, weekIndex));
       return 'gestopt';
     }
-    update((prev) => {
-      const extra = Array.from({ length: weeks }, (_, week) => plusDays(date, 7 * week))
-        .filter((d) => !rules.isCancelled(prev, email, sessionId, d))
-        .map((d) => ({ sessionId, date: d, email, by: 'beheer' as const }));
-      return { cancels: [...prev.cancels, ...extra] };
-    });
+    const dates = Array.from({ length: weeks }, (_, week) => plusDays(date, 7 * week)).filter(
+      (d) => !rules.isCancelled(data, email, sessionId, d)
+    );
+    run(() => remote.cancelLessons(sessionId, dates, idOf(email)));
     return 'afgemeld';
   };
 
-  const stopStanding = (enrollmentId: string) => update((prev) => rules.stopEnrollment(prev, enrollmentId, new Date()));
+  // Ends a standing lesson after the last lesson that started, and drops its later cancellations.
+  const stopStanding = (enrollmentId: string) => {
+    const result = rules.stopEnrollment(data, enrollmentId, new Date());
+    const enrollment = data.enrollments.find((e) => e.id === enrollmentId);
+    if (!enrollment || !result.enrollments) return;
+    const weeks = result.enrollments.find((e) => e.id === enrollmentId)?.weeks ?? 0;
+    run(async () => {
+      await remote.setEnrollmentWeeks(enrollmentId, weeks);
+      await remote.deleteFutureCancels(enrollment.sessionId, idOf(enrollment.email), isoOf(new Date()));
+    });
+  };
 
   const adjustCapacity = (sessionId: string, date: string, delta: number) => {
     const capacity = Math.max(0, occupancy(sessionId, date).capacity + delta);
-    update((prev) => ({ capOverride: { ...prev.capOverride, [rules.lessonKey(sessionId, date)]: capacity } }));
+    run(() => remote.setCapacity(sessionId, date, capacity));
   };
 
-  const updateSession = (sessionId: string, updater: (s: Session) => Session) =>
-    update((prev) => ({ sessions: prev.sessions.map((s) => (s.id !== sessionId ? s : updater(s))) }));
+  const adjustDefaultCapacity = (sessionId: string, delta: number) => {
+    const session = data.sessions.find((s) => s.id === sessionId);
+    if (session) run(() => remote.updateSession(sessionId, { capacity: Math.max(1, session.capacity + delta) }));
+  };
 
-  const adjustDefaultCapacity = (sessionId: string, delta: number) =>
-    updateSession(sessionId, (s) => ({ ...s, capacity: Math.max(1, s.capacity + delta) }));
+  const setSessionUntil = (sessionId: string, until: string | null) => run(() => remote.updateSession(sessionId, { until }));
 
-  const setSessionUntil = (sessionId: string, until: string | null) =>
-    updateSession(sessionId, (s) => ({ ...s, until }));
+  const addSession = (session: Omit<Session, 'id'>) => run(() => remote.addSession(session));
 
-  const addSession = (session: Omit<Session, 'id'>) =>
-    update((prev) => ({ sessions: [...prev.sessions, { ...session, id: `s-${Date.now()}` }] }));
+  // Bookings, requests and enrollments of a removed extra lesson go with it (cascade).
+  const removeExtraSession = (sessionId: string) => run(() => remote.removeSession(sessionId));
 
-  // Bookings and requests for a removed extra lesson go with it.
-  const removeExtraSession = (sessionId: string) =>
-    update((prev) => ({
-      sessions: prev.sessions.filter((s) => s.id !== sessionId),
-      bookings: prev.bookings.filter((b) => b.sessionId !== sessionId),
-      requests: prev.requests.filter((r) => r.sessionId !== sessionId),
-      cancels: prev.cancels.filter((c) => c.sessionId !== sessionId),
-      enrollments: prev.enrollments.filter((e) => e.sessionId !== sessionId),
-    }));
+  const addClosure = (closure: Omit<Closure, 'id'>) => run(() => remote.addClosure(closure));
 
-  const addClosure = (closure: Omit<Closure, 'id'>) =>
-    update((prev) => ({ closures: [...prev.closures, { ...closure, id: `c-${Date.now()}` }] }));
+  const removeClosure = (closureId: string) => run(() => remote.removeClosure(closureId));
 
-  const removeClosure = (closureId: string) =>
-    update((prev) => ({ closures: prev.closures.filter((c) => c.id !== closureId) }));
+  // Attendance ids are e-mails for app customers in the app, user ids in the database.
+  const attendeeDbId = (attendeeId: string) => userIdOf(attendeeId) ?? attendeeId;
 
   const setPresent = (sessionId: string, date: string, attendeeId: string, present: boolean) =>
-    update((prev) => {
-      const key = rules.lessonKey(sessionId, date);
-      return { checkins: { ...prev.checkins, [key]: { ...prev.checkins[key], [attendeeId]: present } } };
-    });
+    run(() => remote.setPresent(sessionId, date, attendeeDbId(attendeeId), present));
 
   const addAttendee = (sessionId: string, date: string, attendee: Attendee) =>
-    update((prev) => {
-      const key = rules.lessonKey(sessionId, date);
-      return {
-        extras: { ...prev.extras, [key]: [...(prev.extras[key] ?? []).filter((x) => x.id !== attendee.id), attendee] },
-        checkins: { ...prev.checkins, [key]: { ...prev.checkins[key], [attendee.id]: true } },
-      };
-    });
+    run(() => remote.addAttendee(sessionId, date, attendeeDbId(attendee.id), attendee));
 
   const removeAttendee = (sessionId: string, date: string, attendeeId: string) =>
-    update((prev) => {
-      const key = rules.lessonKey(sessionId, date);
-      return { extras: { ...prev.extras, [key]: (prev.extras[key] ?? []).filter((x) => x.id !== attendeeId) } };
-    });
+    run(() => remote.removeAttendee(sessionId, date, attendeeDbId(attendeeId)));
 
-  const applyRosterDeltas = (roster: ScheduleData['roster'], sessionId: string, deltas: Record<string, number>) => ({
-    ...roster,
-    [sessionId]: (roster[sessionId] ?? []).map((e) =>
-      deltas[e.id] === undefined ? e : { ...e, strips: Math.max(0, e.strips + deltas[e.id]) }
-    ),
-  });
-
+  // The database deducts the strips in the same transaction (confirm_attendance).
   const confirmAttendance = (sessionId: string, date: string) => {
-    const at = new Date().toLocaleString('nl-NL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
     const stripsOf = (email: string) => users.find((u) => u.email === email)?.strippen ?? null;
-    const { confirmation, userDeltas, rosterDeltas } = rules.settleAttendance(data, students, sessionId, date, stripsOf, at);
-    update((prev) => ({
-      confirmed: { ...prev.confirmed, [rules.lessonKey(sessionId, date)]: confirmation },
-      roster: applyRosterDeltas(prev.roster, sessionId, rosterDeltas),
-    }));
-    applyStripDeltas(userDeltas);
+    const { confirmation } = rules.settleAttendance(data, students, sessionId, date, stripsOf, '');
+    run(() => remote.confirmAttendance(sessionId, date, confirmation.people, userIdOf));
     return {
       present: confirmation.people.filter((p) => p.present).length,
       strips: confirmation.people.filter((p) => p.charge === 'strip').length,
@@ -248,23 +206,7 @@ export function ScheduleProvider({ children }: { children: ReactNode }) {
   };
 
   // Refunds the deducted strips and makes the list editable again.
-  const undoConfirmation = (sessionId: string, date: string) => {
-    const confirmation = rules.confirmationOf(data, sessionId, date);
-    if (!confirmation) return;
-    const userRefunds: Record<string, number> = {};
-    const rosterRefunds: Record<string, number> = {};
-    for (const p of confirmation.people) {
-      if (p.charge !== 'strip') continue;
-      if (p.usesApp) userRefunds[p.id] = 1;
-      else rosterRefunds[p.id] = 1;
-    }
-    update((prev) => {
-      const confirmed = { ...prev.confirmed };
-      delete confirmed[rules.lessonKey(sessionId, date)];
-      return { confirmed, roster: applyRosterDeltas(prev.roster, sessionId, rosterRefunds) };
-    });
-    applyStripDeltas(userRefunds);
-  };
+  const undoConfirmation = (sessionId: string, date: string) => run(() => remote.undoConfirmation(sessionId, date));
 
   return (
     <ScheduleContext.Provider

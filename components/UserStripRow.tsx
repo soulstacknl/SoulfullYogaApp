@@ -1,10 +1,10 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, fonts } from '@/constants/theme';
-import type { MockUser } from '@/data/users';
+import type { AppUser } from '@/data/users';
 
 type UserStripRowProps = {
-  user: MockUser;
+  user: AppUser;
   detail?: string;
   onActivateCard?: () => void;
   onAdjust: (delta: number) => void;

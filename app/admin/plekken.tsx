@@ -11,11 +11,11 @@ import { colors, fonts, styleMeta } from '@/constants/theme';
 import { useSchedule } from '@/contexts/ScheduleContext';
 import type { LessonStatus } from '@/contexts/ScheduleContext';
 import { useUsers } from '@/contexts/UsersContext';
-import type { MockUser } from '@/data/users';
+import type { AppUser } from '@/data/users';
 import { dateLabel, daysBetween, shortDate } from '@/lib/dutchDate';
 import { enrollmentOf, ONGOING_WEEKS, startTimeOf } from '@/lib/schedule';
 
-type PendingAction = { kind: 'add' | 'remove'; user: MockUser };
+type PendingAction = { kind: 'add' | 'remove'; user: AppUser };
 
 // Who takes part in one lesson date: standing customers, one-off bookings and
 // requests. New standing customers are planned from this date onward.
@@ -54,7 +54,7 @@ export default function DeelnemersScreen() {
     return <Tag label={label} tone="teal" />;
   };
 
-  const askRemove = (user: MockUser, status: LessonStatus) => {
+  const askRemove = (user: AppUser, status: LessonStatus) => {
     if (status.source === 'vast') {
       setPending({ kind: 'remove', user });
       return;

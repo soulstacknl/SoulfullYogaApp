@@ -1,11 +1,15 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import ConfirmDialog from '@/components/ConfirmDialog';
+import type { ConfirmRequest } from '@/components/ConfirmDialog';
 import LoginScreen from '@/components/LoginScreen';
 import ScreenHeader from '@/components/ScreenHeader';
 import { colors, fonts } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
+import { useData } from '@/contexts/DataContext';
 import { useSchedule } from '@/contexts/ScheduleContext';
 import { useCurrentUser, useUsers } from '@/contexts/UsersContext';
 
@@ -16,15 +20,25 @@ const prices = [
 ];
 
 export default function ProfielScreen() {
-  const { login, logout } = useAuth();
+  const { logout, userId } = useAuth();
+  const { loading } = useData();
   const user = useCurrentUser();
-  const { students } = useUsers();
+  const { students, deleteOwnAccount } = useUsers();
+  const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
   const { data, unconfirmedLessons } = useSchedule();
   const { requests } = data;
   const toConfirm = user?.role === 'admin' ? unconfirmedLessons().length : 0;
 
+  if (userId && (loading || !user)) {
+    return (
+      <View style={styles.container}>
+        <ScreenHeader eyebrow="Jouw account" title="Profiel" subtitle="Laden…" />
+      </View>
+    );
+  }
+
   if (!user) {
-    return <LoginScreen onLogin={login} />;
+    return <LoginScreen />;
   }
 
   const isAdmin = user.role === 'admin';
@@ -148,10 +162,31 @@ export default function ProfielScreen() {
           <Text style={styles.contactLine}>06 12 68 08 52 · info@soulfulyoga.nl</Text>
         </View>
 
+        <Pressable style={styles.logoutBtn} onPress={() => router.push('/wachtwoord-instellen')}>
+          <Text style={styles.logoutText}>Wachtwoord wijzigen</Text>
+        </Pressable>
         <Pressable style={styles.logoutBtn} onPress={logout}>
           <Text style={styles.logoutText}>Uitloggen</Text>
         </Pressable>
+        {!isAdmin ? (
+          <Pressable
+            style={styles.logoutBtn}
+            onPress={() =>
+              setConfirm({
+                title: 'Account verwijderen?',
+                message:
+                  'Je account en al je gegevens worden definitief verwijderd: je vaste lessen, aanvragen en resterende strippen. Dit kan niet ongedaan worden gemaakt.',
+                confirmLabel: 'Definitief verwijderen',
+                onConfirm: async () => {
+                  if (await deleteOwnAccount()) await logout();
+                },
+              })
+            }>
+            <Text style={[styles.logoutText, styles.deleteText]}>Account verwijderen</Text>
+          </Pressable>
+        ) : null}
       </ScrollView>
+      <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} />
     </View>
   );
 }
@@ -274,13 +309,16 @@ const styles = StyleSheet.create({
   },
   logoutBtn: {
     alignItems: 'center',
-    marginTop: 22,
+    marginTop: 16,
   },
   logoutText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 12.5,
     color: colors.mutedText,
     textDecorationLine: 'underline',
+  },
+  deleteText: {
+    color: colors.rani,
   },
   adminActions: {
     marginHorizontal: 20,

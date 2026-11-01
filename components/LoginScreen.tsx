@@ -5,19 +5,17 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import ScreenHeader from '@/components/ScreenHeader';
 import TextField from '@/components/TextField';
 import { colors, fonts } from '@/constants/theme';
-import { useUsers } from '@/contexts/UsersContext';
+import { useAuth } from '@/contexts/AuthContext';
 
-type LoginScreenProps = {
-  onLogin: (email: string) => void;
-};
-
-export default function LoginScreen({ onLogin }: LoginScreenProps) {
-  const { findUser } = useUsers();
+// Signs in with Supabase; the profile tab switches over once the session is there.
+export default function LoginScreen() {
+  const { login } = useAuth();
+  const [busy, setBusy] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const normalizedEmail = email.trim().toLowerCase();
 
     if (!normalizedEmail || !password) {
@@ -25,15 +23,10 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
       return;
     }
 
-    const match = findUser(normalizedEmail, password);
-
-    if (!match) {
-      setError('Onjuist e-mailadres of wachtwoord.');
-      return;
-    }
-
-    setError(null);
-    onLogin(match.email);
+    setBusy(true);
+    const problem = await login(normalizedEmail, password);
+    setBusy(false);
+    setError(problem);
   };
 
   return (
@@ -54,13 +47,18 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
           value={password}
           onChangeText={setPassword}
           secureTextEntry
+          onSubmitEditing={handleSubmit}
         />
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <Pressable style={styles.loginBtn} onPress={handleSubmit}>
-          <Text style={styles.loginBtnText}>Inloggen</Text>
+        <Pressable style={[styles.loginBtn, busy && { opacity: 0.6 }]} onPress={handleSubmit} disabled={busy}>
+          <Text style={styles.loginBtnText}>{busy ? 'Bezig met inloggen…' : 'Inloggen'}</Text>
         </Pressable>
+
+        <Text style={styles.forgot} onPress={() => router.push({ pathname: '/wachtwoord-vergeten', params: { email: email.trim() } })}>
+          Wachtwoord vergeten?
+        </Text>
 
         <Text style={styles.askAccount}>
           Nog geen account?{' '}
@@ -104,6 +102,13 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: 14.5,
     color: '#fff',
+  },
+  forgot: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: colors.mutedText,
+    textAlign: 'center',
+    marginTop: 14,
   },
   askAccount: {
     fontFamily: fonts.body,

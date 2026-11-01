@@ -1,10 +1,7 @@
 // Pure scheduling rules — everything is derived per lesson date (session id +
 // ISO date) from enrollments, bookings, requests, cancellations and closures.
 // Kept free of React so the same rules can move to Supabase queries later.
-import { seededRandom, standingSeeds } from '@/data/customers';
-import { initialRoster } from '@/data/roster';
 import type { RosterEntry } from '@/data/roster';
-import { initialSessions } from '@/data/schedule';
 import type { Session } from '@/data/schedule';
 import { daysBetween, isoOf, plusDays, toDate, weekdayOf, WEEKDAYS } from '@/lib/dutchDate';
 
@@ -103,10 +100,21 @@ export function attendees<P extends Person>(data: ScheduleData, people: P[], ses
     .filter((a): a is { person: P; status: LessonStatus } => a.status !== null && !a.status.cancelled);
 }
 
-export function occupancy(data: ScheduleData, people: Person[], sessionId: string, date: string): Occupancy {
+// Everyone taking part on this date by key (pending requests hold a spot too) —
+// also people whose profile the current user can't see, such as other customers.
+export function participantKeys(data: ScheduleData, sessionId: string, date: string): Set<string> {
+  const keys = new Set<string>();
+  data.enrollments.filter((e) => e.sessionId === sessionId && covers(e, date)).forEach((e) => keys.add(e.email));
+  data.bookings.filter((b) => b.sessionId === sessionId && b.date === date).forEach((b) => keys.add(b.email));
+  data.requests.filter((r) => r.sessionId === sessionId && r.date === date).forEach((r) => keys.add(r.email));
+  data.cancels.filter((c) => c.sessionId === sessionId && c.date === date).forEach((c) => keys.delete(c.email));
+  return keys;
+}
+
+export function occupancy(data: ScheduleData, _people: Person[], sessionId: string, date: string): Occupancy {
   const session = data.sessions.find((s) => s.id === sessionId);
   const capacity = data.capOverride[lessonKey(sessionId, date)] ?? session?.capacity ?? 0;
-  const booked = (data.roster[sessionId] ?? []).length + attendees(data, people, sessionId, date).length;
+  const booked = (data.roster[sessionId] ?? []).length + participantKeys(data, sessionId, date).size;
   return { capacity, booked, available: Math.max(0, capacity - booked) };
 }
 
@@ -303,95 +311,17 @@ export const openChargeCount = (data: ScheduleData, email: string) =>
   Object.values(data.confirmed).filter((c) => c.people.some((p) => p.id === email && p.present && p.charge === 'open'))
     .length;
 
-/* ── Seed data ─────────────────────────────────────────────────────────── */
-
-// The last `count` dates this session finished, oldest first.
-function recentPast(session: Session, count: number, now: Date): string[] {
-  const dates: string[] = [];
-  const day = new Date(now);
-  day.setHours(0, 0, 0, 0);
-  while (dates.length < count) {
-    const iso = isoOf(day);
-    if (WEEKDAYS[day.getDay()] === session.day && endOf(session, iso) <= now) dates.unshift(iso);
-    day.setDate(day.getDate() - 1);
-  }
-  return dates;
-}
-
-// A standing customer who has been attending for a few weeks (see seedHistory for those lessons).
-function seedStanding(
-  data: ScheduleData,
-  email: string,
-  sessionId: string,
-  pastWeeks: number,
-  cancelledWeeks: number[],
-  weeks: number,
-  now: Date
-) {
-  const session = data.sessions.find((s) => s.id === sessionId)!;
-  const dates = recentPast(session, pastWeeks, now);
-  data.enrollments.push({ id: `e-${sessionId}-${email}`, sessionId, email, start: dates[0], weeks });
-  dates.forEach((date, i) => {
-    if (cancelledWeeks.includes(i)) data.cancels.push({ sessionId, date, email, by: 'klant' });
-  });
-}
-
-// Some cancellations in the coming six weeks (~10% of the lessons) and a few open requests.
-function seedUpcoming(data: ScheduleData, people: Person[], now: Date) {
-  const rnd = seededRandom(1031);
-  const today = isoOf(now);
-  for (const e of data.enrollments) {
-    for (let week = 0; week < e.weeks; week++) {
-      const date = plusDays(e.start, 7 * week);
-      if (date <= today) continue;
-      if (daysBetween(today, date) > 42) break;
-      if (rnd() < 0.1) data.cancels.push({ sessionId: e.sessionId, date, email: e.email, by: 'klant' });
-    }
-  }
-  for (let i = 0; i < 5; i++) {
-    const person = people[Math.floor(rnd() * people.length)];
-    const session = data.sessions[Math.floor(rnd() * data.sessions.length)];
-    const date = nextOccurrence(session, plusDays(today, 2 + Math.floor(rnd() * 14)));
-    if (person && date && !data.enrollments.some((e) => e.email === person.email && e.sessionId === session.id)) {
-      data.requests.push({ id: `r-seed-${i}`, sessionId: session.id, date, email: person.email, name: person.name });
-    }
-  }
-}
-
-// The last four weeks count as confirmed according to the schedule; the strip
-// balances in data/users.ts and data/roster.ts already reflect them.
-function seedHistory(data: ScheduleData, people: Person[], now: Date) {
-  const today = isoOf(now);
-  for (let i = 28; i >= 0; i--) {
-    const date = plusDays(today, -i);
-    for (const session of sessionsOn(data, date)) {
-      if (endOf(session, date) > now || closureOf(data, session.id, date)) continue;
-      data.confirmed[lessonKey(session.id, date)] = {
-        at: 'voorbeelddata',
-        people: attendanceList(data, people, session.id, date).map((p) => ({ ...p, charge: 'strip' })),
-      };
-    }
-  }
-}
-
-export function initialScheduleData(people: Person[], now = new Date()): ScheduleData {
-  let year = now.getFullYear();
-  if (new Date(year, 11, 21) < now) year++;
-  const data: ScheduleData = {
-    sessions: initialSessions.map((s) => ({ ...s })),
-    roster: Object.fromEntries(Object.entries(initialRoster).map(([id, list]) => [id, list.map((e) => ({ ...e }))])),
-    enrollments: [],
-    bookings: [],
-    requests: [],
-    cancels: [],
-    closures: [{ id: 'c-kerst', from: `${year}-12-21`, to: `${year + 1}-01-03`, sessionId: null, reason: 'Kerstvakantie' }],
-    capOverride: {},
-    checkins: {},
-    extras: {},
-    confirmed: {},
-  };
-  for (const s of standingSeeds) seedStanding(data, s.email, s.sessionId, s.pastWeeks, s.cancelledWeeks, s.weeks, now);
-  seedUpcoming(data, people, now);
-  seedHistory(data, people, now);
-  return data;
-}
+// Nothing loaded yet (before the first fetch from Supabase).
+export const emptyScheduleData = (): ScheduleData => ({
+  sessions: [],
+  roster: {},
+  enrollments: [],
+  bookings: [],
+  requests: [],
+  cancels: [],
+  closures: [],
+  capOverride: {},
+  checkins: {},
+  extras: {},
+  confirmed: {},
+});

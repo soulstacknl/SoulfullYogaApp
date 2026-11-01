@@ -1,11 +1,9 @@
-// Mock account data — stands in for Supabase auth + the `users` table until that's connected.
-import { demoCustomers } from '@/data/customers';
-
+// A signed-in person: the auth account plus their profile row in Supabase.
 export type UserRole = 'student' | 'admin';
 
-export type MockUser = {
+export type AppUser = {
+  id: string; // Supabase auth user id
   email: string;
-  password: string;
   name: string;
   phone: string;
   strippen: number | null; // null = no strippenkaart purchased yet
@@ -13,47 +11,3 @@ export type MockUser = {
   role: UserRole;
   termsAcceptedAt: string | null; // DD-MM-YYYY when the customer agreed to the algemene voorwaarden
 };
-
-export const mockUsers: MockUser[] = [
-  {
-    email: 'marieke@soulfulyoga.nl',
-    password: 'yoga123',
-    name: 'Marieke Jansen',
-    phone: '06 12345678',
-    strippen: 7,
-    total: 10,
-    role: 'student',
-    termsAcceptedAt: null,
-  },
-  {
-    email: 'daan@soulfulyoga.nl',
-    password: 'yoga123',
-    name: 'Daan de Vries',
-    phone: '06 23456789',
-    strippen: null,
-    total: 10,
-    role: 'student',
-    termsAcceptedAt: null,
-  },
-  {
-    email: 'beheer@soulfulyoga.nl',
-    password: 'admin123',
-    name: 'Studio Beheer',
-    phone: '06 12680852',
-    strippen: null,
-    total: 10,
-    role: 'admin',
-    termsAcceptedAt: null,
-  },
-  {
-    email: 'marjolijn_n@hotmail.com',
-    password: '0000',
-    name: 'Marjolijn N.',
-    phone: '06 34567890',
-    strippen: 5,
-    total: 10,
-    role: 'student',
-    termsAcceptedAt: null,
-  },
-  ...demoCustomers,
-];

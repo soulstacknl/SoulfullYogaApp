@@ -3,12 +3,12 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { weekLabel, weeklySessions } from '@/components/portal/KlantDrawer';
 import { usePortal } from '@/components/portal/PortalContext';
-import { Btn, Card, Empty, Input, Meta, Meter, PageHeader, Pill, s, Select, StyleDot } from '@/components/portal/ui';
+import { Btn, Card, Empty, ErrorText, Field, Input, Meta, Meter, Note, PageHeader, Pill, portalStyles, s, Select, StyleDot } from '@/components/portal/ui';
 import Stepper from '@/components/Stepper';
 import { colors, fonts, styleMeta } from '@/constants/theme';
 import { useSchedule } from '@/contexts/ScheduleContext';
 import { CARD_SIZE, useUsers } from '@/contexts/UsersContext';
-import type { MockUser } from '@/data/users';
+import type { AppUser } from '@/data/users';
 import { dateLabel, plusDays } from '@/lib/dutchDate';
 import { activeOn, openChargeCount, startTimeOf } from '@/lib/schedule';
 
@@ -24,7 +24,8 @@ const FILTER_OPTIONS: Record<'strippen' | 'voorwaarden' | 'open', [string, strin
 // All customers with filters per column (combined) plus a name/e-mail search.
 export default function PortalKlanten() {
   const schedule = useSchedule();
-  const { students, adjustStrip, activateCard } = useUsers();
+  const { students, adjustStrip, activateCard, createCustomer } = useUsers();
+  const [adding, setAdding] = useState(false);
   const portal = usePortal();
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const [search, setSearch] = useState('');
@@ -33,7 +34,7 @@ export default function PortalKlanten() {
   const standingIds = (email: string) => schedule.activeEnrollmentsOf(email).map((e) => e.sessionId);
   const weekly = weeklySessions(data.sessions, today);
 
-  const matches = (u: MockUser) => {
+  const matches = (u: AppUser) => {
     const ids = standingIds(u.email);
     const st = u.strippen;
     const open = openChargeCount(data, u.email);
@@ -53,7 +54,7 @@ export default function PortalKlanten() {
   const active = Object.values(filters).some(Boolean) || search.trim() !== '';
   const setFilter = (key: keyof Filters) => (value: string) => setFilters((f) => ({ ...f, [key]: value }));
 
-  const askCard = (u: MockUser) =>
+  const askCard = (u: AppUser) =>
     portal.confirm({
       title: 'Nieuwe strippenkaart?',
       message: `${u.name} krijgt een nieuwe 10-strippenkaart: ${u.strippen ?? 0} → ${(u.strippen ?? 0) + CARD_SIZE} strippen.`,
@@ -95,8 +96,20 @@ export default function PortalKlanten() {
     <View>
       <PageHeader
         title="Klanten"
-        subtitle={`${active ? `${list.length} van ${students.length}` : students.length} klanten met de app · klik op een klant voor de lessen`}
-      />
+        subtitle={`${active ? `${list.length} van ${students.length}` : students.length} klanten met de app · klik op een klant voor de lessen`}>
+        {!adding ? <Btn label="＋ Klant toevoegen" tone="ink" onPress={() => setAdding(true)} /> : null}
+      </PageHeader>
+      {adding ? (
+        <NewCustomerCard
+          onClose={() => setAdding(false)}
+          onCreate={async (email, name, phone) => {
+            if (!(await createCustomer(email, name, phone))) return false;
+            setAdding(false);
+            portal.toast(`${name} toegevoegd ✓`);
+            return true;
+          }}
+        />
+      ) : null}
       <View style={[s.row, { marginBottom: 14 }]}>
         <Input type="search" value={search} onChange={setSearch} placeholder="Zoek op naam of e-mail…" style={{ width: 220 }} />
         <Select
@@ -171,6 +184,51 @@ export default function PortalKlanten() {
         )}
       </Card>
     </View>
+  );
+}
+
+// Adds a customer account (e.g. after an account request). The customer then sets
+// a password via "Wachtwoord vergeten" in the app.
+function NewCustomerCard({ onClose, onCreate }: { onClose: () => void; onCreate: (email: string, name: string, phone: string) => Promise<boolean> }) {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  const save = async () => {
+    if (!name.trim()) return setError('Vul een naam in.');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return setError('Vul een geldig e-mailadres in.');
+    setError(null);
+    await onCreate(email.trim().toLowerCase(), name.trim(), phone.trim());
+  };
+
+  return (
+    <Card title="Klant toevoegen" style={{ marginBottom: 14 }}>
+      <View style={portalStyles.form}>
+        <Field label="Naam">
+          <Input value={name} onChange={setName} placeholder="Voor- en achternaam" />
+        </Field>
+        <Field label="E-mailadres">
+          <Input type="email" value={email} onChange={setEmail} placeholder="naam@voorbeeld.nl" />
+        </Field>
+        <Field label="Telefoon (optioneel)">
+          <Input value={phone} onChange={setPhone} placeholder="06 12345678" onEnter={save} />
+        </Field>
+        {error ? (
+          <View style={portalStyles.full}>
+            <ErrorText text={error} />
+          </View>
+        ) : null}
+        <View style={[portalStyles.full, s.row]}>
+          <Btn label="Toevoegen" tone="primary" onPress={save} />
+          <Btn label="Annuleren" onPress={onClose} />
+        </View>
+        <Note
+          style={portalStyles.full}
+          text={'De klant kiest zelf een wachtwoord: in de app via "Wachtwoord vergeten" met dit e-mailadres.'}
+        />
+      </View>
+    </Card>
   );
 }
 
