@@ -1,0 +1,48 @@
+# Livegang Soulful Yoga app
+
+Checklist om de app in de App Store en Google Play te krijgen. ✅ = klaar.
+
+## 1. Achterkant (Supabase)
+- ✅ Database, beveiliging en demodata (`supabase/migrations`, `supabase/seed.sql`)
+- ✅ App en beheerportaal lezen en schrijven via Supabase
+- ⬜ **Authentication → URL Configuration → Redirect URLs:** `http://localhost:8081/**`, `exp://**`, `soulfulyogaapp://**`
+- ⬜ **Eigen mailserver (SMTP)** onder Project Settings → Authentication (bijv. Resend). De ingebouwde mail stuurt alleen naar Supabase-teamleden.
+- ⬜ **Zelf aanmelden uitzetten:** Authentication → Sign In / Providers → "Allow new users to sign up" uit
+- ⬜ Demo-wachtwoorden (o.a. `admin123`) vervangen vóór er echte klanten in komen
+
+## 2. Accounts in de app
+- ✅ Wachtwoord vergeten / nieuw wachtwoord, wachtwoord wijzigen
+- ✅ Account verwijderen in het profiel (eis van Apple)
+- ✅ Beheerder voegt klanten toe in het portaal
+
+## 3. App klaarmaken
+- ✅ Naam "Soulful Yoga", bundle-ID `nl.soulfulyoga.app` (iOS en Android)
+- ✅ Icoon, Android-icoon en splashscreen in bosgroen met het blaadjeslogo
+- ✅ `eas.json` met profielen `preview` (testversie) en `production` (winkels)
+- ⬜ Expo-account aanmaken op expo.dev, daarna in de projectmap:
+  ```sh
+  npx eas-cli login
+  npx eas-cli init            # koppelt het project aan je Expo-account
+  ```
+- ⬜ Supabase-gegevens in EAS zetten (`.env.local` gaat niet mee naar de cloud):
+  ```sh
+  npx eas-cli env:create --name EXPO_PUBLIC_SUPABASE_URL --value https://wqvtjchmoapkiypaqcee.supabase.co --environment preview --environment production --visibility plaintext
+  npx eas-cli env:create --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value <anon key uit .env.local> --environment preview --environment production --visibility plaintext
+  ```
+- ⬜ Testversie bouwen:
+  ```sh
+  npx eas-cli build --profile preview --platform android   # APK om direct te installeren
+  npx eas-cli build --profile production --platform ios    # daarna naar TestFlight
+  ```
+
+## 4. Winkelaccounts en documenten
+- ⬜ Apple Developer Program (bedrijfsaccount vraagt KvK en D-U-N-S-nummer)
+- ⬜ Google Play Console
+- ⬜ Privacyverklaring op een webadres (AVG)
+- ⬜ Definitieve algemene voorwaarden (nu "conceptversie" in `data/terms.ts`)
+- ⬜ Testaccount voor de beoordelaars van Apple en Google
+
+## 5. Indienen
+- ⬜ Testen met een paar echte klanten (TestFlight / interne test)
+- ⬜ Winkelpagina's: screenshots, beschrijving, categorie (Gezondheid en fitness), privacy-gegevens
+- ⬜ `npx eas-cli submit --platform ios` en `--platform android`
