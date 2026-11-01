@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Soulful Yoga",
-    "slug": "soulful-yoga-app",
+    "slug": "soulfulyoga",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -45,6 +45,12 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "806d5c4f-a20c-418c-a4e9-83e26472f867"
+      }
+    },
+    "owner": "soulfulyogaberghem"
   }
 }

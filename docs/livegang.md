@@ -19,16 +19,9 @@ Checklist om de app in de App Store en Google Play te krijgen. ✅ = klaar.
 - ✅ Naam "Soulful Yoga", bundle-ID `nl.soulfulyoga.app` (iOS en Android)
 - ✅ Icoon, Android-icoon en splashscreen in bosgroen met het blaadjeslogo
 - ✅ `eas.json` met profielen `preview` (testversie) en `production` (winkels)
-- ⬜ Expo-account aanmaken op expo.dev, daarna in de projectmap:
-  ```sh
-  npx eas-cli login
-  npx eas-cli init            # koppelt het project aan je Expo-account
-  ```
-- ⬜ Supabase-gegevens in EAS zetten (`.env.local` gaat niet mee naar de cloud):
-  ```sh
-  npx eas-cli env:create --name EXPO_PUBLIC_SUPABASE_URL --value https://wqvtjchmoapkiypaqcee.supabase.co --environment preview --environment production --visibility plaintext
-  npx eas-cli env:create --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value <anon key uit .env.local> --environment preview --environment production --visibility plaintext
-  ```
+- ✅ Expo-account `soulfulyogaberghem`, project `soulfulyoga` (gekoppeld via `eas init`)
+- ✅ Supabase-gegevens als EAS-omgevingsvariabelen (development, preview, production)
+- ✅ Android-keystore in de cloud aangemaakt (beheerd door Expo)
 - ⬜ Testversie bouwen:
   ```sh
   npx eas-cli build --profile preview --platform android   # APK om direct te installeren
