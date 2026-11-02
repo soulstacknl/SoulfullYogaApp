@@ -13,7 +13,7 @@ import { useSchedule } from '@/contexts/ScheduleContext';
 import type { Lesson } from '@/contexts/ScheduleContext';
 import { useCurrentUser } from '@/contexts/UsersContext';
 import { capitalize, isoOf, monthStart, MONTHS, shortDate, toDate } from '@/lib/dutchDate';
-import { currentStandingSession, MONTHS_AHEAD, startTimeOf } from '@/lib/schedule';
+import { cancelNotice, currentStandingSession, LATE_CANCEL_HOURS, MONTHS_AHEAD, startTimeOf } from '@/lib/schedule';
 
 type Segment = 'komend' | 'afgenomen';
 
@@ -56,16 +56,19 @@ export default function MijnLessenScreen() {
   const lessonName = (l: Lesson) =>
     `${styleMeta[l.session.style].label} ${shortDate(l.date)} ${startTimeOf(l.session)}`;
 
-  const askCancel = (l: Lesson) =>
+  const askCancel = (l: Lesson) => {
+    const late = schedule.isLateCancel(l.session, l.date);
+    const paysStrip = late && (user.strippen ?? 0) > 0;
     setConfirm({
       title: 'Afmelden voor deze les?',
-      message: `${lessonName(l)}. Deze les telt dan niet mee en er gaat geen strip af.`,
-      confirmLabel: 'Afmelden',
+      message: `${lessonName(l)}. ${cancelNotice(late, paysStrip)}`,
+      confirmLabel: paysStrip ? 'Afmelden (−1 strip)' : 'Afmelden',
       onConfirm: () => {
         schedule.cancelLesson(user.email, l.session.id, l.date, 'klant');
-        toast.show('Afgemeld — telt niet mee');
+        toast.show(paysStrip ? 'Afgemeld — 1 strip afgeschreven' : 'Afgemeld — telt niet mee');
       },
     });
+  };
 
   const renderCard = (l: Lesson, isPastLesson: boolean) => {
     const key = `${l.session.id}-${l.date}`;
@@ -80,7 +83,9 @@ export default function MijnLessenScreen() {
       // Strips only go once the teacher has confirmed the attendance.
       const charge = schedule.chargeFor(user.email, l.session.id, l.date);
       tag = l.status.cancelled
-        ? { label: 'Afgemeld · telde niet mee', tone: 'muted' }
+        ? schedule.cancellationOf(user.email, l.session.id, l.date)?.charged
+          ? { label: 'Afgemeld binnen 24 uur · −1 strip', tone: 'rani' }
+          : { label: 'Afgemeld · telde niet mee', tone: 'muted' }
         : charge === undefined
           ? { label: 'Wacht op bevestiging docent', tone: 'pending' }
           : charge === 'afwezig'
@@ -89,13 +94,18 @@ export default function MijnLessenScreen() {
               ? { label: 'Aanwezig · geen strippen, openstaand', tone: 'rani' }
               : { label: 'Afgenomen · −1 strip', tone: 'teal' };
     } else if (l.status.cancelled) {
-      tag = { label: 'Afgemeld · telt niet mee', tone: 'muted' };
-      if (schedule.occupancy(l.session.id, l.date).available > 0) {
+      const charged = !!schedule.cancellationOf(user.email, l.session.id, l.date)?.charged;
+      tag = charged
+        ? { label: 'Afgemeld binnen 24 uur · −1 strip', tone: 'rani' }
+        : { label: 'Afgemeld · telt niet mee', tone: 'muted' };
+      if (!schedule.hasStarted(l.session, l.date) && schedule.occupancy(l.session.id, l.date).available > 0) {
         action = {
           label: 'Aanmelden',
           tone: 'teal',
           onPress: () => {
-            if (schedule.undoCancel(user.email, l.session.id, l.date)) toast.show('Weer aangemeld ✓');
+            if (schedule.undoCancel(user.email, l.session.id, l.date)) {
+              toast.show(charged ? 'Weer aangemeld ✓ — strip teruggezet' : 'Weer aangemeld ✓');
+            }
           },
         };
       }
@@ -155,6 +165,7 @@ export default function MijnLessenScreen() {
             </Text>
           )}
         </View>
+        <Text style={styles.cancelRule}>Kosteloos afmelden tot {LATE_CANCEL_HOURS} uur voor aanvang. Daarna gaat er 1 strip af.</Text>
 
         <View style={styles.segment}>
           {(['komend', 'afgenomen'] as const).map((s) => (
@@ -215,6 +226,14 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 12,
     color: '#BACDC0',
+  },
+  cancelRule: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    lineHeight: 17,
+    color: colors.mutedText,
+    marginHorizontal: 24,
+    marginTop: 8,
   },
   segment: {
     flexDirection: 'row',

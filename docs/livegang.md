@@ -29,6 +29,10 @@ Checklist om de app in de App Store en Google Play te krijgen. ✅ = klaar.
   npx eas-cli build --profile production --platform ios    # daarna naar TestFlight
   ```
 
+- ✅ Pushbericht 24 uur voor elke les (database-taak `lesson-reminders`, elke 15 minuten)
+- ⬜ **Firebase voor Android-push:** project op console.firebase.google.com, Android-app `nl.soulfulyoga.app`; `google-services.json` in de projectmap en de service-account-sleutel (FCM V1) uploaden op expo.dev → Credentials → Android
+- ⬜ iPhone-push: push-sleutel (APNs) via het Apple Developer-account, gaat automatisch bij de eerste iOS-build
+
 ## 4. Winkelaccounts en documenten
 - ⬜ Apple Developer Program (bedrijfsaccount vraagt KvK en D-U-N-S-nummer)
 - ⬜ Google Play Console

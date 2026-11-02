@@ -10,6 +10,7 @@ import * as rules from '@/lib/schedule';
 import type {
   AttendanceEntry,
   Attendee,
+  Cancellation,
   Charge,
   Closure,
   Confirmation,
@@ -50,6 +51,9 @@ type ScheduleContextValue = {
   closurePreview: (from: string, to: string, sessionId: string | null) => { lessons: number; scheduled: number } | null;
   hasStarted: (session: Session, date: string) => boolean;
   isPast: (session: Session, date: string) => boolean;
+  // Cancelling now would cost a strip (within LATE_CANCEL_HOURS of the start).
+  isLateCancel: (session: Session, date: string) => boolean;
+  cancellationOf: (email: string, sessionId: string, date: string) => Cancellation | undefined;
   // Customer
   requestLesson: (sessionId: string, date: string, person: Person) => boolean;
   cancelLesson: (email: string, sessionId: string, date: string, by: 'klant' | 'beheer') => void;
@@ -226,6 +230,8 @@ export function ScheduleProvider({ children }: { children: ReactNode }) {
         closurePreview: (from, to, sessionId) => rules.closurePreview(data, students, from, to, sessionId),
         hasStarted: (session, date) => rules.hasStarted(session, date, now),
         isPast: (session, date) => rules.isPast(session, date, now),
+        isLateCancel: (session, date) => rules.isLateCancel(session, date, now),
+        cancellationOf: (email, sessionId, date) => rules.cancellationOf(data, email, sessionId, date),
         requestLesson,
         cancelLesson,
         undoCancel,

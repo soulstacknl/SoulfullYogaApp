@@ -11,8 +11,16 @@ export type Enrollment = { id: string; sessionId: string; email: string; start: 
 export type Booking = { sessionId: string; date: string; email: string };
 // One-off booking waiting for the teacher's approval — already holds a spot.
 export type ReservationRequest = { id: string; sessionId: string; date: string; email: string; name: string };
-// Customer is off for one lesson date: it doesn't count and costs no strip.
-export type Cancellation = { sessionId: string; date: string; email: string; by: 'klant' | 'beheer' };
+// Customer is off for one lesson date. Free up to LATE_CANCEL_HOURS before the start;
+// later the customer pays one strip (late/charged are set by the database).
+export type Cancellation = {
+  sessionId: string;
+  date: string;
+  email: string;
+  by: 'klant' | 'beheer';
+  late?: boolean;
+  charged?: boolean;
+};
 // Lessons that don't take place (holiday); sessionId null = every lesson in the period.
 export type Closure = { id: string; from: string; to: string; sessionId: string | null; reason: string };
 // How a present attendee was settled when the admin confirmed the attendance list:
@@ -46,6 +54,8 @@ export type Occupancy = { capacity: number; booked: number; available: number };
 // Weeks prompt value meaning "ongoing" — long enough to never run out in practice.
 export const ONGOING_WEEKS = 99;
 export const MONTHS_AHEAD = 3;
+// Terms art. 5.4: cancelling later than this before the start costs a strip.
+export const LATE_CANCEL_HOURS = 24;
 
 // Last day customers can see ahead: the end of the month MONTHS_AHEAD months from now.
 export const horizonEnd = (now: Date) => isoOf(new Date(now.getFullYear(), now.getMonth() + MONTHS_AHEAD + 1, 0));
@@ -55,7 +65,15 @@ export const startTimeOf = (session: Session) => session.time.split(' – ')[0];
 export const startOf = (session: Session, date: string) => toDate(date, startTimeOf(session));
 export const endOf = (session: Session, date: string) => toDate(date, session.time.split(' – ')[1]);
 export const hasStarted = (session: Session, date: string, now: Date) => startOf(session, date) <= now;
-export const isPast = (session: Session, date: string, now: Date) => endOf(session, date) <= now;
+export const isLateCancel = (session: Session, date: string, now: Date) =>
+  startOf(session, date).getTime() - now.getTime() < LATE_CANCEL_HOURS * 3600 * 1000;
+// What cancelling costs, shown before the customer confirms.
+export function cancelNotice(late: boolean, paysStrip: boolean) {
+  if (!late) return `Kosteloos tot ${LATE_CANCEL_HOURS} uur voor aanvang: er gaat geen strip af.`;
+  if (paysStrip) return `Deze les begint binnen ${LATE_CANCEL_HOURS} uur. Volgens de voorwaarden wordt er bij afmelden 1 strip afgeschreven.`;
+  return `Deze les begint binnen ${LATE_CANCEL_HOURS} uur. Volgens de voorwaarden wordt afmelden binnen ${LATE_CANCEL_HOURS} uur in rekening gebracht.`;
+}
+export const isPast =(session: Session, date: string, now: Date) => endOf(session, date) <= now;
 export const isExtra = (session: Session) => session.from !== null && session.from === session.until;
 
 export const activeOn = (session: Session, date: string) =>
@@ -79,8 +97,10 @@ const covers = (e: Enrollment, date: string) => {
 export const enrollmentOf = (data: ScheduleData, email: string, sessionId: string, date: string) =>
   data.enrollments.find((e) => e.email === email && e.sessionId === sessionId && covers(e, date));
 
+export const cancellationOf = (data: ScheduleData, email: string, sessionId: string, date: string) =>
+  data.cancels.find((c) => c.email === email && c.sessionId === sessionId && c.date === date);
 export const isCancelled = (data: ScheduleData, email: string, sessionId: string, date: string) =>
-  data.cancels.some((c) => c.email === email && c.sessionId === sessionId && c.date === date);
+  !!cancellationOf(data, email, sessionId, date);
 
 // How a customer is scheduled for one lesson date, or null if not at all.
 export function statusFor(data: ScheduleData, email: string, sessionId: string, date: string): LessonStatus | null {

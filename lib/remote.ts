@@ -68,7 +68,9 @@ export async function loadSnapshot(): Promise<Snapshot> {
     requests: requests
       .sort((a, b) => b.created_at.localeCompare(a.created_at))
       .map((r) => ({ id: r.id, sessionId: r.session_id, date: r.date, email: key(r.user_id), name: nameById.get(r.user_id) ?? '' })),
-    cancels: cancels.map((c) => ({ sessionId: c.session_id, date: c.date, email: key(c.user_id), by: c.cancelled_by })),
+    cancels: cancels.map((c) => ({
+      sessionId: c.session_id, date: c.date, email: key(c.user_id), by: c.cancelled_by, late: c.late, charged: c.charged,
+    })),
     closures: closures.map((c): Closure => ({ id: c.id, from: c.from_date, to: c.to_date, sessionId: c.session_id, reason: c.reason })),
     capOverride: Object.fromEntries(caps.map((c) => [lessonKey(c.session_id, c.date), c.capacity])),
     checkins: {},
@@ -121,9 +123,9 @@ export const remote = {
   requestLesson: (sessionId: string, date: string, userId: string) =>
     check(supabase.from('requests').insert({ session_id: sessionId, date, user_id: userId })),
   cancelLesson: (sessionId: string, date: string, userId: string, by: 'klant' | 'beheer') =>
-    check(supabase.from('cancellations').upsert({ session_id: sessionId, date, user_id: userId, cancelled_by: by })),
+    check(supabase.from('cancellations').upsert({ session_id: sessionId, date, user_id: userId, cancelled_by: by }, { ignoreDuplicates: true })),
   cancelLessons: (sessionId: string, dates: string[], userId: string) =>
-    check(supabase.from('cancellations').upsert(dates.map((date) => ({ session_id: sessionId, date, user_id: userId, cancelled_by: 'beheer' })))),
+    check(supabase.from('cancellations').upsert(dates.map((date) => ({ session_id: sessionId, date, user_id: userId, cancelled_by: 'beheer' })), { ignoreDuplicates: true })),
   undoCancel: (sessionId: string, date: string, userId: string) =>
     check(supabase.from('cancellations').delete().match({ session_id: sessionId, date, user_id: userId })),
   deleteFutureCancels: (sessionId: string, userId: string, fromDate: string) =>

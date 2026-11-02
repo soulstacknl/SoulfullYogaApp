@@ -129,7 +129,11 @@ export default function LessonDrawer({ sessionId, date }: { sessionId: string; d
         {cancelled.map((u) => (
           <Row key={u.email} dim onPress={() => portal.openKlant(u.email, true)}>
             <Meta title={`${u.name} ›`} />
-            <Pill label="Afgemeld" tone="muted" />
+            {schedule.cancellationOf(u.email, sessionId, date)?.charged ? (
+              <Pill label="Afgemeld < 24 uur · −1 strip" tone="rani" />
+            ) : (
+              <Pill label="Afgemeld" tone="muted" />
+            )}
           </Row>
         ))}
       </Card>

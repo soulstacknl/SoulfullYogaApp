@@ -147,7 +147,11 @@ export default function DeelnemersScreen() {
                 <View style={styles.info}>
                   <Text style={styles.name}>{u.name}</Text>
                   <Text style={styles.detail}>{u.email}</Text>
-                  <Tag label="Afgemeld" tone="muted" />
+                  {schedule.cancellationOf(u.email, session.id, date)?.charged ? (
+                    <Tag label="Afgemeld < 24 uur · −1 strip" tone="rani" />
+                  ) : (
+                    <Tag label="Afgemeld" tone="muted" />
+                  )}
                 </View>
               </View>
             ))}

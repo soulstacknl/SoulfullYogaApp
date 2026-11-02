@@ -17,6 +17,7 @@
     },
     "android": {
       "package": "nl.soulfulyoga.app",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#1F3D2B",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -41,7 +42,15 @@
           "backgroundColor": "#1F3D2B"
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#1F3D2B",
+          "defaultChannel": "lessen"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

@@ -8,6 +8,7 @@ import { useSchedule } from '@/contexts/ScheduleContext';
 import { useCurrentUser } from '@/contexts/UsersContext';
 import { classDescriptions } from '@/data/schedule';
 import { dateLabel, shortDate } from '@/lib/dutchDate';
+import { cancelNotice, LATE_CANCEL_HOURS } from '@/lib/schedule';
 
 export type LessonSelection = { sessionId: string; date: string };
 
@@ -132,6 +133,9 @@ export default function BookingSheet({
     }
 
     const status = schedule.statusFor(user.email, session.id, date);
+    const late = schedule.isLateCancel(session, date);
+    const paysStrip = late && (user.strippen ?? 0) > 0;
+    const charged = !!schedule.cancellationOf(user.email, session.id, date)?.charged;
     if (status && !status.cancelled && status.source !== 'aanvraag') {
       return (
         <>
@@ -140,21 +144,28 @@ export default function BookingSheet({
           {started ? (
             <SheetButton label="Les is al begonnen" disabled />
           ) : (
-            <SheetButton
-              label="Afmelden voor deze les"
-              tone="outline"
-              onPress={() =>
-                onConfirm({
-                  title: 'Afmelden voor deze les?',
-                  message: `${lessonName}. Deze les telt dan niet mee en er gaat geen strip af.`,
-                  confirmLabel: 'Afmelden',
-                  onConfirm: () => {
-                    schedule.cancelLesson(user.email, session.id, date, 'klant');
-                    onToast('Afgemeld — telt niet mee');
-                  },
-                })
-              }
-            />
+            <>
+              <SheetButton
+                label="Afmelden voor deze les"
+                tone="outline"
+                onPress={() =>
+                  onConfirm({
+                    title: 'Afmelden voor deze les?',
+                    message: `${lessonName}. ${cancelNotice(late, paysStrip)}`,
+                    confirmLabel: paysStrip ? 'Afmelden (−1 strip)' : 'Afmelden',
+                    onConfirm: () => {
+                      schedule.cancelLesson(user.email, session.id, date, 'klant');
+                      onToast(paysStrip ? 'Afgemeld — 1 strip afgeschreven' : 'Afgemeld — telt niet mee');
+                    },
+                  })
+                }
+              />
+              <Text style={[styles.hint, late && styles.hintLate]}>
+                {late
+                  ? `Deze les begint binnen ${LATE_CANCEL_HOURS} uur: afmelden kost 1 strip.`
+                  : `Kosteloos afmelden tot ${LATE_CANCEL_HOURS} uur voor aanvang. Daarna gaat er 1 strip af.`}
+              </Text>
+            </>
           )}
         </>
       );
@@ -163,13 +174,17 @@ export default function BookingSheet({
       return (
         <>
           {header}
-          <Text style={[styles.note, styles.noteMuted]}>Je hebt je afgemeld voor deze les</Text>
+          <Text style={[styles.note, styles.noteMuted]}>
+            Je hebt je afgemeld voor deze les{charged ? ` (binnen ${LATE_CANCEL_HOURS} uur, 1 strip afgeschreven)` : ''}
+          </Text>
           {!started && !isFull ? (
             <SheetButton
-              label="Toch weer aanmelden"
+              label={charged ? 'Toch weer aanmelden (strip terug)' : 'Toch weer aanmelden'}
               tone="teal"
               onPress={() => {
-                if (schedule.undoCancel(user.email, session.id, date)) onToast('Weer aangemeld ✓');
+                if (schedule.undoCancel(user.email, session.id, date)) {
+                  onToast(charged ? 'Weer aangemeld ✓ — strip teruggezet' : 'Weer aangemeld ✓');
+                }
               }}
             />
           ) : (
@@ -321,6 +336,10 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 12.5,
     color: colors.mutedText,
+  },
+  hintLate: {
+    fontFamily: fonts.bodySemiBold,
+    color: colors.rani,
   },
   adminPanel: {
     backgroundColor: colors.card,

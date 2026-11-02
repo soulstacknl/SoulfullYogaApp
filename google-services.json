@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "439146309541",
+    "project_id": "soulful-yoga-ce835",
+    "storage_bucket": "soulful-yoga-ce835.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:439146309541:android:3dac70fea44a992c5c6a4c",
+        "android_client_info": {
+          "package_name": "nl.soulfulyoga.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAxBfZk9Ix9WdRDAo8WL7F10Wle18Gt1c0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

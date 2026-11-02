@@ -87,7 +87,9 @@ export default function KlantDrawer({ email }: { email: string }) {
   const lessonRow = (l: Lesson, isPast: boolean) => {
     let tag: [string, TagTone];
     if (l.closure) tag = ['Vervalt', 'muted'];
-    else if (l.status.cancelled) tag = ['Afgemeld', 'muted'];
+    else if (l.status.cancelled) {
+      tag = schedule.cancellationOf(email, l.session.id, l.date)?.charged ? ['Afgemeld < 24 uur · −1 strip', 'rani'] : ['Afgemeld', 'muted'];
+    }
     else if (isPast) {
       const c = schedule.chargeFor(email, l.session.id, l.date);
       tag = c === undefined ? ['Te bevestigen', 'pending'] : c === 'afwezig' ? ['Afwezig', 'muted'] : c === 'open' ? ['Openstaand', 'rani'] : c === 'los' ? ['Losse les', 'ink'] : ['−1 strip', 'teal'];

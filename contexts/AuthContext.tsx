@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Platform } from 'react-native';
 
+import { registerPush, unregisterPush } from '@/lib/push';
 import { supabase } from '@/lib/supabase';
 
 type AuthContextValue = {
@@ -67,16 +68,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Lesson reminders: link this device to whoever is logged in.
+  const userId = session?.user.id ?? null;
+  useEffect(() => {
+    if (userId) registerPush();
+  }, [userId]);
+
   const value: AuthContextValue = {
     ready,
     email: session?.user.email ?? null,
-    userId: session?.user.id ?? null,
+    userId,
     recovering,
     login: async (email, password) => {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       return error ? loginError(error.message) : null;
     },
     logout: async () => {
+      await unregisterPush();
       await supabase.auth.signOut();
     },
     sendPasswordReset: async (email) => {
