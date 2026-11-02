@@ -5,9 +5,10 @@ Checklist om de app in de App Store en Google Play te krijgen. ✅ = klaar.
 ## 1. Achterkant (Supabase)
 - ✅ Database, beveiliging en demodata (`supabase/migrations`, `supabase/seed.sql`)
 - ✅ App en beheerportaal lezen en schrijven via Supabase
-- ⬜ **Authentication → URL Configuration → Redirect URLs:** `http://localhost:8081/**`, `exp://**`, `soulfulyogaapp://**`
-- ⬜ **Eigen mailserver (SMTP)** onder Project Settings → Authentication (bijv. Resend). De ingebouwde mail stuurt alleen naar Supabase-teamleden.
-- ⬜ **Zelf aanmelden uitzetten:** Authentication → Sign In / Providers → "Allow new users to sign up" uit
+- ✅ **Authentication → URL Configuration → Redirect URLs:** `http://localhost:8081/**`, `exp://**`, `soulfulyogaapp://**`
+- ✅ **Eigen mailserver (SMTP):** Hostnet, afzender info@soulfulyoga.nl (`smtp.hostnet.nl`, poort 587)
+- ✅ Nederlandse mail voor wachtwoord instellen/vergeten (`supabase/templates/recovery.html`)
+- ✅ **Zelf aanmelden uitzetten:** Authentication → Sign In / Providers → "Allow new users to sign up" uit
 - ⬜ Demo-wachtwoorden (o.a. `admin123`) vervangen vóór er echte klanten in komen
 
 ## 2. Accounts in de app
@@ -32,7 +33,7 @@ Checklist om de app in de App Store en Google Play te krijgen. ✅ = klaar.
 - ⬜ Apple Developer Program (bedrijfsaccount vraagt KvK en D-U-N-S-nummer)
 - ⬜ Google Play Console
 - ⬜ Privacyverklaring op een webadres (AVG)
-- ⬜ Definitieve algemene voorwaarden (nu "conceptversie" in `data/terms.ts`)
+- ✅ Algemene voorwaarden in de app (`data/terms.ts`, gebaseerd op soulfulyoga.nl/general-5 plus artikel 14 over de app)
 - ⬜ Testaccount voor de beoordelaars van Apple en Google
 
 ## 5. Indienen

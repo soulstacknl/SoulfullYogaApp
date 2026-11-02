@@ -24,7 +24,6 @@ export default function VoorwaardenScreen() {
     <View style={styles.container}>
       <ScreenHeader backLabel="Terug" onBack={() => router.back()} eyebrow="Soulful Yoga" title="Algemene voorwaarden" subtitle="" />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.concept}>⚠ Conceptversie — de definitieve tekst volgt nog.</Text>
         <Text style={styles.version}>{TERMS_VERSION}</Text>
         {terms.map((section) => (
           <View key={section.title}>
@@ -37,6 +36,11 @@ export default function VoorwaardenScreen() {
             {section.bullets?.map((b) => (
               <Text key={b} style={styles.body}>
                 • {b}
+              </Text>
+            ))}
+            {section.closing?.map((p) => (
+              <Text key={p} style={styles.body}>
+                {p}
               </Text>
             ))}
           </View>
@@ -72,20 +76,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     paddingTop: 20,
     paddingBottom: 24,
-  },
-  concept: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 11.5,
-    lineHeight: 17,
-    color: '#6B4A0C',
-    backgroundColor: '#FFF4DC',
-    borderWidth: 1,
-    borderColor: '#EFC97A',
-    borderRadius: 10,
-    overflow: 'hidden',
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    marginBottom: 16,
   },
   version: {
     fontFamily: fonts.body,
