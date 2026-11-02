@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
@@ -121,6 +122,16 @@ export default function KlantDrawer({ email }: { email: string }) {
           {user.termsAcceptedAt ? <Pill label={`✓ ${user.termsAcceptedAt}`} tone="teal" /> : <Pill label="Nog niet akkoord" tone="rani" />}
         </KV>
         <KV label="Openstaande lessen">{open || '—'}</KV>
+        <View style={[s.row, { marginTop: 8 }]}>
+          <Btn
+            label={`💬 Chat met ${user.name.split(' ')[0]}`}
+            small
+            onPress={() => {
+              portal.closeDrawer();
+              router.navigate({ pathname: '/portal/berichten', params: { klant: user.id } });
+            }}
+          />
+        </View>
       </Card>
 
       <Card title="Vaste les" note={current.length ? `${current.length} actief` : 'geen'}>

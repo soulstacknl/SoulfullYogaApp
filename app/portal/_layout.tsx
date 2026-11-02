@@ -14,6 +14,7 @@ import { colors, fonts } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchedule } from '@/contexts/ScheduleContext';
 import { useData } from '@/contexts/DataContext';
+import { useInbox } from '@/contexts/InboxContext';
 import { useCurrentUser } from '@/contexts/UsersContext';
 
 const NAV = [
@@ -22,6 +23,8 @@ const NAV = [
   { path: '/portal/klanten', icon: '👥', label: 'Klanten' },
   { path: '/portal/beheer', icon: '🛠️', label: 'Rooster beheren' },
   { path: '/portal/presentie', icon: '✅', label: 'Presentielijst' },
+  { path: '/portal/berichten', icon: '💬', label: 'Berichten' },
+  { path: '/portal/nieuws', icon: '📣', label: 'Nieuws' },
 ] as const;
 
 // Admin portal for a laptop browser: shares the schedule and users with the app.
@@ -31,6 +34,7 @@ export default function PortalLayout() {
   const { loading } = useData();
   const { logout } = useAuth();
   const schedule = useSchedule();
+  const inbox = useInbox();
   const pathname = usePathname();
   const { width } = useWindowDimensions();
   const [drawer, setDrawer] = useState<PortalDrawer>(null);
@@ -60,7 +64,13 @@ export default function PortalLayout() {
     toastTimer.current = setTimeout(() => setToastMessage(null), 2400);
   };
   const badge = (path: string) =>
-    path === '/portal/reserveringen' ? schedule.data.requests.length : path === '/portal/presentie' ? schedule.unconfirmedLessons().length : 0;
+    path === '/portal/reserveringen'
+      ? schedule.data.requests.length
+      : path === '/portal/presentie'
+        ? schedule.unconfirmedLessons().length
+        : path === '/portal/berichten'
+          ? inbox.badge
+          : 0;
   const narrow = width < 800;
 
   return (

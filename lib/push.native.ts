@@ -1,7 +1,10 @@
-// Push notifications: the reminder 24 hours before a lesson is sent by the
-// database (send_lesson_reminders); the app only registers this device for it.
+// Push notifications are sent by the database (lesson reminders, chat, news,
+// cancellations and requests); the app registers this device and opens what a
+// tapped notification is about.
 import Constants from 'expo-constants';
+import { router } from 'expo-router';
 import * as Notifications from 'expo-notifications';
+import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
@@ -26,6 +29,10 @@ export async function registerPush() {
         name: 'Herinneringen voor je lessen',
         importance: Notifications.AndroidImportance.HIGH,
       });
+      await Notifications.setNotificationChannelAsync('berichten', {
+        name: 'Chat en nieuws',
+        importance: Notifications.AndroidImportance.HIGH,
+      });
     }
     let { status } = await Notifications.getPermissionsAsync();
     if (status !== 'granted') status = (await Notifications.requestPermissionsAsync()).status;
@@ -45,4 +52,13 @@ export async function unregisterPush() {
   if (!registeredToken) return;
   await supabase.rpc('unregister_push_token', { p_token: registeredToken });
   registeredToken = null;
+}
+
+// Tapping a notification opens what it is about (data.url, e.g. /chat or /nieuws/<id>).
+export function useNotificationLinks() {
+  const response = Notifications.useLastNotificationResponse();
+  useEffect(() => {
+    const url = response?.notification.request.content.data?.url;
+    if (typeof url === 'string') router.push(url as never);
+  }, [response]);
 }

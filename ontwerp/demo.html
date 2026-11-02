@@ -54,6 +54,11 @@
   @keyframes drop{from{transform:translate(-50%,-20px); opacity:0;}}
   .field input{width:100%; font:400 14.5px var(--body); color:var(--ink); background:var(--card); border:1px solid var(--sand); border-radius:var(--r-btn); padding:13px 16px;}
   .field input:focus{outline:2px solid var(--rani); outline-offset:0; border-color:transparent;}
+  .field textarea{width:100%; font:400 14.5px/21px var(--body); color:var(--ink); background:var(--card); border:1px solid var(--sand); border-radius:var(--r-btn); padding:13px 16px; resize:vertical;}
+  .field textarea:focus,.chatbar .cin:focus{outline:2px solid var(--rani); outline-offset:0; border-color:transparent;}
+  .chatbar .cin{color:var(--ink);}
+  .pushbanner{cursor:pointer; animation:drop2 .25s ease-out;}
+  @keyframes drop2{from{transform:translateY(-20px); opacity:0;}}
   .err{font:500 12.5px var(--body); color:var(--rani); margin-bottom:14px;}
   .quick span[data-act].on{background:var(--ink); color:var(--ivory); border-color:var(--ink);}
 
@@ -69,27 +74,32 @@
 <script src="demo-core.js"></script>
 <script>
 // Navigatie en tijdelijke UI — niet bewaard
-const UI = { form:{}, formError:null, tab:'rooster', month:0, myTab:'komend', stack:[], sheet:null, prompt:null, confirm:null, toast:null, filter:'alles', picking:false, loginError:null, loginEmail:'', loginPw:'', av:{email:'', walkin:''} };
+const UI = { chatDraft:'', push:null, form:{}, formError:null, tab:'rooster', month:0, myTab:'komend', stack:[], sheet:null, prompt:null, confirm:null, toast:null, filter:'alles', picking:false, loginError:null, loginEmail:'', loginPw:'', av:{email:'', walkin:''} };
 /* ── Bouwstenen ─────────────────────────────────────────────────────── */
 const esc = (s) => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const ICON = {
   rooster:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>',
   lessen:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M8.5 14.5l2.5 2.5 4.5-5"/></svg>',
   videos:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9l6 3-6 3z" fill="currentColor" stroke="none"/></svg>',
+  berichten:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-4 3.5V17H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/><path d="M8 10h8M8 13h5"/></svg>',
   profiel:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4.5 5-6 8-6s6.5 1.5 8 6"/></svg>',
 };
-const header = ({eyebrow, title, subtitle='', back}) => `
+const header = ({eyebrow, title, subtitle='', back, photo}) => `
   <div class="topbar">
     ${back ? `<div class="back" data-act="back">‹ ${back}</div>` : ''}
     <div class="hrow"><div class="txt">
       ${eyebrow ? `<div class="eyebrow">${esc(eyebrow)}</div>` : ''}
       <h1>${esc(title)}</h1><p>${esc(subtitle)}</p>
-    </div><img src="logo-mark.png" alt=""></div>
+    </div><img src="${photo || 'logo-mark.png'}" class="${photo ? 'hphoto' : ''}" alt=""></div>
   </div>`;
+// Video's staat verborgen tot er video's zijn; Berichten neemt die plek in.
 const tabs = () => isAdmin()
-  ? [['rooster','Rooster'],['videos',"Video's"],['profiel','Profiel']]
-  : [['rooster','Rooster'],['lessen','Mijn lessen'],['videos',"Video's"],['profiel','Profiel']];
-const tabbar = () => `<div class="tabbar">${tabs().map(([k,l]) => `<div class="tab ${UI.tab===k?'on':''}" data-act="tab" data-v="${k}">${ICON[k]}${l}</div>`).join('')}</div>`;
+  ? [['rooster','Rooster'],['berichten','Berichten'],['profiel','Profiel']]
+  : [['rooster','Rooster'],['lessen','Mijn lessen'],['berichten','Berichten'],['profiel','Profiel']];
+// Rood getal op de tab Berichten: ongelezen nieuws en chat (beheerder: gesprekken met nieuwe berichten).
+const berichtenBadge = () => { const u = me(); return !u ? 0 : u.role === 'admin' ? studioUnread() : unreadNews(u.email) + unreadChat(u.email); };
+const tabbar = () => `<div class="tabbar">${tabs().map(([k,l]) => { const n = k === 'berichten' ? berichtenBadge() : 0;
+  return `<div class="tab ${UI.tab===k?'on':''}" data-act="tab" data-v="${k}">${n ? `<span class="tdot">${n}</span>` : ''}${ICON[k]}${l}</div>`; }).join('')}</div>`;
 const dot = (s, sm) => `<div class="dot ${sm?'sm':''} ${s}">${STYLE[s].dot}</div>`;
 const stepper = (act, v, extra='') => `<div class="stepper"><div class="sb" data-act="${act}" data-d="-1" ${extra}>–</div><div class="sv">${v}</div><div class="sb" data-act="${act}" data-d="1" ${extra}>+</div></div>`;
 const initials = (n) => n.split(' ').filter(w => /^\p{L}/u.test(w)).map(w => w[0]).join('').slice(0,2).toUpperCase();
@@ -107,6 +117,10 @@ function monthDays(offset){
   }
   return out;
 }
+// Tag for a cancelled lesson in Mijn lessen: late cancellations cost a strip.
+const cancelledTag = (l, past) => cancellationOf(me().email, l.sid, l.d)?.charged
+  ? '<span class="tag open">Afgemeld binnen 24 uur · −1 strip</span>'
+  : `<span class="tag off">Afgemeld · ${past ? 'telde' : 'telt'} niet mee</span>`;
 function spotLabel(sid, d){
   if (closureOf(sid, d)) return ['Vervalt', ''];
   const u = me();
@@ -147,14 +161,14 @@ function lessonCard(l, past){
   if (l.closed) {
     tag = `<span class="tag off">${past ? 'Vervallen' : 'Vervalt'} · ${esc(l.closed.reason.toLowerCase())} · geen strip</span>`;
   } else if (past) {
-    tag = l.st.cancelled ? '<span class="tag off">Afgemeld · telde niet mee</span>'
+    tag = l.st.cancelled ? cancelledTag(l, true)
       : charge === undefined ? '<span class="tag pend">Wacht op bevestiging docent</span>'
       : charge === 'afwezig' ? '<span class="tag off">Niet aanwezig · geen strip</span>'
       : charge === 'open' ? '<span class="tag open">Aanwezig · geen strippen, openstaand</span>'
       : '<span class="tag paid">Afgenomen · −1 strip</span>';
   } else if (l.st.cancelled) {
-    tag = '<span class="tag off">Afgemeld · telt niet mee</span>';
-    if (occ(l.sid, l.d).available > 0) btn = `<div class="obtn teal" data-act="undoCancel" ${at(l.sid, l.d)}>Aanmelden</div>`;
+    tag = cancelledTag(l, false);
+    if (!hasStarted(l.sid, l.d) && occ(l.sid, l.d).available > 0) btn = `<div class="obtn teal" data-act="undoCancel" ${at(l.sid, l.d)}>Aanmelden</div>`;
   } else if (l.st.source === 'aanvraag') {
     tag = '<span class="tag pend">Aangevraagd · wacht op goedkeuring</span>';
   } else {
@@ -187,6 +201,7 @@ function lessenTab(){
   }
   return header({title:'Mijn lessen', subtitle: vast ? `Vaste les: ${vast}` : 'Geen vaste les'}) +
     `<div class="ministrip"><span class="l">Strippenkaart</span><span class="c">${strip}</span></div>
+     <div class="cancelrule">Kosteloos afmelden tot ${LATE_CANCEL_HOURS} uur voor aanvang. Daarna gaat er 1 strip af.</div>
      <div class="seg"><div class="${UI.myTab === 'komend' ? 'on' : ''}" data-act="myTab" data-v="komend">Komend (${upcoming.filter(l => !l.st.cancelled && !l.closed).length})</div>
        <div class="${UI.myTab === 'afgenomen' ? 'on' : ''}" data-act="myTab" data-v="afgenomen">Afgenomen (${past.filter(l => ['strip', 'open', 'los'].includes(chargeFor(u.email, l.sid, l.d))).length})</div></div>
      <div class="pad" style="padding-top:8px">${list}</div>`;
@@ -199,6 +214,39 @@ function videosTab(){
   return header({title:"Video's", subtitle:'Oefen op jouw moment, in jouw tempo'}) +
     `<div class="filters">${[['alles','Alles'],['yin','Yin'],['flow','Flow'],['gentle','Gentle']].map(([k,l]) => `<div class="chip ${UI.filter===k?'on':''}" data-act="filter" data-v="${k}">${l}</div>`).join('')}</div>
      <div style="padding:10px 0 24px">${list.map(v => `<div class="vcard"><div class="thumb ${v.s}"><div class="play"></div></div><div class="vinfo"><div class="nm">${v.t}</div><div class="sb2">${v.m} min · ${v.l}</div></div></div>`).join('')}</div>`;
+}
+
+/* ── Tab: Berichten (nieuws + chat) ─────────────────────────────────── */
+const newsCard = (n, email) => `<div class="ncard ${email && n.at > (S.read[email]?.news || '') ? 'new' : ''}" data-act="openNews" data-id="${n.id}">
+  <div class="nt">${esc(n.title)}</div><div class="nb">${esc(n.body)}</div><div class="nd">${msgTime(n.at)}</div></div>`;
+// Marjolijn beantwoordt de chat: haar foto staat bij het gesprek.
+const TEACHER_PHOTO = 'marjolijn.jpg';
+const logoAv = `<div class="av photo"><img src="${TEACHER_PHOTO}" alt="Marjolijn"></div>`;
+function berichtenTab(){
+  const u = me(); const news = newsList(); const admin = u?.role === 'admin';
+  // Chat bovenaan, nieuws daaronder.
+  const newsBlock = `<div class="msect" style="margin-top:18px"><div class="sect">Nieuws</div>${admin ? '<a data-act="push" data-v="nieuws-schrijven">＋ Schrijven</a>' : news.length > 2 ? '<a data-act="push" data-v="nieuws">Alle nieuws ›</a>' : ''}</div>
+    ${news.length ? news.slice(0, admin ? 3 : 2).map(n => newsCard(n, admin ? null : u?.email)).join('') : '<div class="empty" style="margin:6px 0 14px">Nog geen nieuws.</div>'}
+    ${admin && news.length > 3 ? '<div class="logout" style="margin-top:4px" data-act="push" data-v="nieuws">Alle nieuws</div>' : ''}`;
+  if (admin) {
+    const convs = conversations();
+    return header({eyebrow:'Docentmodus', title:'Berichten', subtitle:'Gesprekken met klanten en nieuws'}) + `<div class="pad">
+      <div class="msect"><div class="sect">Gesprekken</div><a data-act="push" data-v="chat-kiezen">＋ Nieuw gesprek</a></div>
+      ${convs.length ? convs.map(c => { const k = userBy(c.email);
+        return `<div class="chatrow ${c.unread ? 'unread' : ''}" data-act="openChat" data-email="${c.email}"><div class="ini">${initials(k.name)}</div>
+          <div class="meta"><div class="top"><span class="nm">${esc(k.name)}</span><span class="tm">${msgTime(c.last.at)}</span></div>
+          <div class="last">${c.last.from === 'studio' ? 'Jij: ' : ''}${esc(c.last.text)}</div></div>${c.unread ? `<span class="cnt">${c.unread}</span>` : ''}</div>`; }).join('')
+        : '<div class="empty">Nog geen gesprekken.</div>'}
+      ${newsBlock}</div>`;
+  }
+  const chat = u ? chatOf(u.email) : []; const last = chat.at(-1); const unread = u ? unreadChat(u.email) : 0;
+  return header({title:'Berichten', subtitle:'Je chat met Marjolijn en het laatste nieuws'}) + `<div class="pad">
+    <div class="msect"><div class="sect">Chat</div></div>
+    ${u ? `<div class="chatrow ${unread ? 'unread' : ''}" data-act="openChat" data-email="${u.email}">${logoAv}
+        <div class="meta"><div class="top"><span class="nm">Marjolijn</span>${last ? `<span class="tm">${msgTime(last.at)}</span>` : ''}</div>
+        <div class="last">${last ? `${last.from === 'klant' ? 'Jij: ' : ''}${esc(last.text)}` : 'Stel je vraag aan Marjolijn'}</div></div>${unread ? `<span class="cnt">${unread}</span>` : ''}</div>`
+      : `<div class="chatrow" data-act="tab" data-v="profiel">${logoAv}<div class="meta"><div class="nm">Marjolijn</div><div class="last">Log in om met Marjolijn te chatten</div></div></div>`}
+    ${newsBlock}</div>`;
 }
 
 /* ── Tab: Profiel ───────────────────────────────────────────────────── */
@@ -258,6 +306,41 @@ Maak een account aan en laat de klant weten dat het klaarstaat.`,
 });
 
 const STACK = {
+  nieuws: () => { const u = me();
+    return header({back:'Berichten', eyebrow:'Soulful Yoga', title:'Nieuws', subtitle:`${S.news.length} berichten`}) +
+      `<div class="pad">${newsList().map(n => newsCard(n, u?.role === 'student' ? u.email : null)).join('') || '<div class="empty">Nog geen nieuws.</div>'}</div>`; },
+  'nieuws-item': ({id}) => { const n = newsBy(id); if (!n) return header({back:'Terug', title:'Nieuws'});
+    return header({back:'Terug', eyebrow:'Nieuws', title:n.title}) +
+      `<div class="article"><div class="nd">${cap1(dateLabel(isoOf(new Date(n.at))).toLowerCase())}${n.push ? ' · pushbericht verstuurd' : ''}</div><p>${esc(n.body)}</p>
+        ${isAdmin() ? `<div class="logout" style="margin-top:22px" data-act="askDeleteNews" data-id="${n.id}">Bericht verwijderen</div>` : ''}</div>`; },
+  // Eén gesprek. Klant: altijd met de studio; beheerder: met de gekozen klant.
+  chat: ({email}) => {
+    const admin = isAdmin(); const side = admin ? 'studio' : 'klant';
+    if ((admin ? unreadForStudio(email) : unreadChat(email))) { markChatRead(email, side); save(); }
+    const k = userBy(email); const msgs = chatOf(email);
+    let lastDay = '';
+    const lastMine = [...msgs].reverse().find(m => m.from === side);
+    const body = msgs.map(m => { const day = isoOf(new Date(m.at));
+      const sep = day !== lastDay ? `<div class="daysep">${day === isoOf(now()) ? 'Vandaag' : cap1(dateLabel(day).toLowerCase())}</div>` : ''; lastDay = day;
+      return sep + `<div class="bub ${m.from === side ? 'me' : 'them'}">${esc(m.text)}<small>${msgTime(m.at).split(' ').at(-1)}</small></div>` +
+        (m === lastMine && m === msgs.at(-1) && seenByOther(m) ? '<div class="seen">Gelezen</div>' : ''); }).join('');
+    return (admin ? header({back:'Berichten', eyebrow:'Chat', title:k.name, subtitle:k.email})
+      : header({back:'Berichten', eyebrow:'Soulful Yoga', title:'Marjolijn', subtitle:'Reageert meestal binnen een dag', photo:TEACHER_PHOTO})) +
+      `<div class="bubbles">${body || `<div class="empty" style="margin-top:30px">${admin ? `Stuur ${esc(k.name.split(' ')[0])} een bericht.` : 'Heb je een vraag? Stuur Marjolijn een bericht.'}</div>`}</div>`;
+  },
+  'chat-kiezen': () => { const q = (UI.form.q || '').toLowerCase();
+    const list = students().filter(u => !q || u.name.toLowerCase().includes(q) || u.email.includes(q)).sort((a, b) => a.name.localeCompare(b.name)).slice(0, 30);
+    return header({back:'Berichten', eyebrow:'Docentmodus', title:'Nieuw gesprek', subtitle:'Kies een klant'}) +
+      `<div class="pad"><div class="field"><input type="text" data-f="q" value="${esc(UI.form.q || '')}" placeholder="Zoek op naam of e-mail"></div>
+        ${list.map(u => `<div class="row tight" data-act="openChat" data-email="${u.email}"><div class="ini">${initials(u.name)}</div><div class="meta"><div class="nm">${esc(u.name)}</div><div class="em">${esc(u.email)}</div></div><div class="chev">›</div></div>`).join('')}</div>`; },
+  'nieuws-schrijven': () => header({back:'Berichten', eyebrow:'Docentmodus', title:'Nieuwsbericht', subtitle:'Iedereen met de app kan het lezen'}) +
+    `<div class="pad form">
+      <div class="field"><label>Titel</label><input type="text" data-f="title" value="${esc(UI.form.title || '')}" placeholder="Bijvoorbeeld: Zomerrooster"></div>
+      <div class="field"><label>Bericht</label><textarea data-f="body" rows="7" placeholder="Wat wil je je klanten laten weten?">${esc(UI.form.body || '')}</textarea></div>
+      <div class="toggle-row"><div><b>Pushbericht sturen</b><span>Iedereen krijgt een melding op de telefoon</span></div>
+        <div class="switch ${UI.form.push !== false ? 'on' : ''}" data-act="togglePushNews" role="switch"></div></div>
+      ${UI.formError ? `<div class="err">${UI.formError}</div>` : ''}
+      <div class="cta" data-act="publishNews">Publiceren</div></div>`,
   // Gast vraagt een account aan: naam + e-mailadres; de aanvraag gaat per mail naar de studio.
   'account-aanvragen': () => {
     const sent = UI.accountSent;
@@ -285,7 +368,7 @@ const STACK = {
   voorwaarden: () => {
     const u = me(); const on = !!u?.termsAcceptedAt;
     return header({back: UI.stack.length > 1 ? 'Terug' : 'Profiel', eyebrow:'Soulful Yoga', title:'Algemene voorwaarden'}) +
-      `<div class="terms"><div class="concept">⚠ Conceptversie — de definitieve tekst volgt nog.</div><div class="ver">${TERMS_VERSION}</div>
+      `<div class="terms"><div class="ver">${TERMS_VERSION}</div>
         ${TERMS.map(([h, body]) => `<h3>${h}</h3>${body}`).join('')}</div>
        ${u?.role === 'student' ? `<div class="accept"><div class="lbl">Ik ga akkoord met de algemene voorwaarden<small>${on ? `Akkoord gegeven op ${u.termsAcceptedAt}` : 'Zet het schuifje aan om akkoord te gaan'}</small></div>
          <div class="switch ${on ? 'on' : ''}" data-act="toggleTerms" role="switch" aria-checked="${on}"></div></div>` : ''}`;
@@ -410,7 +493,7 @@ const STACK = {
       <div class="sect" style="padding:0;margin-bottom:10px">Ingepland op ${dateLabel(d).toLowerCase()}</div>
       ${att.map(({user, st}) => `<div class="row"><div class="meta"><div class="nm">${esc(user.name)}</div><div class="dt">${esc(user.email)}</div>${srcLabel(st)}</div>
         ${!started && st.source !== 'aanvraag' ? `<div class="circ rm" data-act="askRemove" data-email="${user.email}">✕</div>` : ''}</div>`).join('')}
-      ${off.map(u => `<div class="row" style="opacity:.6"><div class="meta"><div class="nm">${esc(u.name)}</div><div class="dt">${esc(u.email)}</div><span class="tag off">Afgemeld</span></div></div>`).join('')}
+      ${off.map(u => `<div class="row" style="opacity:.6"><div class="meta"><div class="nm">${esc(u.name)}</div><div class="dt">${esc(u.email)}</div>${cancellationOf(u.email, sid, d)?.charged ? '<span class="tag open">Afgemeld &lt; 24 uur · −1 strip</span>' : '<span class="tag off">Afgemeld</span>'}</div></div>`).join('')}
       <div class="small-note" style="margin-top:8px">${att.length ? '' : 'Nog geen app-klanten ingepland. '}+ ${(S.roster[sid] || []).length} vaste deelnemers op de presentielijst.</div></div>`;
   },
 
@@ -483,10 +566,12 @@ function bookingSheet({sid, d}){
   const st = statusFor(u.email, sid, d);
   if (st && !st.cancelled && st.source !== 'aanvraag') {
     body += `<div class="note">✓ Je staat ingepland (${st.source === 'vast' ? 'vaste les' : 'losse les'})</div>` +
-      (started ? '<div class="cta off">Les is al begonnen</div>' : `<div class="cta outline" data-act="askCancel" ${at(sid, d)}>Afmelden voor deze les</div>`);
+      (started ? '<div class="cta off">Les is al begonnen</div>' : `<div class="cta outline" data-act="askCancel" ${at(sid, d)}>Afmelden voor deze les</div>` +
+        (isLateCancel(sid, d) ? `<div class="cancelhint late">Deze les begint binnen ${LATE_CANCEL_HOURS} uur: afmelden kost 1 strip.</div>` : `<div class="cancelhint">Kosteloos afmelden tot ${LATE_CANCEL_HOURS} uur voor aanvang. Daarna gaat er 1 strip af.</div>`));
   } else if (st?.cancelled) {
-    body += `<div class="note muted">Je hebt je afgemeld voor deze les</div>` +
-      (!started && o.available > 0 ? `<div class="cta" style="background:var(--teal)" data-act="undoCancel" ${at(sid, d)}>Toch weer aanmelden</div>` : '<div class="cta off">Geen plek meer vrij</div>');
+    const charged = cancellationOf(u.email, sid, d)?.charged;
+    body += `<div class="note muted">Je hebt je afgemeld voor deze les${charged ? ` (binnen ${LATE_CANCEL_HOURS} uur, 1 strip afgeschreven)` : ''}</div>` +
+      (!started && o.available > 0 ? `<div class="cta" style="background:var(--teal)" data-act="undoCancel" ${at(sid, d)}>Toch weer aanmelden${charged ? ' (strip terug)' : ''}</div>` : '<div class="cta off">Geen plek meer vrij</div>');
   } else if (st?.source === 'aanvraag') {
     body += '<div class="cta off">Aangevraagd — wacht op goedkeuring</div>';
   } else {
@@ -525,16 +610,28 @@ function render(){
   if (old) scrollMemory[old.dataset.key] = old.scrollTop;
   const k = screenKey();
   const top = UI.stack.at(-1);
-  const body = top ? STACK[top.screen](top) : {rooster:roosterTab, lessen:lessenTab, videos:videosTab, profiel:profielTab}[UI.tab]();
+  const body = top ? STACK[top.screen](top) : {rooster:roosterTab, lessen:lessenTab, berichten:berichtenTab, videos:videosTab, profiel:profielTab}[UI.tab]();
   let overlay = '';
   if (UI.sheet?.type === 'booking') overlay = bookingSheet(UI.sheet);
   if (UI.sheet?.type === 'request') overlay = requestSheet(UI.sheet);
   if (UI.prompt) overlay += weeksPrompt();
   if (UI.confirm) overlay += confirmBox();
   if (UI.toast) overlay += `<div class="toast">${UI.toast}</div>`;
+  if (UI.push) overlay += `<div class="pushbanner" data-act="openPush"><div class="pi"><img src="logo-mark.png" alt=""></div><div style="flex:1"><div class="pt"><b>Soulful Yoga</b><span>nu</span></div><div class="px">${esc(UI.push.text)}</div></div></div>`;
+  const inChat = top?.screen === 'chat';
+  const focused = document.activeElement?.id === 'chatInput';
+  if (inChat) overlay += `<div class="chatbar"><textarea class="cin" id="chatInput" rows="1" placeholder="Typ een bericht…">${esc(UI.chatDraft)}</textarea><div class="send ${UI.chatDraft.trim() ? '' : 'off'}" data-act="sendChat">➤</div></div>`;
   phoneEl.innerHTML = `<div class="island"></div><div class="scroll" data-key="${esc(k)}">${body}</div>${top ? '' : tabbar()}${overlay}`;
-  phoneEl.querySelector('.scroll').scrollTop = scrollMemory[k] || 0;
+  const sc = phoneEl.querySelector('.scroll');
+  sc.scrollTop = inChat ? sc.scrollHeight : scrollMemory[k] || 0;
+  if (inChat && focused) { const ci = document.getElementById('chatInput'); ci.focus(); ci.setSelectionRange(ci.value.length, ci.value.length); }
   renderSide();
+}
+// Pushmelding bovenin de telefoon (demo): tik erop om het bericht te openen.
+function showPush(text, open){
+  UI.push = {text, open}; render();
+  clearTimeout(showPush.t);
+  showPush.t = setTimeout(() => { UI.push = null; render(); }, 4500);
 }
 function showToast(msg){
   UI.toast = msg; render();
@@ -567,19 +664,23 @@ const ACTIONS = {
   // Klant meldt zich af — met bevestiging
   askCancel(el){
     const {sid, date: d} = el.dataset;
-    UI.confirm = {title:'Afmelden voor deze les?', text:`${lessonName(sid, d)}. Deze les telt dan niet mee en er gaat geen strip af.`, ok:'Afmelden', act:'doCancel', sid, d};
+    const late = isLateCancel(sid, d), paysStrip = late && (me().strippen ?? 0) > 0;
+    UI.confirm = {title:'Afmelden voor deze les?', text:`${lessonName(sid, d)}. ${cancelNotice(late, paysStrip)}`, ok: paysStrip ? 'Afmelden (−1 strip)' : 'Afmelden', act:'doCancel', sid, d};
   },
   doCancel(){
     const {sid, d} = UI.confirm; const u = me();
-    cancelLesson(u.email, sid, d, 'klant'); log(`${u.name} meldt zich af voor ${lessonName(sid, d)}`);
-    UI.confirm = null; UI.sheet = null; save(); showToast('Afgemeld — telt niet mee'); return 'rendered';
+    cancelLesson(u.email, sid, d, 'klant');
+    const charged = cancellationOf(u.email, sid, d)?.charged;
+    log(`${u.name} meldt zich af voor ${lessonName(sid, d)}${charged ? ' (binnen 24 uur, −1 strip)' : ''}`);
+    UI.confirm = null; UI.sheet = null; save(); showToast(charged ? 'Afgemeld — 1 strip afgeschreven' : 'Afgemeld — telt niet mee'); return 'rendered';
   },
   closeConfirm(){ UI.confirm = null; },
   undoCancel(el){
     const {sid, date: d} = el.dataset; const u = me();
     if (occ(sid, d).available <= 0) return;
+    const charged = cancellationOf(u.email, sid, d)?.charged;
     undoCancel(u.email, sid, d); log(`${u.name} meldt zich weer aan voor ${lessonName(sid, d)}`);
-    UI.sheet = null; save(); showToast('Weer aangemeld ✓'); return 'rendered';
+    UI.sheet = null; save(); showToast(charged ? 'Weer aangemeld ✓ — strip teruggezet' : 'Weer aangemeld ✓'); return 'rendered';
   },
 
   adjCap(el){
@@ -763,12 +864,51 @@ const ACTIONS = {
   askUndoConfirm(el){ const {sid, date: d} = el.dataset; UI.confirm = {title:'Bevestiging ongedaan maken?', text:`${lessonName(sid, d)}. De afgeschreven strippen komen terug en je kunt de lijst weer aanpassen.`, ok:'Ongedaan maken', act:'doUndoConfirm', sid, d}; },
   doUndoConfirm(){ const {sid, d} = UI.confirm; undoConfirmation(sid, d); log(`Bevestiging ${lessonName(sid, d)} ongedaan gemaakt — strippen teruggezet`); UI.confirm = null; save(); },
 
+  // Berichten
+  openNews(el){ const u = me(); UI.stack.push({screen:'nieuws-item', id:el.dataset.id}); if (u) { markNewsRead(u.email); save(); } },
+  openChat(el){ UI.stack = UI.stack.filter(s => s.screen !== 'chat-kiezen'); UI.stack.push({screen:'chat', email:el.dataset.email}); UI.chatDraft = ''; UI.form = {}; },
+  sendChat(){
+    const top = UI.stack.at(-1); const text = UI.chatDraft.trim();
+    if (!text || top?.screen !== 'chat') return;
+    const admin = isAdmin(); sendMessage(top.email, admin ? 'studio' : 'klant', text);
+    markChatRead(top.email, admin ? 'studio' : 'klant');
+    log(admin ? `Studio stuurt ${userBy(top.email).name} een bericht` : `${me().name} stuurt Marjolijn een bericht`);
+    UI.chatDraft = ''; save();
+    setTimeout(() => document.getElementById('chatInput')?.focus(), 0);
+  },
+  togglePushNews(){ UI.form.push = UI.form.push === false; },
+  publishNews(){
+    const title = (UI.form.title || '').trim(), body = (UI.form.body || '').trim();
+    if (!title || !body) { UI.formError = 'Vul een titel en een bericht in.'; return; }
+    const push = UI.form.push !== false;
+    postNews({title, body, push}); log(`Nieuwsbericht "${title}" gepubliceerd${push ? ' met pushbericht' : ''}`);
+    UI.stack.pop(); UI.form = {}; UI.formError = null; save(); showToast(push ? 'Gepubliceerd en verstuurd ✓' : 'Gepubliceerd ✓'); return 'rendered';
+  },
+  askDeleteNews(el){ UI.confirm = {title:'Nieuwsbericht verwijderen?', text:'Het bericht verdwijnt voor iedereen uit de app.', ok:'Verwijderen', act:'doDeleteNews', id:el.dataset.id}; },
+  doDeleteNews(){ deleteNews(UI.confirm.id); log('Nieuwsbericht verwijderd'); UI.confirm = null; UI.stack.pop(); save(); },
+  openPush(){
+    const o = UI.push?.open; UI.push = null; if (!o) return;
+    UI.sheet = null; UI.tab = 'berichten';
+    UI.stack = o.chat ? [{screen:'chat', email:o.chat}] : [{screen:'nieuws-item', id:o.news}];
+    if (o.news && me()) { markNewsRead(me().email); save(); }
+  },
+
   // Testpaneel
   quickLogin(el){
     const email = el.dataset.email || null;
     if (email === S.email) return;
     S.email = email; UI.stack = []; UI.sheet = null; UI.prompt = null; UI.confirm = null; UI.picking = false; UI.loginError = null;
     log(email ? `Gewisseld naar ${me().name}` : 'Uitgelogd (gast)'); save();
+    const u = me();
+    if (u?.role === 'student') {
+      const msg = chatOf(u.email).filter(m => m.from === 'studio' && m.at > (S.read[u.email]?.chat || '')).at(-1);
+      const news = newsList().find(n => n.push && n.at > (S.read[u.email]?.news || ''));
+      if (msg) { setTimeout(() => showPush(`💬 ${msg.text}`, {chat:u.email}), 300); }
+      else if (news) { setTimeout(() => showPush(`📣 ${news.title}`, {news:news.id}), 300); }
+    } else if (u?.role === 'admin' && studioUnread()) {
+      const c = conversations().find(x => x.unread);
+      setTimeout(() => showPush(`💬 ${userBy(c.email).name}: ${c.last.text}`, {chat:c.email}), 300);
+    }
   },
   timeTravel(el){
     S.offsetDays += num(el.dataset.v);
@@ -793,10 +933,13 @@ function handle(e){
 document.addEventListener('click', handle);
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Enter') return;
+  if (e.target.id === 'chatInput' && !e.shiftKey) { e.preventDefault(); ACTIONS.sendChat(); render(); return; }
   if (e.target.id === 'loginEmail' || e.target.id === 'loginPw') { ACTIONS.login(); render(); }
   else if (e.target.closest('#phone input[data-f]') && UI.stack.at(-1)?.screen === 'account-aanvragen') { ACTIONS.requestAccount(); render(); }
 });
 document.addEventListener('input', (e) => {
+  if (e.target.id === 'chatInput') { UI.chatDraft = e.target.value; phoneEl.querySelector('.send')?.classList.toggle('off', !UI.chatDraft.trim()); }
+  if (e.target.dataset.f === 'q') { UI.form.q = e.target.value; render(); const qi = phoneEl.querySelector('input[data-f="q"]'); qi.focus(); qi.setSelectionRange(qi.value.length, qi.value.length); return; }
   if (e.target.id === 'loginEmail') UI.loginEmail = e.target.value;
   if (e.target.id === 'loginPw') UI.loginPw = e.target.value;
   if (e.target.dataset.av) UI.av[e.target.dataset.av] = e.target.value;
@@ -842,6 +985,8 @@ function renderSide(){
       <li>Reserveer als Marieke een losse les en keur hem als <b>Beheer</b> goed onder Profiel → Reservering aanvragen.</li>
       <li>Plan als beheerder via een les → "Deelnemers beheren" <b>Daan</b> vast in, en kijk als Daan bij Mijn lessen.</li>
       <li>Zet als Marieke het schuifje bij de Algemene voorwaarden aan; bekijk als Beheer wie akkoord heeft.</li>
+      <li>Open als <b>Marieke</b> de tab <b>Berichten</b>: stuur Marjolijn een bericht en lees het nieuws. Wissel naar <b>Beheer</b>: je krijgt een melding en kunt antwoorden. Wissel terug: Marieke ziet "Gelezen" en krijgt een pushmelding.</li>
+      <li>Schrijf als <b>Beheer</b> onder Berichten een nieuwsbericht met pushmelding en wissel naar een klant.</li>
       <li>Ga als <b>Beheer</b> naar Profiel → Rooster beheren: voeg een vaste of extra les toe, of plan een vakantie. Kijk daarna als Marieke bij Mijn lessen.</li>
     </ol></div>
     <div class="box"><h2>Wat er gebeurde</h2>

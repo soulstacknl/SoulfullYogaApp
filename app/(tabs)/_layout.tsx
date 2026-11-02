@@ -1,13 +1,15 @@
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { LessenIcon, ProfielIcon, RoosterIcon, VideosIcon } from '@/components/TabIcons';
+import { BerichtenIcon, LessenIcon, ProfielIcon, RoosterIcon, VideosIcon } from '@/components/TabIcons';
 import { colors, fonts } from '@/constants/theme';
+import { useInbox } from '@/contexts/InboxContext';
 import { useCurrentUser } from '@/contexts/UsersContext';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const isAdmin = useCurrentUser()?.role === 'admin';
+  const { badge } = useInbox();
 
   return (
     <Tabs
@@ -45,10 +47,21 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="berichten"
+        options={{
+          title: 'Berichten',
+          tabBarIcon: ({ color }) => <BerichtenIcon color={color} />,
+          tabBarBadge: badge || undefined,
+          tabBarBadgeStyle: { backgroundColor: colors.rani, fontFamily: fonts.bodyBold, fontSize: 10 },
+        }}
+      />
+      <Tabs.Screen
         name="videos"
         options={{
           title: "Video's",
           tabBarIcon: ({ color }) => <VideosIcon color={color} />,
+          // Hidden until there are videos; Berichten takes its place.
+          href: null,
         }}
       />
       <Tabs.Screen

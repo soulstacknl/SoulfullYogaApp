@@ -13,6 +13,8 @@ export default function AdminLayout() {
       <Stack.Screen name="voorwaarden" />
       <Stack.Screen name="reserveringen" />
       <Stack.Screen name="plekken" />
+      <Stack.Screen name="nieuws-schrijven" />
+      <Stack.Screen name="nieuw-gesprek" />
     </Stack>
   );
 }

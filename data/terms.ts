@@ -137,7 +137,7 @@ export const terms: TermsSection[] = [
       '14.1 Een account voor de app wordt aangemaakt door Soulful Yoga. Je account is persoonlijk; houd je wachtwoord geheim.',
       '14.2 Via de app kun je het rooster bekijken, een plek in een les aanvragen en lessen annuleren. Een aanvraag is pas definitief wanneer Soulful Yoga deze heeft goedgekeurd. Voor je vaste les staat je plek automatisch gereserveerd.',
       '14.3 Een strip wordt afgeschreven wanneer Soulful Yoga je aanwezigheid bij een les bevestigt, of bij annulering binnen 24 uur zoals bepaald in artikel 5.4. Het saldo in de app is leidend; meld het bij Soulful Yoga als je denkt dat het niet klopt.',
-      '14.4 In de app worden je naam, e-mailadres, telefoonnummer, strippenkaart, reserveringen en aanwezigheid bewaard. Soulful Yoga gebruikt deze gegevens alleen voor je lessen en deelt ze niet met derden, behalve met de dienstverlener die de app technisch mogelijk maakt (opslag binnen de EU).',
+      '14.4 In de app worden je naam, e-mailadres, telefoonnummer, strippenkaart, reserveringen, aanwezigheid en je chatberichten met Soulful Yoga bewaard. Soulful Yoga gebruikt deze gegevens alleen voor je lessen en deelt ze niet met derden, behalve met de dienstverlener die de app technisch mogelijk maakt (opslag binnen de EU).',
       '14.5 Je kunt je account en de bijbehorende gegevens zelf verwijderen via Profiel → Account verwijderen. Een resterend tegoed op je strippenkaart vervalt daarmee niet; neem daarvoor contact op met Soulful Yoga.',
     ],
   },

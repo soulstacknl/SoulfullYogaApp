@@ -61,6 +61,20 @@
     main{padding:20px 16px 60px;}
     :root{--zoom:.78;}
   }
+  .lock{position:absolute; inset:0; background:linear-gradient(160deg,#2c5a3e,#1F3D2B 55%,#12261a); padding:70px 14px 0; text-align:center; color:#fff;}
+  .lk-date{font:500 15px var(--body); opacity:.85;}
+  .lk-time{font:600 64px/1.1 var(--body); letter-spacing:-1px; margin-bottom:26px;}
+  .push{display:flex; gap:10px; text-align:left; background:rgba(255,255,255,.88); color:var(--ink); border-radius:18px; padding:11px 12px;}
+  .push-ic{width:34px; height:34px; flex:none; border-radius:8px; background:var(--ink); display:flex; align-items:center; justify-content:center;}
+  .push-ic img{width:24px;}
+  .push-body{flex:1;}
+  .push-top{display:flex; justify-content:space-between; font:400 12px var(--body); color:#555;}
+  .push-top b{font-weight:600; color:var(--ink);}
+  .push-txt{font:400 13.5px/1.35 var(--body); margin-top:2px;}
+  .accept{display:flex; align-items:center; gap:12px; border-top:1px solid var(--sand); padding:14px 22px; background:var(--card);}
+  .accept b{display:block; font:600 13px var(--body);} .accept span{font:400 11.5px var(--body); color:var(--mutedText);}
+  .switch{width:44px; height:26px; flex:none; border-radius:13px; background:var(--sand); position:relative;}
+  .switch::after{content:''; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff;}
 </style>
 </head>
 <body>
@@ -136,18 +150,21 @@ const todayLabel = `${WEEKDAYS[now.getDay()]} ${now.getDate()} ${MONTHS[now.getM
 const ICON = {
   rooster:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>',
   videos:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9l6 3-6 3z" fill="currentColor" stroke="none"/></svg>',
+  lessen:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M8.5 14.5l2.5 2.5 4.5-5"/></svg>',
+  berichten:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-4 3.5V17H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/><path d="M8 10h8M8 13h5"/></svg>',
   profiel:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4.5 5-6 8-6s6.5 1.5 8 6"/></svg>',
 };
-const header = ({eyebrow, title, subtitle='', back}) => `
+const header = ({eyebrow, title, subtitle='', back, photo}) => `
   <div class="topbar">
     ${back ? `<div class="back">‹ ${back}</div>` : ''}
     <div class="hrow"><div class="txt">
       ${eyebrow ? `<div class="eyebrow">${eyebrow}</div>` : ''}
       <h1>${title}</h1><p>${subtitle}</p>
-    </div><img src="logo-mark.png" alt=""></div>
+    </div><img src="${photo || 'logo-mark.png'}" class="${photo ? 'hphoto' : ''}" alt=""></div>
   </div>`;
-const tabbar = (on) => `<div class="tabbar">${[['rooster','Rooster'],['videos',"Video's"],['profiel','Profiel']]
-  .map(([k,l]) => `<div class="tab ${on===k?'on':''}">${ICON[k]}${l}</div>`).join('')}</div>`;
+// Video's staat verborgen tot er video's zijn; Berichten neemt die plek in. badge = rood getal op Berichten.
+const tabbar = (on, badge = 2) => `<div class="tabbar">${[['rooster','Rooster'],['lessen','Mijn lessen'],['berichten','Berichten'],['profiel','Profiel']]
+  .map(([k,l]) => `<div class="tab ${on===k?'on':''}">${k === 'berichten' && badge ? `<span class="tdot">${badge}</span>` : ''}${ICON[k]}${l}</div>`).join('')}</div>`;
 const dot = (s, sm) => `<div class="dot ${sm?'sm':''} ${s}">${STYLE[s].dot}</div>`;
 const classCard = (c) => `<div class="ccard">${dot(c.s)}<div class="meta"><div class="nm">${STYLE[c.s].label}</div><div class="tm">${c.t}</div></div>
   <div class="spots ${c.a<=0?'full':''}">${c.a<=0?'Vol':`${c.a}/${c.c} beschikbaar`}</div><div class="chev">›</div></div>`;
@@ -179,17 +196,70 @@ const SCREENS = [
   { id:'les-vol', group:'student', name:'Les vol', src:'components/BookingSheet.tsx',
     html: () => phone(roosterScreen(), sheetBase(`<h2>Flow Yoga</h2><div class="s">Woensdag · 09.00 – 10.00 · Berghem</div>
       <div class="sp" style="color:var(--rani)">Vol</div><div class="desc">${DESC.flow}</div><div class="cta off">Vol — geen plekken meer</div>`)) },
+{ id:'les-ingepland', group:'student', name:'Les-detail — ingepland', src:'components/BookingSheet.tsx',
+    html: () => phone(roosterScreen(), sheetBase(`<h2>Yin Yoga</h2><div class="s">Dinsdag · 19.00 – 20.00 · Berghem</div>
+      <div class="sp">5 / 14 plekken beschikbaar</div><div class="desc">${DESC.yin}</div>
+      <div class="note">✓ Je staat ingepland (vaste les)</div><div class="cta outline">Afmelden voor deze les</div>
+      <div class="cancelhint">Kosteloos afmelden tot 24 uur voor aanvang. Daarna gaat er 1 strip af.</div>`)) },
+  { id:'les-binnen-24', group:'student', name:'Les-detail — binnen 24 uur', src:'components/BookingSheet.tsx',
+    html: () => phone(roosterScreen(), sheetBase(`<h2>Yin Yoga</h2><div class="s">Dinsdag · 19.00 – 20.00 · Berghem</div>
+      <div class="sp">5 / 14 plekken beschikbaar</div><div class="desc">${DESC.yin}</div>
+      <div class="note">✓ Je staat ingepland (vaste les)</div><div class="cta outline">Afmelden voor deze les</div>
+      <div class="cancelhint late">Deze les begint binnen 24 uur: afmelden kost 1 strip.</div>`)) },
+  { id:'afmelden-laat', group:'student', name:'Afmelden binnen 24 uur — bevestigen', src:'components/ConfirmDialog.tsx',
+    html: () => phone(roosterScreen(), `<div class="backdrop center"><div class="wcard"><h3>Afmelden voor deze les?</h3>
+      <p class="sub2" style="margin-bottom:16px">Yin Yoga di 3 nov 19.00. Deze les begint binnen 24 uur. Volgens de voorwaarden wordt er bij afmelden 1 strip afgeschreven.</p>
+      <div class="cta">Afmelden (−1 strip)</div><div class="cancel">Annuleren</div></div></div>`) },
+  { id:'mijn-lessen', group:'student', name:'Mijn lessen', src:'app/(tabs)/lessen.tsx',
+    html: () => phone(screen(header({title:'Mijn lessen', subtitle:'Vaste les: dinsdag 19.00'}) +
+      `<div class="ministrip"><span class="l">Strippenkaart</span><span class="c">6 <small>/ 10 over</small></span></div>
+       <div class="cancelrule">Kosteloos afmelden tot 24 uur voor aanvang. Daarna gaat er 1 strip af.</div>
+       <div class="seg"><div class="on">Komend (7)</div><div>Afgenomen (3)</div></div>
+       <div class="content" style="padding-top:8px">
+       <div class="lcard ${''}dim"><div class="datebox yin"><b>3</b><span>di</span></div><div class="meta"><div class="nm">${STYLE.yin.label}</div><div class="tm">19.00 – 20.00</div><span class="tag open">Afgemeld binnen 24 uur · −1 strip</span></div></div>
+       <div class="lcard ${''}"><div class="datebox yin"><b>10</b><span>di</span></div><div class="meta"><div class="nm">${STYLE.yin.label}</div><div class="tm">19.00 – 20.00</div><span class="tag vast">Vaste les</span></div><div class="obtn">Afmelden</div></div>
+       <div class="lcard ${''}dim"><div class="datebox yin"><b>17</b><span>di</span></div><div class="meta"><div class="nm">${STYLE.yin.label}</div><div class="tm">19.00 – 20.00</div><span class="tag off">Afgemeld · telt niet mee</span></div><div class="obtn teal">Aanmelden</div></div>
+       <div class="lcard ${''}"><div class="datebox flow"><b>18</b><span>wo</span></div><div class="meta"><div class="nm">${STYLE.flow.label}</div><div class="tm">09.00 – 10.00</div><span class="tag los">Losse les</span></div><div class="obtn">Afmelden</div></div></div>`, 'lessen')) },
+  { id:'pushbericht', group:'student', name:'Pushbericht 24 uur voor de les', src:'supabase/migrations/…_lesson_reminders.sql',
+    html: () => phone(`<div class="lock"><div class="lk-date">maandag 2 november</div><div class="lk-time">19:00</div>
+      <div class="push"><div class="push-ic"><img src="logo-mark.png" alt=""></div><div class="push-body"><div class="push-top"><b>Soulful Yoga</b><span>nu</span></div>
+      <div class="push-txt">Morgen om 19.00 heb je Yin Yoga. Namasté 🧘</div></div></div></div>`) },
+  { id:'berichten', group:'student', name:'Berichten (nieuws + chat)', src:'app/(tabs)/berichten.tsx',
+    html: () => phone(screen(header({title:'Berichten', subtitle:'Je chat met Marjolijn en het laatste nieuws'}) +
+      `<div class="pad"><div class="msect"><div class="sect">Chat</div></div>
+       <div class="chatrow unread"><div class="av photo"><img src="marjolijn.jpg" alt="Marjolijn"></div><div class="meta"><div class="top"><span class="nm">Marjolijn</span><span class="tm">12.40</span></div><div class="last">Hoi Marieke, natuurlijk! Er is een plank bij de kapstok.</div></div><span class="cnt">1</span></div>
+       <div class="msect" style="margin-top:18px"><div class="sect">Nieuws</div><a>Alle nieuws ›</a></div><div class="ncard new"><div class="nt">Kerstvakantie</div><div class="nb">Van 21 december tot en met 3 januari is de studio dicht. Je vaste lessen in die periode vervallen en kosten geen strip.</div><div class="nd">31 okt</div></div><div class="ncard "><div class="nt">Nieuw: Gentle Yoga op vrijdagochtend</div><div class="nb">Vanaf deze maand is er op vrijdag om 9.00 een Gentle Yoga-les: rustig bewegen, diep ademen en souplesse.</div><div class="nd">24 okt</div></div></div>`, 'berichten')) },
+  { id:'chat', group:'student', name:'Chat met Marjolijn', src:'app/chat.tsx',
+    html: () => phone(screen(header({back:'Berichten', eyebrow:'Soulful Yoga', title:'Marjolijn', subtitle:'Reageert meestal binnen een dag', photo:'marjolijn.jpg'}) +
+      `<div class="bubbles"><div class="daysep">Gisteren</div>
+        <div class="bub me">Hoi! Mag ik mijn eigen matje voortaan in de studio laten liggen?<small>10.12</small></div>
+        <div class="bub them">Hoi Marieke, natuurlijk! Er is een plank bij de kapstok, zet je naam erop.<small>12.40</small></div>
+        <div class="daysep">Vandaag</div>
+        <div class="bub me">Top, dank je wel! Tot dinsdag 🙏<small>09.03</small></div><div class="seen">Gelezen</div></div>`) +
+      `<div class="chatbar"><div class="cin">Typ een bericht…</div><div class="send off">➤</div></div>`) },
+  { id:'nieuws-item', group:'student', name:'Nieuwsbericht', src:'app/nieuws/[id].tsx',
+    html: () => phone(screen(header({back:'Terug', eyebrow:'Nieuws', title:'Kerstvakantie'}) +
+      `<div class="article"><div class="nd">Zaterdag 31 oktober</div><p>Van 21 december tot en met 3 januari is de studio dicht. Je vaste lessen in die periode vervallen en kosten geen strip. Vanaf maandag 4 januari staan we weer voor je klaar.
+
+Fijne feestdagen! 🎄</p></div>`)) },
+  { id:'push-chat', group:'student', name:'Pushmelding bij een chatbericht', src:'supabase (trigger op messages)',
+    flag:'Bij een nieuw nieuwsbericht kan de beheerder kiezen of iedereen een melding krijgt.',
+    html: () => phone(`<div class="lock"><div class="lk-date">dinsdag 3 november</div><div class="lk-time">12:40</div>
+      <div class="push"><div class="push-ic"><img src="logo-mark.png" alt=""></div><div class="push-body"><div class="push-top"><b>Soulful Yoga</b><span>nu</span></div>
+      <div class="push-txt">💬 Hoi Marieke, natuurlijk! Er is een plank bij de kapstok, zet je naam erop.</div></div></div>
+      <div class="push" style="margin-top:8px"><div class="push-ic"><img src="logo-mark.png" alt=""></div><div class="push-body"><div class="push-top"><b>Soulful Yoga</b><span>2 u geleden</span></div>
+      <div class="push-txt">📣 Kerstvakantie</div></div></div></div>`) },
   { id:'aangevraagd', group:'student', name:'Reservering aangevraagd', src:'components/Toast.tsx',
     html: () => phone(roosterScreen(), `<div class="toast">Reservering aangevraagd ✓</div>`) },
   { id:'videos', group:'student', name:"Video's", src:'app/(tabs)/videos.tsx',
-    flag:"Nog geen video's in de eerste versies; ze volgen later.",
+    flag:"Tijdelijk verborgen: de tab Berichten neemt de plek in tot er video's zijn.",
     html: () => phone(screen(header({title:"Video's", subtitle:'Oefen op jouw moment, in jouw tempo'}) +
       `<div class="soon"><div class="soon-ic"></div><h3>Video's volgen binnenkort</h3><p>Straks kun je hier thuis oefenen met video's van Yin, Flow en Gentle Yoga, op jouw moment en in jouw tempo.</p></div>`, 'videos')) },
   { id:'inloggen', group:'student', name:'Inloggen', src:'components/LoginScreen.tsx',
-    flag:'Er is nog geen "wachtwoord vergeten".',
     html: () => phone(screen(header({title:'Inloggen', subtitle:'Log in om je strippenkaart te bekijken'}) +
       `<div style="padding:24px 20px 20px"><div class="field"><label>E-mailadres</label><div class="in">naam@voorbeeld.nl</div></div>
        <div class="field"><label>Wachtwoord</label><div class="in">••••••••</div></div><div class="cta" style="margin-top:4px">Inloggen</div>
+       <div class="ask-account"><a>Wachtwoord vergeten?</a></div>
        <div class="ask-account">Nog geen account? <a>Account aanvragen</a></div>
        <div class="hint2">Demo-account: marieke@soulfulyoga.nl · yoga123<br>(of daan@soulfulyoga.nl · yoga123 voor een account zonder strippenkaart)</div></div>`, 'profiel')) },
   { id:'account-aanvragen', group:'student', name:'Account aanvragen', src:'app/account-aanvragen.tsx',
@@ -218,6 +288,18 @@ E-mailadres: joke.peters@gmail.com</pre></div>
       `<div class="hero"><div class="avatar"></div><h2>Daan de Vries</h2><p>daan@soulfulyoga.nl</p></div>
        <div class="strip"><div class="l">Strippenkaart</div><div class="c e">Nog geen kaart</div><div class="su">koop een strippenkaart hieronder om te starten</div></div>${prices}${profileFooter}`, 'profiel')) },
 
+  { id:'voorwaarden', group:'student', name:'Algemene voorwaarden', src:'app/voorwaarden.tsx',
+    html: () => phone(screen(header({back:'Terug', eyebrow:'Soulful Yoga', title:'Algemene voorwaarden'}) +
+      `<div class="terms"><div class="ver">Versie 1.0 · november 2026</div>
+       <h3>Artikel 3: Leskaarten, abonnementen en losse lessen</h3><p>3.1 Een 10-strippenkaart is strikt persoonlijk en niet overdraagbaar.</p><p>3.2 Een 10-strippenkaart is maximaal vier maanden geldig vanaf de dag van de eerst afgenomen les.</p>
+       <h3>Artikel 5: Annulering</h3><p>5.4 Annulering van een les kan kosteloos tot 24 uur voor aanvang van de les, via de app of bij Soulful Yoga. Binnen de 24 uur zal bij gebruik van een 10-strippenkaart er 1 les worden afgeschreven.</p>
+       <h3>Artikel 14: De Soulful Yoga-app</h3><p>14.1 Een account voor de app wordt aangemaakt door Soulful Yoga. Je account is persoonlijk; houd je wachtwoord geheim.</p></div>
+       <div class="accept"><div><b>Ik ga akkoord met de algemene voorwaarden</b><span>Zet het schuifje aan om akkoord te gaan</span></div><div class="switch"></div></div>`)) },
+  { id:'wachtwoord-vergeten', group:'student', name:'Wachtwoord vergeten', src:'app/wachtwoord-vergeten.tsx',
+    flag:'De mail komt van info@soulfulyoga.nl (Hostnet) met de knop "Wachtwoord instellen" (supabase/templates/recovery.html).',
+    html: () => phone(screen(header({back:'Inloggen', eyebrow:'Soulful Yoga', title:'Wachtwoord vergeten', subtitle:'We sturen je een link om een nieuw wachtwoord in te stellen'}) +
+      `<div style="padding:24px 20px 20px"><div class="field"><label>E-mailadres</label><div class="in">naam@voorbeeld.nl</div></div><div class="cta" style="margin-top:4px">Stuur link</div></div>`, 'profiel')) },
+
   { id:'admin-rooster', group:'admin', name:'Rooster (beheerder)', src:'app/(tabs)/index.tsx',
     html: () => phone(roosterScreen('Beheerder')) },
   { id:'admin-les', group:'admin', name:'Les-detail (beheerder)', src:'components/BookingSheet.tsx',
@@ -226,6 +308,19 @@ E-mailadres: joke.peters@gmail.com</pre></div>
       <div class="sp">3 / 10 plekken beschikbaar</div><div class="desc">${DESC.yin}</div>
       <div class="panel"><div class="lbl">Beheer plekken</div>${stepRow('Totaal aantal plekken',10)}${stepRow('Beschikbare plekken',3)}</div>
       <div class="cta">Beschikbare plekken beheren</div>`)) },
+  { id:'admin-berichten', group:'admin', name:'Berichten (beheerder)', src:'app/(tabs)/berichten.tsx',
+    html: () => phone(screen(header({eyebrow:'Docentmodus', title:'Berichten', subtitle:'Gesprekken met klanten en nieuws'}) +
+      `<div class="pad"><div class="msect"><div class="sect">Gesprekken</div><a>＋ Nieuw gesprek</a></div>
+       <div class="chatrow unread"><div class="ini">MJ</div><div class="meta"><div class="top"><span class="nm">Marieke Jansen</span><span class="tm">09.03</span></div><div class="last">Top, dank je wel! Tot dinsdag 🙏</div></div><span class="cnt">1</span></div>
+       <div class="chatrow unread"><div class="ini">SV</div><div class="meta"><div class="top"><span class="nm">Sanne Verhoeven</span><span class="tm">08.15</span></div><div class="last">Is er volgende week ook gewoon les op Hemelvaartsdag?</div></div><span class="cnt">1</span></div>
+       <div class="chatrow "><div class="ini">MN</div><div class="meta"><div class="top"><span class="nm">Marjolijn N.</span><span class="tm">gisteren</span></div><div class="last">Jij: Hoi Marjolijn, je hebt nog 5 strippen.</div></div></div>       <div class="msect" style="margin-top:18px"><div class="sect">Nieuws</div><a>＋ Schrijven</a></div><div class="ncard"><div class="nt">Kerstvakantie</div><div class="nb">Van 21 december tot en met 3 januari is de studio dicht. Je vaste lessen in die periode vervallen en kosten geen strip.</div><div class="nd">31 okt</div></div></div>`, 'berichten')) },
+  { id:'nieuws-schrijven', group:'admin', name:'Nieuwsbericht schrijven', src:'app/admin/nieuws.tsx',
+    flag:'In het beheerportaal (laptop) staan hiervoor de pagina\'s Berichten en Nieuws.',
+    html: () => phone(screen(header({back:'Berichten', eyebrow:'Docentmodus', title:'Nieuwsbericht', subtitle:'Iedereen met de app kan het lezen'}) +
+      `<div style="padding:20px"><div class="field"><label>Titel</label><div class="in" style="color:var(--ink)">Zomerrooster</div></div>
+       <div class="field"><label>Bericht</label><div class="in" style="height:130px;color:var(--ink);line-height:1.5">Van 12 juli tot en met 1 augustus is de studio dicht. In de laatste week voor de vakantie is er een extra Flow-les op zaterdag.</div></div>
+       <div class="toggle-row"><div><b>Pushbericht sturen</b><span>Iedereen krijgt een melding op de telefoon</span></div><div class="switch" style="background:var(--teal)"></div></div>
+       <div class="cta">Publiceren</div></div>`)) },
   { id:'admin-profiel', group:'admin', name:'Profiel (beheerder)', src:'app/(tabs)/profiel.tsx',
     html: () => phone(screen(header({eyebrow:'Jouw account', title:'Profiel', subtitle:'Berghem · info@soulfulyoga.nl'}) +
       `<div class="hero"><div class="avatar"></div><h2>Studio Beheer</h2><p>beheer@soulfulyoga.nl</p><div class="badge">Beheerder</div></div>

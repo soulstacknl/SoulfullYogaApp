@@ -1,4 +1,5 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import type { ImageSourcePropType } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, fonts } from '@/constants/theme';
@@ -9,9 +10,11 @@ type ScreenHeaderProps = {
   subtitle: string;
   backLabel?: string;
   onBack?: () => void;
+  // A round photo instead of the logo (e.g. Marjolijn in the chat).
+  photo?: ImageSourcePropType;
 };
 
-export default function ScreenHeader({ eyebrow, title, subtitle, backLabel, onBack }: ScreenHeaderProps) {
+export default function ScreenHeader({ eyebrow, title, subtitle, backLabel, onBack, photo }: ScreenHeaderProps) {
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.topbar, { paddingTop: insets.top + 16 }]}>
@@ -26,11 +29,15 @@ export default function ScreenHeader({ eyebrow, title, subtitle, backLabel, onBa
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.subtitle}>{subtitle}</Text>
         </View>
-        <Image
-          source={require('@/assets/images/logo-mark.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
+        {photo ? (
+          <Image source={photo} style={styles.photo} />
+        ) : (
+          <Image
+            source={require('@/assets/images/logo-mark.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        )}
       </View>
     </View>
   );
@@ -63,6 +70,13 @@ const styles = StyleSheet.create({
   logo: {
     width: 96,
     height: 70,
+  },
+  photo: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.85)',
   },
   eyebrow: {
     fontFamily: fonts.bodySemiBold,

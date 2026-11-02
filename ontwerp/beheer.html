@@ -165,6 +165,31 @@
   .login-card .btn{width:100%; justify-content:center; padding:12px; margin-top:16px;}
   .login-card .hint{font-size:12px; color:var(--mutedText); text-align:center; margin-top:16px; line-height:1.5;}
 
+  /* Berichten */
+  .chatgrid{display:grid; grid-template-columns:minmax(260px, 340px) minmax(0, 1fr); gap:18px; align-items:start;}
+  .convs{padding:12px; max-height:calc(100vh - 170px); overflow-y:auto;}
+  .convs input{width:100%; border:1px solid var(--sand); border-radius:10px; padding:8px 10px; margin-bottom:8px; background:#fff;}
+  .conv{display:flex; gap:10px; align-items:center; padding:10px; border-radius:12px;}
+  .conv:hover{background:#FBF7EF;} .conv.on{background:#E9EEDF;}
+  .conv .ini{width:36px; height:36px; border-radius:50%; background:var(--sand); display:flex; align-items:center; justify-content:center; font:700 12px var(--body); flex:none;}
+  .conv .meta{flex:1; min-width:0;} .conv .top{display:flex; justify-content:space-between; gap:6px;}
+  .conv .nm{font-weight:600;} .conv .tm{font-size:11.5px; color:var(--mutedText); white-space:nowrap;}
+  .conv .last{font-size:12.5px; color:var(--mutedText); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px;}
+  .conv.unread .last{color:var(--ink); font-weight:600;}
+  .conv .cnt{background:var(--rani); color:#fff; font:700 11px var(--body); border-radius:10px; min-width:20px; padding:2px 6px; text-align:center;}
+  .chatpane{display:flex; flex-direction:column; padding:0; overflow:hidden; height:calc(100vh - 170px); min-height:420px;}
+  .chathead{display:flex; align-items:center; gap:12px; padding:14px 18px; border-bottom:1px solid var(--sand);}
+  .chathead .meta{flex:1;} .chathead .nm{font:600 17px var(--display);} .chathead .dt{font-size:12.5px; color:var(--mutedText);}
+  .chatpane .bubbles{flex:1; overflow-y:auto; padding:16px 20px; background:var(--ivory);}
+  .chatpane .bub{max-width:62%;}
+  .chatinput{display:flex; gap:10px; padding:12px 14px; border-top:1px solid var(--sand); align-items:flex-end;}
+  .chatinput textarea{flex:1; border:1px solid var(--sand); border-radius:12px; padding:10px 12px; font:inherit; resize:none; min-height:44px; max-height:140px;}
+  .chatinput textarea:focus,.newsform textarea:focus{outline:2px solid var(--rani); outline-offset:0; border-color:transparent;}
+  .newsform textarea{border:1px solid var(--sand); border-radius:10px; padding:9px 11px; background:#fff; font:400 14px/21px var(--body); min-height:160px; resize:vertical;}
+  .newsitem{padding:14px 0; border-top:1px solid #F1EADC;} .newsitem:first-of-type{border-top:none; padding-top:2px;}
+  .newsitem .nt{font:600 16px var(--display);} .newsitem .nb{color:var(--descText); line-height:1.5; margin:4px 0 8px; white-space:pre-wrap;}
+  .newsitem .nd{font-size:12px; color:var(--mutedText); display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+  @media (max-width:1100px){ .chatgrid{grid-template-columns:1fr;} }
   @media (max-width:1100px){ .grid2{grid-template-columns:1fr;} .cal{grid-template-columns:repeat(2, minmax(0,1fr));} }
   @media (max-width:800px){
     .shell{flex-direction:column;} .side{width:100%; height:auto; position:static;} .nav{flex-direction:row; overflow-x:auto;} .side-foot{display:none;}
@@ -181,6 +206,7 @@
 const AUTH_KEY = 'sy-portal-auth';
 const P = {
   auth: (() => { try { return sessionStorage.getItem(AUTH_KEY); } catch { return null; } })(),
+  chat: null, chatSearch: '', chatDraft: '', chatFocus: false, news: {id: null, title: '', body: '', push: true}, newsError: null,
   page: 'rooster', week: 0, drawer: null, confirm: null, prompt: null, toast: null,
   formKind: 'vast', form: {}, formError: null, loginError: null,
   pres: {date: null, sid: null}, stopDates: {}, addVast: {email: '', weeks: 99}, av: {email: '', walkin: ''}, klantVast: {sid: '', from: '', weeks: 99}, klantError: null, search: '', filters: {les: '', strippen: '', voorwaarden: '', open: ''},
@@ -213,7 +239,7 @@ const sourceTag = (st, d) => {
 function act(msg){ log(`Portaal: ${msg}`); save(); }
 
 // Teller naast een menu-item (open aanvragen, presentie nog te bevestigen).
-const badge = (k) => { const c = k === 'reserveringen' ? S.requests.length : k === 'presentie' ? unconfirmedLessons(14).length : 0; return c ? `<span class="bdg">${c}</span>` : ''; };
+const badge = (k) => { const c = k === 'reserveringen' ? S.requests.length : k === 'presentie' ? unconfirmedLessons(14).length : k === 'berichten' ? studioUnread() : 0; return c ? `<span class="bdg">${c}</span>` : ''; };
 
 /* ── Pagina's ──────────────────────────────────────────────────────── */
 const NAV = [
@@ -222,6 +248,8 @@ const NAV = [
   ['klanten', '👥', 'Klanten'],
   ['beheer', '🛠️', 'Rooster beheren'],
   ['presentie', '✅', 'Presentielijst'],
+  ['berichten', '💬', 'Berichten'],
+  ['nieuws', '📣', 'Nieuws'],
 ];
 
 function rooster(){
@@ -430,7 +458,7 @@ function lessonDrawer({sid, d}){
       <div class="card"><h2>Deelnemers <small>${att.length} met de app · ${(S.roster[sid] || []).length} zonder</small></h2>
         ${att.length ? att.map(({user, st}) => `<div class="list-row" data-act="gotoKlant" data-email="${user.email}" title="Naar klant"><div class="meta"><div class="nm">${esc(user.name)} <span class="go">›</span></div><div class="dt">${user.strippen === null ? 'geen kaart' : `${user.strippen} strippen`} · ${esc(user.email)}</div></div>${sourceTag(st, d)}
           ${!started && st.source !== 'aanvraag' ? `<button class="icon-btn rm" data-act="askRemove" ${at(sid, d)} data-email="${user.email}" title="Afmelden">✕</button>` : ''}</div>`).join('') : '<div class="note">Nog geen app-klanten ingepland.</div>'}
-        ${off.map(u => `<div class="list-row" style="opacity:.6" data-act="gotoKlant" data-email="${u.email}" title="Naar klant"><div class="meta"><div class="nm">${esc(u.name)} <span class="go">›</span></div></div><span class="tag muted">Afgemeld</span></div>`).join('')}
+        ${off.map(u => `<div class="list-row" style="opacity:.6" data-act="gotoKlant" data-email="${u.email}" title="Naar klant"><div class="meta"><div class="nm">${esc(u.name)} <span class="go">›</span></div></div>${cancellationOf(u.email, sid, d)?.charged ? '<span class="tag rani">Afgemeld &lt; 24 uur · −1 strip</span>' : '<span class="tag muted">Afgemeld</span>'}</div>`).join('')}
       </div>
       ${!cl && !started ? `<div class="card"><h2>Vaste klant inplannen <small>vanaf ${shortDate(d)}</small></h2>
         ${o.available > 0 && pickable.length ? `<div class="form-grid"><label class="f full">Klant<select data-av="email"><option value="">Kies een klant…</option>${pickable.map(u => `<option value="${u.email}" ${P.addVast.email === u.email ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}</select></label>
@@ -477,7 +505,7 @@ function klantDrawer({email}){
   const row = (l, isPastRow) => { const s = SES[l.sid];
     let tag;
     if (l.closed) tag = '<span class="tag muted">Vervalt</span>';
-    else if (l.st.cancelled) tag = `<span class="tag muted">Afgemeld</span>`;
+    else if (l.st.cancelled) tag = cancellationOf(email, l.sid, l.d)?.charged ? '<span class="tag rani">Afgemeld &lt; 24 uur · −1 strip</span>' : '<span class="tag muted">Afgemeld</span>';
     else if (isPastRow) { const c = chargeFor(email, l.sid, l.d);
       tag = c === undefined ? '<span class="tag pend">Te bevestigen</span>' : c === 'afwezig' ? '<span class="tag muted">Afwezig</span>' : c === 'open' ? '<span class="tag rani">Openstaand</span>' : '<span class="tag teal">−1 strip</span>'; }
     else tag = l.st.source === 'aanvraag' ? '<span class="tag pend">Aanvraag</span>' : l.st.source === 'vast' ? '<span class="tag teal">Vaste les</span>' : '<span class="tag ink">Losse les</span>';
@@ -487,10 +515,64 @@ function klantDrawer({email}){
       <div class="card"><div class="kv"><span>Strippen</span><span style="display:inline-flex;gap:8px;align-items:center">${stepper('strip', u.strippen ?? 0, `data-email="${email}"`)}<button class="btn sm teal" data-act="askCard" data-email="${email}">+10 nieuwe kaart</button></span></div>
         <div class="kv"><span>Vaste les</span><b>${v ? `${v.day} ${startTime(v)}` : '—'}</b></div>
         <div class="kv"><span>Algemene voorwaarden</span>${u.termsAcceptedAt ? `<span class="tag teal">✓ ${u.termsAcceptedAt}</span>` : '<span class="tag rani">Nog niet akkoord</span>'}</div>
-        <div class="kv"><span>Openstaande lessen</span><b>${openCharges(email) || '—'}</b></div></div>
+        <div class="kv"><span>Openstaande lessen</span><b>${openCharges(email) || '—'}</b></div>
+        <div style="margin-top:8px"><button class="btn sm" data-act="selChat" data-email="${email}">💬 Chat met ${esc(u.name.split(' ')[0])}</button></div></div>
       ${klantVastCard(email)}
       <div class="card"><h2>Komende lessen</h2>${upcoming.length ? upcoming.map(l => row(l, false)).join('') : '<div class="note">Niets ingepland.</div>'}</div>
       <div class="card"><h2>Afgenomen</h2>${past.length ? past.map(l => row(l, true)).join('') : '<div class="note">Nog geen lessen afgenomen.</div>'}</div>
+    </div>`;
+}
+
+/* ── Berichten: 1-op-1 chat met klanten ─────────────────────────────── */
+function berichten(){
+  const q = P.chatSearch.toLowerCase();
+  const convs = conversations();
+  // Een klant zonder gesprek kan via het zoekveld een nieuw gesprek krijgen.
+  const extra = q ? students().filter(u => !convs.some(c => c.email === u.email) && (u.name.toLowerCase().includes(q) || u.email.includes(q))).slice(0, 8) : [];
+  const shown = convs.filter(c => !q || userBy(c.email).name.toLowerCase().includes(q) || c.email.includes(q));
+  const sel = P.chat && userBy(P.chat) ? P.chat : shown[0]?.email;
+  if (sel && unreadForStudio(sel)) { markChatRead(sel, 'studio'); save(); }
+  const k = sel && userBy(sel); const msgs = sel ? chatOf(sel) : [];
+  const lastMine = [...msgs].reverse().find(m => m.from === 'studio');
+  let lastDay = '';
+  const bubbles = msgs.map(m => { const day = isoOf(new Date(m.at));
+    const sep = day !== lastDay ? `<div class="daysep">${day === today() ? 'Vandaag' : dateLabel(day)}</div>` : ''; lastDay = day;
+    return sep + `<div class="bub ${m.from === 'studio' ? 'me' : 'them'}">${esc(m.text)}<small>${msgTime(m.at).split(' ').at(-1)}</small></div>` +
+      (m === lastMine && m === msgs.at(-1) && seenByOther(m) ? '<div class="seen">Gelezen</div>' : ''); }).join('');
+  const v = k && standingOf(k.email);
+  return `<div class="ph"><div><h1>Berichten</h1><p>Chat 1-op-1 met klanten. Ze krijgen een pushmelding bij elk bericht.</p></div></div>
+    <div class="chatgrid">
+      <div class="card convs"><input id="chatSearch" placeholder="Zoek of start een gesprek…" value="${esc(P.chatSearch)}">
+        ${shown.map(c => { const u = userBy(c.email);
+          return `<div class="conv ${c.email === sel ? 'on' : ''} ${c.unread ? 'unread' : ''}" data-act="selChat" data-email="${c.email}"><div class="ini">${initials(u.name)}</div>
+            <div class="meta"><div class="top"><span class="nm">${esc(u.name)}</span><span class="tm">${msgTime(c.last.at)}</span></div><div class="last">${c.last.from === 'studio' ? 'Jij: ' : ''}${esc(c.last.text)}</div></div>
+            ${c.unread ? `<span class="cnt">${c.unread}</span>` : ''}</div>`; }).join('')}
+        ${extra.length ? `<div class="note" style="margin:10px 4px 4px">Nieuw gesprek met</div>${extra.map(u => `<div class="conv" data-act="selChat" data-email="${u.email}"><div class="ini">${initials(u.name)}</div><div class="meta"><div class="nm">${esc(u.name)}</div><div class="last">${esc(u.email)}</div></div></div>`).join('')}` : ''}
+        ${!shown.length && !extra.length ? '<div class="empty">Geen gesprekken gevonden.</div>' : ''}</div>
+      ${k ? `<div class="card chatpane"><div class="chathead"><div class="meta"><div class="nm">${esc(k.name)}</div><div class="dt">${esc(k.email)} · ${v ? `vaste les ${v.day.toLowerCase()} ${startTime(v)}` : 'geen vaste les'} · ${k.strippen === null ? 'geen kaart' : `${k.strippen} strippen`}</div></div>
+          <button class="btn sm" data-act="gotoKlant" data-email="${k.email}">Klantkaart ›</button></div>
+        <div class="bubbles" id="chatScroll">${bubbles || `<div class="empty">Nog geen berichten. Stuur ${esc(k.name.split(' ')[0])} een bericht.</div>`}</div>
+        <div class="chatinput"><textarea id="chatText" rows="1" placeholder="Typ een bericht… (Enter = versturen, Shift+Enter = nieuwe regel)">${esc(P.chatDraft)}</textarea><button class="btn primary" data-act="sendChat" data-email="${k.email}">Versturen</button></div></div>`
+      : '<div class="card"><div class="empty">Kies links een gesprek, of zoek een klant om een nieuw gesprek te starten.</div></div>'}
+    </div>`;
+}
+
+/* ── Nieuws: berichten voor alle klanten ───────────────────────────── */
+function nieuws(){
+  const fm = P.news; const editing = fm.id && newsBy(fm.id);
+  return `<div class="ph"><div><h1>Nieuws</h1><p>Berichten die iedereen in de app kan lezen, onder Berichten.</p></div></div>
+    <div class="grid2">
+      <div class="card"><h2>${editing ? 'Bericht aanpassen' : 'Nieuw bericht'}</h2>
+        <div class="newsform" style="display:flex;flex-direction:column;gap:12px">
+          <label class="f">Titel<input data-nf="title" value="${esc(fm.title)}" placeholder="Bijvoorbeeld: Zomerrooster"></label>
+          <label class="f">Bericht<textarea data-nf="body" placeholder="Wat wil je je klanten laten weten?">${esc(fm.body)}</textarea></label>
+          ${editing ? '' : `<label style="display:flex;gap:8px;align-items:center;font-weight:600;font-size:13px"><input type="checkbox" data-nf="push" ${fm.push ? 'checked' : ''}> Pushmelding sturen naar alle klanten (${students().length})</label>`}
+          ${P.newsError ? `<div class="err">${P.newsError}</div>` : ''}
+          <div style="display:flex;gap:8px"><button class="btn primary" data-act="saveNews">${editing ? 'Opslaan' : 'Publiceren'}</button>${editing ? '<button class="btn" data-act="cancelNews">Annuleren</button>' : ''}</div></div></div>
+      <div class="card"><h2>Gepubliceerd <small>${S.news.length} berichten</small></h2>
+        ${newsList().map(n => `<div class="newsitem"><div class="nt">${esc(n.title)}</div><div class="nb">${esc(n.body)}</div>
+          <div class="nd"><span>${dateLabel(isoOf(new Date(n.at)))}</span>${n.push ? '<span class="tag teal">pushmelding verstuurd</span>' : '<span class="tag muted">zonder pushmelding</span>'}
+            <span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm" data-act="editNews" data-id="${n.id}">Aanpassen</button><button class="btn sm ghost-r" data-act="askDeleteNews" data-id="${n.id}">Verwijderen</button></span></div></div>`).join('') || '<div class="empty">Nog geen nieuws.</div>'}</div>
     </div>`;
 }
 
@@ -508,7 +590,8 @@ function render(){
   const admin = S.users.find(u => u.email === P.auth && u.role === 'admin');
   if (!admin) { app.innerHTML = loginView(); return; }
   const scrollY = window.scrollY;
-  const page = {rooster, reserveringen, klanten, beheer, presentie}[P.page]();
+  const chatFocused = P.chatFocus || document.activeElement?.id === 'chatText';
+  const page = {rooster, reserveringen, klanten, beheer, presentie, berichten, nieuws}[P.page]();
   let overlay = '';
   if (P.drawer) overlay += `<div class="scrim" data-act="closeDrawer"></div><aside class="drawer">${P.drawer.type === 'les' ? lessonDrawer(P.drawer) : klantDrawer(P.drawer)}</aside>`;
   if (P.prompt) overlay += `<div class="modal-bg" data-act="closePrompt"><div class="modal" data-act="noop"><h3>${esc(P.prompt.name)} afmelden voor hoeveel weken?</h3><p>Kies 99 om de vaste les helemaal te stoppen.</p>
@@ -522,6 +605,8 @@ function render(){
       <div class="side-foot"><b>${esc(admin.name)}</b>${esc(admin.email)}<div class="row2"><a href="demo.html" target="_blank">Telefoon-demo ↗</a><a data-act="logout">Uitloggen</a></div></div></nav>
     <main>${page}</main></div>${overlay}`;
   window.scrollTo(0, scrollY);
+  const cs = document.getElementById('chatScroll'); if (cs) cs.scrollTop = cs.scrollHeight;
+  if (chatFocused) { const ct = document.getElementById('chatText'); if (ct) { ct.focus(); ct.setSelectionRange(ct.value.length, ct.value.length); } }
 }
 function toast(msg){ P.toast = msg; render(); clearTimeout(toast.t); toast.t = setTimeout(() => { P.toast = null; render(); }, 2200); }
 
@@ -534,6 +619,24 @@ const resetForm = (kind) => {
     : {day: 'Maandag', from: today(), until: '', date: today(), start: '19:00', end: '20:00', style: 'yin', capacity: 10};
 };
 const ACTIONS = {
+  selChat(el){ P.page = 'berichten'; P.chat = el.dataset.email; P.drawer = null; P.chatDraft = ''; P.chatSearch = ''; P.chatFocus = true; },
+  sendChat(el){
+    const email = el.dataset.email, text = P.chatDraft.trim();
+    if (!text) return 'rendered';
+    sendMessage(email, 'studio', text); markChatRead(email, 'studio');
+    P.chat = email; P.chatDraft = ''; P.chatFocus = true; act(`bericht aan ${userBy(email).name}`);
+  },
+  saveNews(){
+    const title = P.news.title.trim(), body = P.news.body.trim();
+    if (!title || !body) { P.newsError = 'Vul een titel en een bericht in.'; return; }
+    if (P.news.id) { updateNews(P.news.id, {title, body}); act(`nieuwsbericht "${title}" aangepast`); P.toast = 'Opgeslagen ✓'; }
+    else { postNews({title, body, push: P.news.push}); act(`nieuwsbericht "${title}" gepubliceerd${P.news.push ? ' met pushmelding' : ''}`); P.toast = P.news.push ? 'Gepubliceerd en verstuurd ✓' : 'Gepubliceerd ✓'; }
+    P.news = {id: null, title: '', body: '', push: true}; P.newsError = null;
+    setTimeout(() => { P.toast = null; render(); }, 2200);
+  },
+  editNews(el){ const n = newsBy(el.dataset.id); P.news = {id: n.id, title: n.title, body: n.body, push: n.push}; P.newsError = null; window.scrollTo(0, 0); },
+  cancelNews(){ P.news = {id: null, title: '', body: '', push: true}; P.newsError = null; },
+  askDeleteNews(el){ const id = el.dataset.id; P.confirm = {title: 'Nieuwsbericht verwijderen?', text: 'Het bericht verdwijnt voor iedereen uit de app.', ok: 'Verwijderen', run: () => { deleteNews(id); if (P.news.id === id) ACTIONS.cancelNews(); act('nieuwsbericht verwijderd'); }}; },
   noop(){},
   nav(el){ P.page = el.dataset.v; P.drawer = null; window.scrollTo(0, 0); },
   login(){
@@ -651,10 +754,18 @@ document.addEventListener('click', (e) => {
   if (!el || !ACTIONS[el.dataset.act]) return;
   if (ACTIONS[el.dataset.act](el) !== 'rendered') render();
 });
-document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.target.id === 'pEmail' || e.target.id === 'pPw')) { ACTIONS.login(); render(); } });
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && (e.target.id === 'pEmail' || e.target.id === 'pPw')) { ACTIONS.login(); render(); }
+  if (e.key === 'Enter' && !e.shiftKey && e.target.id === 'chatText') { e.preventDefault(); const b = document.querySelector('[data-act="sendChat"]'); if (b) { ACTIONS.sendChat(b); render(); } }
+});
+document.addEventListener('focusin', (e) => { if (e.target.id === 'chatText') P.chatFocus = true; });
+document.addEventListener('focusout', (e) => { if (e.target.id === 'chatText') P.chatFocus = false; });
 document.addEventListener('input', (e) => {
   const t = e.target;
   if (t.dataset.f) P.form[t.dataset.f] = t.value;
+  if (t.id === 'chatText') P.chatDraft = t.value;
+  if (t.dataset.nf) P.news[t.dataset.nf] = t.type === 'checkbox' ? t.checked : t.value;
+  if (t.id === 'chatSearch') { P.chatSearch = t.value; render(); const el = document.getElementById('chatSearch'); el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
   if (t.dataset.av && P.page === 'presentie') P.av[t.dataset.av] = t.value;
   else if (t.dataset.av) P.addVast[t.dataset.av] = t.value;
   if (t.dataset.stop) P.stopDates[t.dataset.stop] = t.value;

@@ -30,6 +30,7 @@ Checklist om de app in de App Store en Google Play te krijgen. ✅ = klaar.
   ```
 
 - ✅ Pushbericht 24 uur voor elke les (database-taak `lesson-reminders`, elke 15 minuten)
+- ✅ Berichten: 1-op-1 chat met Marjolijn en nieuws; pushmeldingen bij chat, nieuws (optioneel) en voor de beheerder bij afmeldingen en aanvragen
 - ⬜ **Firebase voor Android-push:** project op console.firebase.google.com, Android-app `nl.soulfulyoga.app`; `google-services.json` in de projectmap en de service-account-sleutel (FCM V1) uploaden op expo.dev → Credentials → Android
 - ⬜ iPhone-push: push-sleutel (APNs) via het Apple Developer-account, gaat automatisch bij de eerste iOS-build
 

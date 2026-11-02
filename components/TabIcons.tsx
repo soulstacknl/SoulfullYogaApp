@@ -35,6 +35,15 @@ export function VideosIcon({ color, size = 22 }: IconProps) {
   );
 }
 
+export function BerichtenIcon({ color, size = 22 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8}>
+      <Path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-4 3.5V17H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z" />
+      <Path d="M8 10h8M8 13h5" />
+    </Svg>
+  );
+}
+
 export function ProfielIcon({ color, size = 22 }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8}>

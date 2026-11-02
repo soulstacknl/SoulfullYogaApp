@@ -11,17 +11,23 @@ const DESC = {
 };
 // Leeg in de eerste versies: het tabblad Video's toont "volgen binnenkort".
 const VIDEOS = [];
-// CONCEPT — vervang door de echte voorwaarden van Soulful Yoga. [..] = nog in te vullen.
-const TERMS_VERSION = 'Concept · versie 0.1';
+// Gelijk aan data/terms.ts (gebaseerd op soulfulyoga.nl/general-5, plus artikel 14 over de app).
+const TERMS_VERSION = 'Versie 1.0 · november 2026';
 const TERMS = [
-  ['1. Toepasselijkheid', '<p>Deze voorwaarden gelden voor alle lessen, strippenkaarten en reserveringen bij Soulful Yoga, Runselstraat 18, 5351 NJ Berghem. Door een les te reserveren of een strippenkaart te kopen ga je akkoord met deze voorwaarden.</p>'],
-  ['2. Proefles, losse les en strippenkaart', '<ul><li>Een proefles is eenmalig en gratis.</li><li>Een losse les kost €15, een 10-strippenkaart €110.</li><li>Een strippenkaart is [aantal] maanden geldig na aankoop en is persoonsgebonden.</li><li>Niet gebruikte strippen worden niet terugbetaald.</li></ul>'],
-  ['3. Reserveren', '<p>Je reserveert een plek via de app. Een reservering is pas definitief wanneer de docent deze heeft goedgekeurd. Bij het inchecken voor een les wordt één strip afgeschreven.</p>'],
-  ['4. Annuleren', '<p>Je kunt een reservering tot [aantal] uur voor aanvang kosteloos annuleren. Annuleer je later of kom je niet, dan wordt de strip afgeschreven.</p>'],
-  ['5. Gezondheid en eigen verantwoordelijkheid', '<p>Deelname is op eigen risico. Meld lichamelijke klachten, blessures of zwangerschap vóór de les bij de docent. Raadpleeg bij twijfel eerst je huisarts. Soulful Yoga is niet aansprakelijk voor letsel of schade, behalve bij opzet of grove nalatigheid.</p>'],
-  ['6. Rooster en wijzigingen', '<p>Soulful Yoga mag het rooster, de docent of de lesinhoud wijzigen. Valt een les uit, dan krijg je je strip terug of mag je een andere les kiezen.</p>'],
-  ['7. Privacy', '<p>We gebruiken je naam, e-mailadres en telefoonnummer alleen voor je reserveringen en strippenkaart. We delen je gegevens niet met derden. Lees meer in onze privacyverklaring [link].</p>'],
-  ['8. Huisregels', '<ul><li>Kom op tijd, zodat de les rustig kan beginnen.</li><li>Zet je telefoon op stil.</li><li>Neem een handdoek mee; matten zijn aanwezig.</li></ul>'],
+  ['Artikel 1: Definities', '<p>1.1 Soulful Yoga: de gebruiker van deze voorwaarden, gevestigd aan de Runselstraat 18, 5351 NJ Berghem (KvK 89222237), en alle aan Soulful Yoga op enigerlei wijze verbonden ondernemingen en organisaties.</p><p>1.2 Klant: de wederpartij van Soulful Yoga die een product of dienst afneemt.</p>'],
+  ['Artikel 2: Toepasselijkheid en geldigheid', '<p>2.1 Deze algemene voorwaarden zijn van toepassing op alle overeenkomsten waarbij Soulful Yoga als opdrachtnemer optreedt, ook wanneer de Klant lessen reserveert of beheert via de Soulful Yoga-app.</p><p>2.2 Afwijkingen van en aanvullingen op tot stand gekomen overeenkomsten dan wel deze algemene voorwaarden zijn slechts geldig indien en voor zover deze door Soulful Yoga uitdrukkelijk en schriftelijk zijn bevestigd.</p><p>2.3 Indien één of meer bepalingen in deze algemene voorwaarden op enig moment geheel of gedeeltelijk nietig zijn of vernietigd mochten worden, dan blijft het overige in deze algemene voorwaarden bepaalde volledig van toepassing.</p>'],
+  ['Artikel 3: Leskaarten, abonnementen en losse lessen', '<p>3.1 Een 10-strippenkaart is strikt persoonlijk en niet overdraagbaar.</p><p>3.2 Een 10-strippenkaart is maximaal vier maanden geldig vanaf de dag van de eerst afgenomen les.</p><p>3.3 Soulful Yoga verleent geen restitutie op 10-strippenkaarten en abonnementen.</p><p>3.4 Het lesrooster is te vinden in de app en op de website. Dit rooster kan door Soulful Yoga desgewenst worden gewijzigd, ook behoudt Soulful Yoga zich het recht voor lessen te annuleren. Wijzigingen in het lesrooster geven geen recht op restitutie van reeds betaalde leskaarten en abonnementen of verlenging hiervan.</p><p>3.5 Soulful Yoga is tijdens de zomervakantie 3 weken gesloten.</p><p>3.6 Bij zwangerschap of ziekte kan, in overleg vooraf tussen Klant en Soulful Yoga, een restitutie plaatsvinden van de 10-strippenkaart. De reeds afgenomen lessen worden dan berekend als losse lessen (à 15 euro per les), het overige bedrag wordt terugbetaald aan de Klant.</p>'],
+  ['Artikel 4: Workshops en cursussen', '<p>4.1 Een inschrijving voor het volgen van een workshop of cursus wordt door Soulful Yoga aanvaard met het voorbehoud van voldoende inschrijvingen.</p><p>4.2 Klant kan uitsluitend aan de workshop of cursus deelnemen, als vooraf het lesgeld is voldaan.</p><p>4.3 Soulful Yoga behoudt zich het recht voor om ten aanzien van workshops en cursussen organisatorische en inhoudelijke wijzigingen aan te brengen.</p>'],
+  ['Artikel 5: Annulering', '<p>5.1 Annulering van workshops of cursussen kan uitsluitend schriftelijk plaatsvinden.</p><p>5.2 Bij annulering tot 24 uur voor aanvang van de start van een cursus of workshop gegeven door een docent van Soulful Yoga wordt 5 euro administratiekosten in rekening gebracht. Bij annulering nadien is Klant de volledige betaling verschuldigd.</p><p>5.3 Annulering van workshops en cursussen gegeven door een externe docent heeft de volgende consequenties:</p><ul><li>Bij annulering minimaal 12 weken voor aanvang van de workshop of cursus wordt 50% van het lesgeld in rekening gebracht.</li><li>Bij annulering tussen 12 en 6 weken voor aanvang van de workshop of cursus wordt 70% van het lesgeld in rekening gebracht.</li><li>Bij annulering binnen 6 weken voor aanvang van de workshop of cursus is er geen recht op terugbetaling. Ook bij uitval tijdens de workshop of cursus wordt er geen lesgeld gerestitueerd.</li></ul><p>5.4 Annulering van een les kan kosteloos tot 24 uur voor aanvang van de les, via de app of bij Soulful Yoga. Binnen de 24 uur zal bij gebruik van een 10-strippenkaart er 1 les worden afgeschreven. Bij annulering van een privéles binnen 24 uur voor aanvang zal het volledige bedrag in rekening worden gebracht bij de Klant.</p>'],
+  ['Artikel 6: Huisregels', '<p>6.1 Klant moet altijd de volgende huisregels van Soulful Yoga volgen:</p><ul><li>Kom fris naar de yogales. Het gebruik van (geurloze) deodorant wordt zeer op prijs gesteld. In verband met mogelijke allergieën van andere klanten wordt iedereen verzocht geen parfum, aromatherapie-olie of andere geuren te dragen, en geen spray-deodorant in de ruimte te gebruiken.</li><li>Draag schone (yoga)kleding tijdens de yogalessen, waar je makkelijk in kunt bewegen.</li><li>Wij adviseren niet later dan twee uur voor de yogales te eten en in ieder geval geen yoga op een volle maag te beoefenen.</li><li>Geen schoenen in de yogastudio.</li><li>De yogamat dient na gebruik schoongemaakt te worden door de Klant die daarvan gebruik heeft gemaakt.</li><li>De (lichamelijke) integriteit van Klanten en medewerkers van Soulful Yoga dient altijd gerespecteerd te worden. Seksueel gedrag c.q. seksueel getint gedrag wordt door Soulful Yoga niet getolereerd.</li><li>Telefoons dienen op stil gezet te worden tijdens de les.</li><li>Wees op tijd, indien mogelijk minimaal 5 minuten voor aanvang van de les.</li></ul>'],
+  ['Artikel 7: Verplichtingen Soulful Yoga', '<p>7.1 Soulful Yoga behoudt zich het recht voor Klanten die naar haar mening de huisregels, zoals genoemd in artikel 6, niet naleven, van verdere deelneming uit te sluiten. Uitsluiting laat iedere verplichting tot betaling zijdens Klant onverlet.</p><p>7.2 De overeenkomst tussen partijen leidt voor Soulful Yoga tot een inspanningsverplichting, nimmer tot een resultaatsverplichting. Toelating van een Klant op grond van het voldoen aan de verstrekte toelatingsnormen houdt dus geen garantie in dat Klant de les, cursus of workshop met succes zal doorlopen c.q. afronden.</p><p>7.3 Soulful Yoga behoudt zich het recht voor zonder opgaaf van reden een les, cursus of workshop te annuleren of deelname van Klant te weigeren voorafgaand aan de start van een les, cursus, workshop of opleiding.</p><p>7.4 Soulful Yoga kan nimmer gehouden zijn cursussen te herhalen voor Klanten die verhinderd waren deze bij te wonen. De betaling van gemiste lesdagen blijft onverminderd verschuldigd.</p>'],
+  ['Artikel 8: Prijs en betaling', '<p>8.1 De prijzen zijn in euro’s inclusief omzetbelasting, tenzij anders vermeld.</p><p>8.2 Soulful Yoga behoudt zich het recht voor om haar prijzen aan te passen. Aanpassing van de prijzen zal worden gecommuniceerd via de website van Soulful Yoga en mondeling worden gedeeld met de Klant door Soulful Yoga.</p><p>8.3 Soulful Yoga behoudt zich het recht voor een prijsstijging van kostprijsbepalende factoren, welke is ontstaan na het tot stand komen van de overeenkomst, aan Klant door te berekenen.</p><p>8.4 Bij niet-tijdige of niet-volledige betaling is Klant in verzuim zonder dat daartoe een aanmaning of ingebrekestelling is vereist en is Soulful Yoga gerechtigd om haar contractuele verplichtingen op te schorten c.q. Klant de toegang tot het pand te weigeren. Tevens is Soulful Yoga alsdan gerechtigd de overeenkomst te ontbinden.</p><p>8.5 Bij niet-tijdige of niet-volledige betaling is Klant onverminderd het bovenstaande de wettelijke rente verschuldigd over het openstaande bedrag. Daarnaast zijn alle met de invordering van het openstaande bedrag samenvallende kosten, zowel gerechtelijk als buitengerechtelijk, verschuldigd. Eerst nadat Klant het verschuldigde bedrag, vermeerderd met de rente en de kosten, heeft betaald, zal hij/zij weer worden toegelaten.</p>'],
+  ['Artikel 9: Overmacht', '<p>9.1 Onder overmacht wordt verstaan: elke buiten de directe invloed van Soulful Yoga liggende of elk voor haar redelijkerwijs niet voorziene omstandigheid, die de nakoming van de verplichtingen van Soulful Yoga uit de overeenkomst tijdelijk of blijvend verhindert. Dergelijke omstandigheden zijn onder meer: beperkende overheidsmaatregelen, mobilisatie, oorlog, oorlogsgevaar, revolutie, staking, inbeslagneming, beslaglegging, bijzondere weersomstandigheden, gebrek aan vervoermiddelen, dan wel geheel of gedeeltelijk in gebreke blijven van derden wier diensten worden ontvangen.</p><p>9.2 In geval van overmacht heeft Soulful Yoga het recht hetzij de nakoming van haar verplichtingen jegens Klant op te schorten, hetzij de overeenkomst zonder gerechtelijke tussenkomst en zonder zelf tot enige schadevergoeding gehouden te zijn geheel of gedeeltelijk te ontbinden, zulks ter keuze van Soulful Yoga.</p>'],
+  ['Artikel 10: Aansprakelijkheid', '<p>10.1 Het afnemen van de diensten van Soulful Yoga is geheel voor eigen risico van Klant. Bij twijfel aan zijn/haar gezondheid wordt Klant geadviseerd de huisarts te raadplegen. Klant is te allen tijde verplicht om eventuele gezondheidsklachten of andere fysieke bijzonderheden (bijv. zwangerschap, hoge bloeddruk, spier- of gewrichtsklachten) te melden bij de docent. Onderbreek bij fysieke klachten (bijv. pijn, kramp, duizeligheid, misselijkheid) een activiteit en stel de docent of behandelaar daarvan op de hoogte.</p><p>10.2 Soulful Yoga aanvaardt geen enkele aansprakelijkheid voor materiële of immateriële schade als gevolg van enig ongeval of letsel van Klant.</p><p>10.3 Soulful Yoga is niet aansprakelijk voor vermissing, verduistering, diefstal of schade, zowel direct als indirect, respectievelijk van of aan eigendommen van Klant.</p><p>10.4 Schade die door Klant al dan niet opzettelijk of door onoordeelkundig gebruik wordt toegebracht aan eigendommen van Soulful Yoga, dient te worden vergoed.</p><p>10.5 Klant vrijwaart Soulful Yoga voor aanspraken van derden. Klant zal personeelsleden van Soulful Yoga, door Soulful Yoga ingeschakelde derden en personeelsleden van deze derden nimmer aansprakelijk kunnen stellen.</p>'],
+  ['Artikel 11: Opschorting en ontbinding', '<p>11.1 Indien voor het tijdstip van levering van diensten aan Klant blijkt dat laatstgenoemde niet, niet behoorlijk of niet tijdig voldoet aan enige verplichting jegens Soulful Yoga, heeft Soulful Yoga het recht de nakoming van al haar verplichtingen jegens Klant op te schorten dan wel de overeenkomst met Klant, zonder enige ingebrekestelling of gerechtelijke tussenkomst en zonder zelf tot enige schadevergoeding gehouden te zijn, geheel of gedeeltelijk te ontbinden, één en ander onverminderd de overige rechten van Soulful Yoga in een dergelijk geval.</p>'],
+  ['Artikel 12: Auteursrecht en eigendom', '<p>12.1 Van het door Soulful Yoga verstrekte lesmateriaal, waaronder video’s in de app, blijven alle rechten voorbehouden. Niets uit de uitgave(n) mag digitaal worden opgeslagen of openbaar worden gemaakt in enigerlei vorm of enigerlei wijze zonder voorafgaande schriftelijke toestemming van Soulful Yoga. Het is niet toegestaan het lesmateriaal aan derden ter beschikking te stellen.</p>'],
+  ['Artikel 13: Klachten', '<p>13.1 Klachten kunnen schriftelijk of per mail (info@soulfulyoga.nl) worden ingediend onder vermelding van datum, plaats, de situatie waar de klacht betrekking op heeft en je voorstel om tot een oplossing te komen. Soulful Yoga zal binnen vier weken na ontvangst reageren met een voorstel tot oplossing. Bij onduidelijkheid zal Soulful Yoga contact opnemen met de indiener van de klacht. Indien de klacht betrekking heeft op een docent, zal contact opgenomen worden met de docent. Daarna volgt een voorstel ter oplossing van je klacht.</p><p>13.2 Mochten Soulful Yoga en klager het niet eens worden over een oplossing, dan wordt de klacht voorgelegd aan de Geschillencommissie Algemeen van de Stichting Geschillencommissies Consumentenzaken. De uitspraak van de Geschillencommissie is bindend voor partijen.</p><p>13.3 Klachten worden geregistreerd bij Soulful Yoga en worden vertrouwelijk behandeld. Klachten zijn omwille van de privacy alleen inzichtelijk voor direct belanghebbenden.</p>'],
+  ['Artikel 14: De Soulful Yoga-app', '<p>14.1 Een account voor de app wordt aangemaakt door Soulful Yoga. Je account is persoonlijk; houd je wachtwoord geheim.</p><p>14.2 Via de app kun je het rooster bekijken, een plek in een les aanvragen en lessen annuleren. Een aanvraag is pas definitief wanneer Soulful Yoga deze heeft goedgekeurd. Voor je vaste les staat je plek automatisch gereserveerd.</p><p>14.3 Een strip wordt afgeschreven wanneer Soulful Yoga je aanwezigheid bij een les bevestigt, of bij annulering binnen 24 uur zoals bepaald in artikel 5.4. Het saldo in de app is leidend; meld het bij Soulful Yoga als je denkt dat het niet klopt.</p><p>14.4 In de app worden je naam, e-mailadres, telefoonnummer, strippenkaart, reserveringen, aanwezigheid en je chatberichten met Soulful Yoga bewaard. Soulful Yoga gebruikt deze gegevens alleen voor je lessen en deelt ze niet met derden, behalve met de dienstverlener die de app technisch mogelijk maakt (opslag binnen de EU).</p><p>14.5 Je kunt je account en de bijbehorende gegevens zelf verwijderen via Profiel → Account verwijderen. Een resterend tegoed op je strippenkaart vervalt daarmee niet; neem daarvoor contact op met Soulful Yoga.</p>'],
 ];
 
 /* ── Lessen per week — gelijk aan data/schedule.ts ──────────────────── */
@@ -319,8 +325,28 @@ function requestLesson(sid, d, u){
   S.requests.unshift({id:`r-${Date.now()}`, sessionId:sid, date:d, email:u.email, name:u.name});
   return true;
 }
-function cancelLesson(email, sid, d, by){ if (!isCancelled(email, sid, d)) S.cancels.push({sessionId:sid, date:d, email, by}); }
-const undoCancel = (email, sid, d) => { S.cancels = S.cancels.filter(c => !(c.email === email && c.sessionId === sid && c.date === d)); };
+// Voorwaarden art. 5.4: een klant die later dan 24 uur voor aanvang afmeldt, betaalt 1 strip.
+const LATE_CANCEL_HOURS = 24;
+const isLateCancel = (sid, d) => startOf(sid, d) - now() < LATE_CANCEL_HOURS * 3600000;
+const cancellationOf = (email, sid, d) => S.cancels.find(c => c.email === email && c.sessionId === sid && c.date === d);
+function cancelNotice(late, paysStrip){
+  if (!late) return `Kosteloos tot ${LATE_CANCEL_HOURS} uur voor aanvang: er gaat geen strip af.`;
+  if (paysStrip) return `Deze les begint binnen ${LATE_CANCEL_HOURS} uur. Volgens de voorwaarden wordt er bij afmelden 1 strip afgeschreven.`;
+  return `Deze les begint binnen ${LATE_CANCEL_HOURS} uur. Volgens de voorwaarden wordt afmelden binnen ${LATE_CANCEL_HOURS} uur in rekening gebracht.`;
+}
+function cancelLesson(email, sid, d, by){
+  if (isCancelled(email, sid, d)) return;
+  const late = by === 'klant' && isLateCancel(sid, d);
+  const u = userBy(email);
+  const charged = late && (u?.strippen ?? 0) > 0;
+  if (charged) u.strippen--;
+  S.cancels.push({sessionId:sid, date:d, email, by, late, charged});
+}
+// Weer aanmelden: een strip die voor te laat afmelden afging, komt terug.
+const undoCancel = (email, sid, d) => {
+  if (cancellationOf(email, sid, d)?.charged) userBy(email).strippen++;
+  S.cancels = S.cancels.filter(c => !(c.email === email && c.sessionId === sid && c.date === d));
+};
 function addVast(sid, d, email, weeks){
   if (occ(sid, d).available <= 0 || enrollmentOf(email, sid, d)) return false;
   S.enrollments.push({id:`e-${Date.now()}`, sessionId:sid, email, start:d, weeks});
@@ -375,3 +401,58 @@ function adjustSeedStrip(sid, id, delta){ const e = (S.roster[sid] || []).find(x
 
 // Nieuwe demo: de afgelopen weken alvast als bevestigd vastleggen.
 if (S.seedPending) { delete S.seedPending; seedHistory(); save(); }
+
+/* ── Berichten: nieuws van de studio en 1-op-1 chat ────────────────── */
+// S.news: {id, title, body, at, push}. S.messages: {id, email (de klant), from:'klant'|'studio', text, at}.
+// Gelezen tot: S.read[email] = {news, chat} voor de klant, S.studioRead[email] voor de studio.
+const nowIso = () => now().toISOString();
+const agoIso = (days, hours = 0) => new Date(Date.now() - (days * 24 + hours) * 3600000).toISOString();
+function seedMessages(s){
+  s.news = [
+    {id:'n-3', title:'Kerstvakantie', body:'Van 21 december tot en met 3 januari is de studio dicht. Je vaste lessen in die periode vervallen en kosten geen strip. Vanaf maandag 4 januari staan we weer voor je klaar. Fijne feestdagen! 🎄', at:agoIso(2), push:true},
+    {id:'n-2', title:'Nieuw: Gentle Yoga op vrijdagochtend', body:'Vanaf deze maand is er op vrijdag om 9.00 een Gentle Yoga-les: rustig bewegen, diep ademen en souplesse. Fijn als je net begint of na een blessure. Reserveer een plek via het rooster.', at:agoIso(9), push:false},
+    {id:'n-1', title:'Welkom in de Soulful Yoga-app', body:'Vanaf nu regel je alles in de app: je lessen, je strippenkaart en afmelden. Heb je een vraag? Stuur ons een bericht via de chat.', at:agoIso(21), push:true},
+  ];
+  s.messages = [
+    {id:'m-1', email:'marieke@soulfulyoga.nl', from:'klant', text:'Hoi! Mag ik mijn eigen matje voortaan in de studio laten liggen?', at:agoIso(1, 5)},
+    {id:'m-2', email:'marieke@soulfulyoga.nl', from:'studio', text:'Hoi Marieke, natuurlijk! Er is een plank bij de kapstok, zet je naam erop.', at:agoIso(1, 3)},
+    {id:'m-3', email:'marieke@soulfulyoga.nl', from:'klant', text:'Top, dank je wel! Tot dinsdag 🙏', at:agoIso(0, 2)},
+    {id:'m-4', email:'marjolijn_n@hotmail.com', from:'studio', text:'Hoi Marjolijn, je hebt nog 5 strippen. Wil je alvast een nieuwe kaart? Dan zet ik hem klaar voor donderdag.', at:agoIso(0, 4)},
+  ];
+  const other = s.users.find(u => u.role === 'student' && u.email.endsWith('@voorbeeld.nl'));
+  if (other) s.messages.push({id:'m-5', email:other.email, from:'klant', text:'Is er volgende week ook gewoon les op Hemelvaartsdag?', at:agoIso(0, 1)});
+  // Marieke heeft alles gelezen; de studio heeft Mariekes laatste bericht nog niet gezien.
+  s.read = {'marieke@soulfulyoga.nl': {news:agoIso(1), chat:agoIso(1, 2)}};
+  s.studioRead = {'marieke@soulfulyoga.nl': agoIso(1, 3), 'marjolijn_n@hotmail.com': agoIso(0, 4)};
+}
+
+const newsList = () => [...S.news].sort((a, b) => b.at.localeCompare(a.at));
+const newsBy = (id) => S.news.find(n => n.id === id);
+const unreadNews = (email) => S.news.filter(n => n.at > (S.read[email]?.news || '')).length;
+const markNewsRead = (email) => { (S.read[email] ??= {}).news = nowIso(); };
+function postNews({title, body, push}){ const n = {id:`n-${Date.now()}`, title, body, push, at:nowIso()}; S.news.push(n); return n; }
+function updateNews(id, fields){ Object.assign(newsBy(id), fields); }
+function deleteNews(id){ S.news = S.news.filter(n => n.id !== id); }
+
+const chatOf = (email) => S.messages.filter(m => m.email === email).sort((a, b) => a.at.localeCompare(b.at));
+function sendMessage(email, from, text){ const m = {id:`m-${Date.now()}`, email, from, text, at:nowIso()}; S.messages.push(m); return m; }
+// Ongelezen voor de klant (van de studio) of voor de studio (van deze klant).
+const unreadChat = (email) => chatOf(email).filter(m => m.from === 'studio' && m.at > (S.read[email]?.chat || '')).length;
+const unreadForStudio = (email) => chatOf(email).filter(m => m.from === 'klant' && m.at > (S.studioRead[email] || '')).length;
+const markChatRead = (email, side) => { if (side === 'studio') S.studioRead[email] = nowIso(); else (S.read[email] ??= {}).chat = nowIso(); };
+// "Gelezen" onder je eigen laatste bericht: heeft de ander het al geopend?
+const seenByOther = (m) => m.from === 'studio' ? m.at <= (S.read[m.email]?.chat || '') : m.at <= (S.studioRead[m.email] || '');
+// Gesprekken voor de studio, laatste bericht bovenaan.
+const conversations = () => [...new Set(S.messages.map(m => m.email))].filter(userBy)
+  .map(email => ({email, last: chatOf(email).at(-1), unread: unreadForStudio(email)}))
+  .sort((a, b) => b.last.at.localeCompare(a.last.at));
+const studioUnread = () => conversations().filter(c => c.unread).length;
+function msgTime(iso){
+  const d = new Date(iso);
+  const t = `${String(d.getHours()).padStart(2, '0')}.${String(d.getMinutes()).padStart(2, '0')}`;
+  const days = daysBetween(isoOf(d), isoOf(now()));
+  return days <= 0 ? t : days === 1 ? `gisteren ${t}` : `${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)}`;
+}
+
+// Oudere bewaarde demo's krijgen de voorbeeldberichten er alsnog bij.
+if (!S.news) { seedMessages(S); save(); }
