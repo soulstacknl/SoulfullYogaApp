@@ -4,7 +4,7 @@
 // People are keyed by e-mail in the app. Customers only see their own profile, so
 // other customers' rows (needed to count free spots) are keyed by their user id.
 import type { ClassStyle } from '@/constants/theme';
-import type { AppUser, UserRole } from '@/data/users';
+import type { AppUser, CustomerOrigin, UserRole } from '@/data/users';
 import type { Session } from '@/data/schedule';
 import type { Attendee, Charge, Closure, Confirmation, ScheduleData } from '@/lib/schedule';
 import { lessonKey } from '@/lib/schedule';
@@ -36,6 +36,7 @@ export async function loadSnapshot(): Promise<Snapshot> {
         'roster_entries', 'attendance_drafts', 'confirmations', 'attendance_records'].map(rows)
     );
 
+  // Sorted by name: the database returns rows in a different order after each change.
   const users: AppUser[] = profiles.map((p) => ({
     id: p.id,
     email: p.email,
@@ -45,7 +46,8 @@ export async function loadSnapshot(): Promise<Snapshot> {
     total: p.total,
     role: p.role as UserRole,
     termsAcceptedAt: toDutchDate(p.terms_accepted_at),
-  }));
+    origin: (p.origin ?? 'aanvraag') as CustomerOrigin,
+  })).sort((a, b) => a.name.localeCompare(b.name, 'nl'));
   const emailById = new Map(users.map((u) => [u.id, u.email]));
   const key = (userId: string) => emailById.get(userId) ?? userId;
   const nameById = new Map(users.map((u) => [u.id, u.name]));
@@ -195,7 +197,9 @@ export const remote = {
     check(supabase.from('profiles').update({ strippen, ...(total !== undefined && { total }) }).eq('id', userId)),
   setTermsAccepted: (userId: string, acceptedAt: string | null) =>
     check(supabase.from('profiles').update({ terms_accepted_at: toIsoDate(acceptedAt) }).eq('id', userId)),
-  createCustomer: (email: string, name: string, phone: string) =>
-    check(supabase.rpc('admin_create_customer', { p_email: email, p_name: name, p_phone: phone })),
+  adjustStrips: (userId: string, delta: number) => check(supabase.rpc('admin_adjust_strips', { p_id: userId, p_delta: delta })),
+  deleteCustomer: (userId: string) => check(supabase.rpc('admin_delete_customer', { p_id: userId })),
+  createCustomer: (name: string, email: string, phone: string, origin: CustomerOrigin) =>
+    check(supabase.rpc('admin_create_customer', { p_name: name, p_email: email, p_phone: phone, p_origin: origin })),
   deleteOwnAccount: () => check(supabase.rpc('delete_own_account')),
 };

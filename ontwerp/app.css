@@ -314,3 +314,32 @@
 .chatrow .av.photo{background:none; overflow:hidden;}
 .chatrow .av.photo img{width:100%; height:100%; object-fit:cover;}
 .topbar img.hphoto{width:64px; height:64px; border-radius:50%; object-fit:cover; border:2px solid rgba(255,255,255,.85);}
+/* Maandkalender boven het rooster */
+.mcal{background:var(--card); border:1px solid var(--sand); border-radius:18px; padding:10px 8px; margin:14px 0 4px;}
+.mcal .wk{display:grid; grid-template-columns:repeat(7,1fr);}
+.mcal .wd{text-align:center; font:600 11px var(--body); color:var(--mutedText); text-transform:uppercase; margin-bottom:4px;}
+.mcal .cell{display:flex; flex-direction:column; align-items:center; padding:5px 0; border-radius:12px; min-height:40px;}
+.mcal .cell.today{background:#E9EEDF;}
+.mcal .cell[data-act]{cursor:pointer;}
+.mcal .num{font:400 14px var(--body); color:var(--ink);}
+.mcal .num.les{font-weight:600;}
+.mcal .num.past{color:#BACDC0;}
+.mcal .dots{display:flex; gap:3px; margin-top:3px; height:6px;}
+.mcal .dots i{width:6px; height:6px; border-radius:50%; display:block;}
+.mcal .dots i.yin{background:var(--teal);} .mcal .dots i.flow{background:var(--rani);} .mcal .dots i.gentle{background:var(--marigold);}
+.mcal .dots.past i{opacity:.35;}
+.mcal .legend{display:flex; justify-content:center; flex-wrap:wrap; gap:14px; margin-top:6px; padding-top:8px; border-top:1px solid #F1EADC; font:400 11.5px var(--body); color:var(--mutedText);}
+.mcal .legend span{display:flex; align-items:center; gap:5px;}
+/* Klanten: kleur van de initialen = herkomst */
+.ini.org-aanvraag{background:#EAF3EE; color:var(--teal);}
+.ini.org-beheer{background:#FCF1DE; color:#9A6512;}
+.orglegend{display:flex; gap:16px; margin:0 2px 10px; font:400 12px var(--body); color:var(--mutedText);}
+.orglegend span{display:flex; align-items:center; gap:6px;}
+.orglegend i{width:12px; height:12px; border-radius:50%; display:block;}
+.tag.org-aanvraag{background:#EAF3EE; color:var(--teal);} .tag.org-beheer{background:#FCF1DE; color:#9a6512;}
+.seg2{display:flex; background:#EFE6D6; border-radius:12px; padding:3px; margin-bottom:14px;}
+.seg2 div{flex:1; text-align:center; padding:8px 0; border-radius:10px; font:600 12.5px var(--body); color:var(--mutedText);}
+.seg2 div.on{background:var(--card); color:var(--ink);}
+.facts{background:var(--card); border:1px solid var(--sand); border-radius:16px; padding:6px 14px; margin:14px 0;}
+.facts div{display:flex; justify-content:space-between; gap:12px; padding:7px 0; font:400 13px var(--body); color:var(--mutedText);}
+.facts b{font-weight:600; color:var(--ink); text-align:right;}

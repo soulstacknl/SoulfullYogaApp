@@ -5,7 +5,7 @@ export default function AdminLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="roster" />
-      <Stack.Screen name="strippen" />
+      <Stack.Screen name="klanten" />
       <Stack.Screen name="rooster-beheer" />
       <Stack.Screen name="les-form" />
       <Stack.Screen name="vervallen" />

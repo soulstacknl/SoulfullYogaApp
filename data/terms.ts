@@ -1,6 +1,6 @@
 // Soulful Yoga's general terms, based on https://www.soulfulyoga.nl/general-5,
 // with article 14 added for the app.
-export const TERMS_VERSION = 'Versie 1.0 · november 2026';
+export const TERMS_VERSION = 'Versie 1.1 · november 2026';
 
 export type TermsSection = {
   title: string;
@@ -49,7 +49,7 @@ export const terms: TermsSection[] = [
     title: 'Artikel 5: Annulering',
     paragraphs: [
       '5.1 Annulering van workshops of cursussen kan uitsluitend schriftelijk plaatsvinden.',
-      '5.2 Bij annulering tot 24 uur voor aanvang van de start van een cursus of workshop gegeven door een docent van Soulful Yoga wordt 5 euro administratiekosten in rekening gebracht. Bij annulering nadien is Klant de volledige betaling verschuldigd.',
+      '5.2 Annulering tot 24 uur voor aanvang van een cursus of workshop gegeven door een docent van Soulful Yoga is kosteloos. Bij annulering nadien is Klant de volledige betaling verschuldigd.',
       '5.3 Annulering van workshops en cursussen gegeven door een externe docent heeft de volgende consequenties:',
     ],
     bullets: [

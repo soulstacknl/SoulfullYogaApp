@@ -1,6 +1,7 @@
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import AdminLessonPanel from '@/components/AdminLessonPanel';
 import type { ConfirmRequest } from '@/components/ConfirmDialog';
 import Stepper from '@/components/Stepper';
 import { colors, fonts, styleMeta } from '@/constants/theme';
@@ -16,22 +17,21 @@ type BookingSheetProps = {
   selection: LessonSelection | null;
   onClose: () => void;
   onLoginRequired: () => void;
-  onManageSpots: (selection: LessonSelection) => void;
   onConfirm: (request: ConfirmRequest) => void;
   onToast: (message: string) => void;
 };
 
 // Lesson details for one date. Customers book, cancel or rejoin here; the admin
-// adjusts that date's capacity, opens the attendee list or cancels the lesson.
+// adjusts that date's capacity, sees and changes the attendee list, or cancels the lesson.
 export default function BookingSheet({
   selection,
   onClose,
   onLoginRequired,
-  onManageSpots,
   onConfirm,
   onToast,
 }: BookingSheetProps) {
   const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
   const user = useCurrentUser();
   const schedule = useSchedule();
   const session = selection ? schedule.sessionById(selection.sessionId) : undefined;
@@ -55,7 +55,8 @@ export default function BookingSheet({
         <Text style={[styles.spots, isFull && styles.spotsFull]}>
           {isFull ? 'Vol' : `${occupancy.available} / ${occupancy.capacity} plekken beschikbaar`}
         </Text>
-        <Text style={styles.desc}>{classDescriptions[session.style]}</Text>
+        {/* The admin knows the lesson; customers get the description. */}
+        {user?.role !== 'admin' ? <Text style={styles.desc}>{classDescriptions[session.style]}</Text> : null}
       </>
     );
 
@@ -101,7 +102,7 @@ export default function BookingSheet({
               <Text style={styles.bookedValue}>{occupancy.booked}</Text>
             </View>
           </View>
-          <SheetButton label="Deelnemers beheren" onPress={() => onManageSpots(selection)} />
+          <AdminLessonPanel session={session} date={date} onToast={onToast} />
           {!started ? (
             <SheetButton
               label="Les laten vervallen op deze datum"
@@ -231,7 +232,13 @@ export default function BookingSheet({
             <Text style={styles.closeXText}>✕</Text>
           </Pressable>
           <View style={styles.handle} />
-          {renderBody()}
+          {user?.role === 'admin' ? (
+            <ScrollView style={{ maxHeight: height * 0.78 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              {renderBody()}
+            </ScrollView>
+          ) : (
+            renderBody()
+          )}
         </Pressable>
       </Pressable>
     </Modal>

@@ -85,9 +85,9 @@ export default function ProfielScreen() {
                 <Text style={styles.adminActionText}>Rooster beheren</Text>
                 <Text style={styles.adminActionChevron}>›</Text>
               </Pressable>
-              <Pressable style={styles.adminActionBtn} onPress={() => router.push('/admin/strippen')}>
-                <Text style={styles.adminActionIcon}>🎟️</Text>
-                <Text style={styles.adminActionText}>Strippenkaart beheren</Text>
+              <Pressable style={styles.adminActionBtn} onPress={() => router.push('/admin/klanten')}>
+                <Text style={styles.adminActionIcon}>👥</Text>
+                <Text style={styles.adminActionText}>Klanten beheren</Text>
                 <Text style={styles.adminActionChevron}>›</Text>
               </Pressable>
               <Pressable style={styles.adminActionBtn} onPress={() => router.push('/admin/reserveringen')}>

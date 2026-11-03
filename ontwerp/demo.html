@@ -133,6 +133,23 @@ function spotLabel(sid, d){
   const o = occ(sid, d);
   return o.available <= 0 ? ['Vol', 'full'] : [`${o.available}/${o.cap} beschikbaar`, ''];
 }
+// Maandoverzicht: raster ma–zo met een gekleurd bolletje per les; tik op een dag om erheen te springen.
+function monthCalendar(m){
+  const first = monthStart(m); const today = isoOf(now());
+  const lead = (first.getDay() + 6) % 7;
+  const days = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+  const cells = [...Array(lead).fill(null), ...Array.from({length: days}, (_, i) => isoOf(new Date(first.getFullYear(), first.getMonth(), i + 1)))];
+  while (cells.length % 7) cells.push(null);
+  const lessons = (d) => sessionsOn(d).filter(s => !closureOf(s.id, d)).map(s => s.style);
+  const used = ['yin', 'flow', 'gentle'].filter(st => cells.some(d => d && lessons(d).includes(st)));
+  return `<div class="mcal"><div class="wk">${['ma','di','wo','do','vr','za','zo'].map(w => `<div class="wd">${w}</div>`).join('')}</div>
+    ${Array.from({length: cells.length / 7}, (_, w) => `<div class="wk">${cells.slice(w * 7, w * 7 + 7).map(d => {
+      if (!d) return '<div class="cell"></div>';
+      const ls = lessons(d); const past = d < today;
+      return `<div class="cell ${d === today ? 'today' : ''}" ${!past && ls.length ? `data-act="calDay" data-date="${d}"` : ''}>
+        <span class="num ${past ? 'past' : ls.length ? 'les' : ''}">${Number(d.slice(8))}</span><span class="dots ${past ? 'past' : ''}">${ls.slice(0, 3).map(st => `<i class="${st}"></i>`).join('')}</span></div>`; }).join('')}</div>`).join('')}
+    ${used.length ? `<div class="legend">${used.map(st => `<span><span class="dots"><i class="${st}"></i></span>${STYLE[st].label}</span>`).join('')}</div>` : ''}</div>`;
+}
 function roosterTab(){
   const m = UI.month;
   const label = (o) => { const d = monthStart(o); return `${cap1(MONTHS[d.getMonth()])} ${d.getFullYear()}`; };
@@ -142,14 +159,14 @@ function roosterTab(){
     <div class="mbtn ${m === MONTHS_AHEAD ? 'off' : ''}" ${m === MONTHS_AHEAD ? '' : 'data-act="month" data-d="1"'}>›</div></div>`;
   const days = monthDays(m);
   const h = days.length ? days.map(({d, classes}, i) =>
-    `<div class="day ${i === 0 ? 'first' : ''} ${i > 0 && toDate(d).getDay() === 1 ? 'week' : ''}">${dateLabel(d)}</div>` +
+    `<div class="day ${i === 0 ? 'first' : ''} ${i > 0 && toDate(d).getDay() === 1 ? 'week' : ''}" id="day-${d}">${dateLabel(d)}</div>` +
     classes.map(c => { const [txt, cls] = spotLabel(c.id, d);
       const cl = closureOf(c.id, d);
       return `<div class="ccard ${cl ? 'closed' : ''}" data-act="openClass" ${at(c.id, d)}>${dot(c.style)}<div class="meta"><div class="nm">${STYLE[c.style].label}${isExtra(c) ? ' <span class="tag pend" style="margin:0 0 0 4px">Extra</span>' : ''}</div><div class="tm">${c.time}${cl ? ` · ${esc(cl.reason)}` : ''}</div></div>
         <div class="spots ${cls}">${txt}</div><div class="chev">›</div></div>`; }).join('')).join('')
     : `<div class="empty" style="margin-top:36px">Geen lessen meer in ${MONTHS[monthStart(m).getMonth()]}.</div>
        ${m < MONTHS_AHEAD ? `<div class="cta" style="margin-top:18px" data-act="month" data-d="1">Bekijk ${MONTHS[monthStart(m + 1).getMonth()]} ›</div>` : ''}`;
-  return header({eyebrow: isAdmin() ? 'Beheerder' : undefined, title:'Soulful Yoga', subtitle:'Meer rust en ruimte voor jezelf'}) + nav + `<div class="content">${h}</div>`;
+  return header({eyebrow: isAdmin() ? 'Beheerder' : undefined, title:'Soulful Yoga', subtitle:'Meer rust en ruimte voor jezelf'}) + nav + `<div class="content">${monthCalendar(m)}${h}</div>`;
 }
 
 /* ── Tab: Mijn lessen ───────────────────────────────────────────────── */
@@ -271,7 +288,7 @@ function profielTab(){
     <div class="aactions">
       <div class="abtn" data-act="push" data-v="vandaag"><span class="ic">✅</span><span class="t">Vandaag · presentielijst</span>${unconfirmedLessons().length ? `<span class="bdg">${unconfirmedLessons().length}</span>` : ''}<span class="chev">›</span></div>
       <div class="abtn" data-act="push" data-v="rooster-beheer"><span class="ic">🗓️</span><span class="t">Rooster beheren</span><span class="chev">›</span></div>
-      <div class="abtn" data-act="push" data-v="strippen"><span class="ic">🎟️</span><span class="t">Strippenkaart beheren</span><span class="chev">›</span></div>
+      <div class="abtn" data-act="push" data-v="klanten"><span class="ic">👥</span><span class="t">Klanten beheren</span><span class="chev">›</span></div>
       <div class="abtn" data-act="push" data-v="reserveringen"><span class="ic">📨</span><span class="t">Reservering aanvragen</span>${S.requests.length ? `<span class="bdg">${S.requests.length}</span>` : ''}<span class="chev">›</span></div>
       <div class="abtn" data-act="push" data-v="voorwaarden-overzicht"><span class="ic">📄</span><span class="t">Algemene voorwaarden<small class="abtn-sub">${termsCount()}</small></span><span class="chev">›</span></div>
     </div>${profileFooter}`;
@@ -459,43 +476,33 @@ const STACK = {
       </div>`;
   },
 
-  strippen: () => header({back:'Terug', eyebrow:'Docentmodus', title:'Strippenkaarten', subtitle:'Pas het aantal strippen aan'}) +
-    `<div class="pad">${students().map(u => { const v = vastLabel(u); return `<div class="row tight"><div class="ini">${initials(u.name)}</div>
-      <div class="meta"><div class="nm">${esc(u.name)}</div><div class="st">${u.strippen ?? 0} lessen over${v ? ` · vast: ${v}` : ''}</div></div>
-      <div class="adj"><div class="circ" data-act="userStrip" data-email="${u.email}" data-d="-1">–</div><div class="circ" data-act="userStrip" data-email="${u.email}" data-d="1">+</div><div class="obtn teal" data-act="askCard" data-email="${u.email}">+10</div></div></div>`; }).join('')}</div>`,
+  // Volledig klantenbestand: strippen, klanten toevoegen (ook zonder app) en verwijderen.
+  klanten: () => {
+    const q = (UI.form.kq || '').toLowerCase();
+    const list = students().filter(u => !q || u.name.toLowerCase().includes(q) || u.email.includes(q));
+    const f = UI.form; const origin = f.origin || 'beheer';
+    const form = UI.adding ? `<div class="row" style="display:block"><div class="sect" style="padding:0;margin-bottom:10px">Klant toevoegen</div>
+      <div class="seg2">${['beheer', 'aanvraag'].map(o => `<div class="${origin === o ? 'on' : ''}" data-act="setOrigin" data-v="${o}">${ORIGIN_LABEL[o]}</div>`).join('')}</div>
+      <div class="field"><label>Naam</label><input type="text" data-f="name" value="${esc(f.name || '')}" placeholder="Voor- en achternaam"></div>
+      <div class="field"><label>E-mailadres${origin === 'aanvraag' ? '' : ' (optioneel)'}</label><input type="email" data-f="email" value="${esc(f.email || '')}" placeholder="naam@voorbeeld.nl"></div>
+      <div class="field"><label>Telefoon (optioneel)</label><input type="text" data-f="phone" value="${esc(f.phone || '')}" placeholder="06 12345678"></div>
+      <div class="small-note">${origin === 'aanvraag' ? 'De klant krijgt een mail om een wachtwoord in te stellen en kan daarna inloggen in de app.' : 'Voor een klant zonder de app: je houdt strippen en lessen zelf bij. Er gaat geen mail naar de klant.'}</div>
+      ${UI.formError ? `<div class="err">${UI.formError}</div>` : ''}
+      <div class="cta" data-act="addCustomer">Toevoegen</div><div class="logout" data-act="cancelAdd">Annuleren</div></div>`
+      : '<div class="cta" style="margin-bottom:12px" data-act="startAdd">＋ Klant toevoegen</div>';
+    return header({back:'Terug', eyebrow:'Docentmodus', title:'Klanten', subtitle:`${students().length} klanten · strippen, toevoegen en verwijderen`}) +
+      `<div class="pad">${form}
+        <div class="field" style="margin-bottom:10px"><input type="text" data-f="kq" value="${esc(f.kq || '')}" placeholder="Zoek op naam of e-mail"></div>
+        <div class="orglegend"><span><i style="background:#CFE7DA"></i>${ORIGIN_LABEL.aanvraag}</span><span><i style="background:#F6DDAF"></i>${ORIGIN_LABEL.beheer}</span></div>
+        ${list.map(u => { const v = vastLabel(u); return `<div class="row tight"><div class="ini org-${u.origin}" data-act="openKlant" data-email="${u.email}">${initials(u.name)}</div>
+          <div class="meta" data-act="openKlant" data-email="${u.email}"><div class="nm">${esc(u.name)}</div><div class="st">${u.strippen === null ? 'geen kaart' : `${u.strippen} lessen over`}${v ? ` · vast: ${v}` : ''}</div></div>
+          <div class="adj"><div class="circ" data-act="userStrip" data-email="${u.email}" data-d="-1">–</div><div class="circ" data-act="userStrip" data-email="${u.email}" data-d="1">+</div><div class="obtn teal" data-act="askCard" data-email="${u.email}">+10</div></div></div>`; }).join('') || '<div class="empty">Geen klant gevonden.</div>'}</div>`;
+  },
 
   reserveringen: () => header({back:'Terug', eyebrow:'Docentmodus', title:'Reserveringen', subtitle:'Tik op een aanvraag om te beoordelen'}) +
     `<div class="pad">${S.requests.length ? S.requests.map(r => { const s = SES[r.sessionId]; return `<div class="row" style="gap:14px" data-act="openRequest" data-id="${r.id}">${dot(s.style, true)}
       <div class="meta"><div class="nm">${esc(r.name)}</div><div class="dt">${STYLE[s.style].label} · ${dateLabel(r.date)} · ${s.time}</div><div class="em">${esc(r.email)}</div></div><div class="chev">›</div></div>`; }).join('')
       : '<div class="empty" style="margin-top:40px">Nog geen aanvragen</div>'}</div>`,
-
-  plekken: ({sid, d}) => {
-    const s = SES[sid]; const o = occ(sid, d); const started = hasStarted(sid, d);
-    const top = header({back:'Terug', eyebrow:STYLE[s.style].label, title:s.time, subtitle:`${dateLabel(d)} · ${o.available} / ${o.cap} plekken vrij`});
-    if (UI.picking) {
-      const pickable = students().filter(u => !enrollmentOf(u.email, sid, d));
-      return top + `<div class="pad"><div class="sect" style="padding:0;margin-bottom:6px">Kies een vaste klant</div>
-        <div class="small-note">Wordt ingepland vanaf ${dateLabel(d)}, elke ${s.day.toLowerCase()}.</div>
-        ${pickable.length ? pickable.map(u => `<div class="row" data-act="pickUser" data-email="${u.email}"><div class="meta"><div class="nm">${esc(u.name)}</div><div class="dt">${esc(u.email)}</div><div class="dt">${u.phone}</div></div><div class="chev">›</div></div>`).join('')
-          : '<div class="empty">Alle klanten zijn al vaste klant</div>'}
-        <div class="logout" style="margin-top:10px" data-act="stopPick">Terug naar overzicht</div></div>`;
-    }
-    const att = attendees(sid, d);
-    const off = students().filter(u => statusFor(u.email, sid, d)?.cancelled);
-    const canAdd = o.available > 0 && !started;
-    const srcLabel = (st) => {
-      if (st.source === 'aanvraag') return '<span class="tag pend">Aanvraag</span>';
-      if (st.source === 'los') return '<span class="tag los">Losse les</span>';
-      const left = st.enrollment.weeks - daysBetween(st.enrollment.start, d) / 7;
-      return `<span class="tag vast">Vaste klant${st.enrollment.weeks >= 99 ? '' : ` · nog ${left} ${left === 1 ? 'week' : 'weken'}`}</span>`;
-    };
-    return top + `<div class="pad"><div class="cta ${canAdd ? '' : 'off'}" style="margin-bottom:16px" ${canAdd ? 'data-act="startPick"' : ''}>${started ? 'Les is al begonnen' : o.available > 0 ? '+ Vaste klant toevoegen' : 'Vol — geen plekken meer'}</div>
-      <div class="sect" style="padding:0;margin-bottom:10px">Ingepland op ${dateLabel(d).toLowerCase()}</div>
-      ${att.map(({user, st}) => `<div class="row"><div class="meta"><div class="nm">${esc(user.name)}</div><div class="dt">${esc(user.email)}</div>${srcLabel(st)}</div>
-        ${!started && st.source !== 'aanvraag' ? `<div class="circ rm" data-act="askRemove" data-email="${user.email}">✕</div>` : ''}</div>`).join('')}
-      ${off.map(u => `<div class="row" style="opacity:.6"><div class="meta"><div class="nm">${esc(u.name)}</div><div class="dt">${esc(u.email)}</div>${cancellationOf(u.email, sid, d)?.charged ? '<span class="tag open">Afgemeld &lt; 24 uur · −1 strip</span>' : '<span class="tag off">Afgemeld</span>'}</div></div>`).join('')}
-      <div class="small-note" style="margin-top:8px">${att.length ? '' : 'Nog geen app-klanten ingepland. '}+ ${(S.roster[sid] || []).length} vaste deelnemers op de presentielijst.</div></div>`;
-  },
 
   // Docentmodus: lessen van vandaag + eerdere lessen waarvan de presentie nog bevestigd moet worden.
   vandaag: () => {
@@ -542,10 +549,44 @@ const STACK = {
 
 /* ── Overlays ───────────────────────────────────────────────────────── */
 const sheetWrap = (inner) => `<div class="backdrop" data-act="closeSheet"><div class="sheet" data-act="noop"><div class="x" data-act="closeSheet">✕</div><div class="handle"></div>${inner}</div></div>`;
+// De beheerder ziet in het lesvenster alle deelnemers, met daaronder "Klant toevoegen".
+function participantsPanel(sid, d){
+  const o = occ(sid, d); const started = hasStarted(sid, d);
+  if (UI.picking) {
+    const q = (UI.pickQ || '').toLowerCase();
+    const pickable = students().filter(u => !enrollmentOf(u.email, sid, d) && !attendees(sid, d).some(a => a.user.email === u.email))
+      .filter(u => !q || u.name.toLowerCase().includes(q) || u.email.includes(q)).slice(0, 30);
+    return `<div class="sect" style="padding:0;margin:4px 0 6px">Klant toevoegen</div>
+      <div class="small-note">Vanaf ${shortDate(d)} elke ${SES[sid].day.toLowerCase()}. Kies 1 week voor een losse les.</div>
+      <div class="field" style="margin-bottom:10px"><input type="text" id="pickQ" value="${esc(UI.pickQ || '')}" placeholder="Zoek op naam of e-mail"></div>
+      ${pickable.length ? pickable.map(u => `<div class="row tight" data-act="pickUser" data-email="${u.email}"><div class="meta"><div class="nm">${esc(u.name)}</div><div class="dt">${u.strippen === null ? 'geen kaart' : `${u.strippen} strippen`}</div></div><div class="chev">›</div></div>`).join('')
+        : '<div class="empty">Geen klant gevonden.</div>'}
+      <div class="logout" style="margin-top:6px" data-act="stopPick">Terug naar deelnemers</div>`;
+  }
+  const att = attendees(sid, d);
+  const off = students().filter(u => statusFor(u.email, sid, d)?.cancelled);
+  const canAdd = o.available > 0 && !started;
+  const srcLabel = (st) => {
+    if (st.source === 'aanvraag') return '<span class="tag pend">Aanvraag</span>';
+    if (st.source === 'los') return '<span class="tag los">Losse les</span>';
+    const left = st.enrollment.weeks - daysBetween(st.enrollment.start, d) / 7;
+    return `<span class="tag vast">Vaste klant${st.enrollment.weeks >= 99 ? '' : ` · nog ${left} ${left === 1 ? 'week' : 'weken'}`}</span>`;
+  };
+  return `<div class="sect" style="padding:0;margin:4px 0 8px">Deelnemers · ${o.booked} / ${o.cap}</div>
+    ${att.length ? '' : '<div class="empty" style="margin:6px 0 10px">Nog niemand ingepland.</div>'}
+    ${att.map(({user, st}) => `<div class="row tight"><div class="meta"><div class="nm">${esc(user.name)}</div>${srcLabel(st)}</div>
+      ${!started && st.source !== 'aanvraag' ? `<div class="circ rm" data-act="askRemove" data-email="${user.email}">✕</div>` : ''}</div>`).join('')}
+    ${off.map(u => `<div class="row tight" style="opacity:.6"><div class="meta"><div class="nm">${esc(u.name)}</div>${cancellationOf(u.email, sid, d)?.charged ? '<span class="tag open">Afgemeld &lt; 24 uur · −1 strip</span>' : '<span class="tag off">Afgemeld</span>'}</div></div>`).join('')}
+    <div class="cta ${canAdd ? '' : 'off'}" style="margin-top:6px" ${canAdd ? 'data-act="startPick"' : ''}>${started ? 'Les is al begonnen' : canAdd ? '＋ Klant toevoegen' : 'Vol — geen plekken meer'}</div>`;
+}
 function bookingSheet({sid, d}){
+  if (isAdmin()) return bookingSheetBody({sid, d}).replace('class="sheet"', 'class="sheet" style="max-height:82%;overflow-y:auto"');
+  return bookingSheetBody({sid, d});
+}
+function bookingSheetBody({sid, d}){
   const s = SES[sid]; const u = me(); const o = occ(sid, d); const started = hasStarted(sid, d);
   let body = `<h2>${STYLE[s.style].label}</h2><div class="s">${dateLabel(d)} · ${s.time} · Berghem</div>
-    <div class="sp" ${o.available <= 0 ? 'style="color:var(--rani)"' : ''}>${o.available <= 0 ? 'Vol' : `${o.available} / ${o.cap} plekken beschikbaar`}</div><div class="desc">${DESC[s.style]}</div>`;
+    <div class="sp" ${o.available <= 0 ? 'style="color:var(--rani)"' : ''}>${o.available <= 0 ? 'Vol' : `${o.available} / ${o.cap} plekken beschikbaar`}</div>${isAdmin() ? '' : `<div class="desc">${DESC[s.style]}</div>`}`;
   const cl = closureOf(sid, d);
   if (cl) {
     body += `<div class="note muted">Deze les vervalt: ${esc(cl.reason)}${cl.from !== cl.to ? ` (${shortDate(cl.from)} – ${shortDate(cl.to)})` : ''}</div>`;
@@ -559,7 +600,7 @@ function bookingSheet({sid, d}){
     return sheetWrap(body + `<div class="panel"><div class="lbl">Beheer plekken · ${dateLabel(d).toLowerCase()}</div>
       <div class="srow"><span>Totaal aantal plekken</span>${stepper('adjCap', o.cap, at(sid, d))}</div>
       <div class="srow" style="margin-bottom:0"><span>Bezet</span><span style="font-weight:600">${o.booked}</span></div></div>
-      <div class="cta" data-act="manageSpots">Deelnemers beheren</div>
+      ${participantsPanel(sid, d)}
       ${started ? '' : `<div class="cta outline" style="margin-top:10px" data-act="askCloseOne" ${at(sid, d)}>Les laten vervallen op deze datum</div>`}`);
   }
   if (!u) return sheetWrap(body + `<div class="cta" data-act="loginRequired">Inloggen</div>`);
@@ -578,6 +619,16 @@ function bookingSheet({sid, d}){
     body += o.available <= 0 ? '<div class="cta off">Vol — geen plekken meer</div>' : '<div class="cta" data-act="book">Plek reserveren</div>';
   }
   return sheetWrap(body);
+}
+function klantSheet({email}){
+  const u = userBy(email); if (!u) return '';
+  const v = vastLabel(u);
+  return sheetWrap(`<h2>${esc(u.name)}</h2><span class="tag org-${u.origin}">${ORIGIN_LABEL[u.origin]}</span>
+    <div class="facts"><div>E-mailadres<b>${esc(shownEmail(u.email))}</b></div><div>Telefoon<b>${esc(u.phone || '—')}</b></div>
+      <div>Strippen<b>${u.strippen === null ? 'geen kaart' : u.strippen}</b></div><div>Vaste les<b>${v || '—'}</b></div>
+      <div>Voorwaarden<b>${u.termsAcceptedAt ? `akkoord ${u.termsAcceptedAt}` : 'nog niet akkoord'}</b></div></div>
+    ${u.origin === 'aanvraag' && hasEmail(u.email) ? `<div class="cta outline" style="border-color:var(--ink);color:var(--ink);margin-bottom:10px" data-act="openChat" data-email="${u.email}">💬 Chat met ${esc(u.name.split(' ')[0])}</div>` : ''}
+    <div class="cta outline" data-act="askDeleteKlant" data-email="${u.email}">Klant verwijderen</div>`);
 }
 function requestSheet({id}){
   const r = S.requests.find(x => x.id === id);
@@ -614,6 +665,7 @@ function render(){
   let overlay = '';
   if (UI.sheet?.type === 'booking') overlay = bookingSheet(UI.sheet);
   if (UI.sheet?.type === 'request') overlay = requestSheet(UI.sheet);
+  if (UI.sheet?.type === 'klant') overlay = klantSheet(UI.sheet);
   if (UI.prompt) overlay += weeksPrompt();
   if (UI.confirm) overlay += confirmBox();
   if (UI.toast) overlay += `<div class="toast">${UI.toast}</div>`;
@@ -640,6 +692,8 @@ function showToast(msg){
 }
 
 /* ── Acties ─────────────────────────────────────────────────────────── */
+// De les waar "deelnemer toevoegen/afmelden" over gaat: het open lesvenster.
+const lessonCtx = () => UI.sheet?.type === 'booking' ? UI.sheet : UI.stack.at(-1);
 const num = (v) => Number(v);
 const ACTIONS = {
   noop(){},
@@ -652,7 +706,7 @@ const ACTIONS = {
   myTab(el){ UI.myTab = el.dataset.v; },
 
   openClass(el){ UI.sheet = {type:'booking', sid:el.dataset.sid, d:el.dataset.date}; },
-  closeSheet(){ UI.sheet = null; },
+  closeSheet(){ UI.sheet = null; UI.picking = false; },
   loginRequired(){ UI.sheet = null; UI.tab = 'profiel'; UI.stack = []; },
   book(){
     const {sid, d} = UI.sheet; const u = me();
@@ -760,7 +814,6 @@ const ACTIONS = {
   },
   resumeVast(el){ const s = SES[el.dataset.sid]; s.until = null; log(`Vaste les ${s.day.toLowerCase()} ${s.time.split(' – ')[0]} loopt weer door`); save(); },
 
-  manageSpots(){ const {sid, d} = UI.sheet; UI.sheet = null; UI.stack.push({screen:'plekken', sid, d}); UI.picking = false; },
 
   login(){
     const email = (document.getElementById('loginEmail').value || '').trim().toLowerCase();
@@ -796,6 +849,22 @@ const ACTIONS = {
   },
   askCard(el){ const u = userBy(el.dataset.email); UI.confirm = {title:'Nieuwe strippenkaart?', text:`${esc(u.name)} krijgt een nieuwe 10-strippenkaart: ${u.strippen ?? 0} → ${(u.strippen ?? 0) + CARD_SIZE} strippen.`, ok:'Activeren', act:'doCard', email:u.email}; },
   doCard(){ const u = userBy(UI.confirm.email); activateCard(u.email); log(`Nieuwe 10-strippenkaart voor ${u.name} (${u.strippen} strippen)`); UI.confirm = null; save(); showToast('Strippenkaart geactiveerd ✓'); return 'rendered'; },
+  startAdd(){ UI.adding = true; UI.form = {kq: UI.form.kq, origin:'beheer'}; UI.formError = null; },
+  cancelAdd(){ UI.adding = false; UI.formError = null; },
+  setOrigin(el){ UI.form.origin = el.dataset.v; },
+  addCustomer(){
+    const f = UI.form; const origin = f.origin || 'beheer';
+    const name = (f.name || '').trim(), email = (f.email || '').trim().toLowerCase();
+    if (!name) { UI.formError = 'Vul een naam in.'; return; }
+    if ((origin === 'aanvraag' || email) && !isEmail(email)) { UI.formError = 'Vul een geldig e-mailadres in.'; return; }
+    if (!createCustomer({name, email, phone:f.phone, origin})) { UI.formError = 'Er bestaat al een klant met dit e-mailadres.'; return; }
+    log(`Klant ${name} toegevoegd (${ORIGIN_LABEL[origin].toLowerCase()})${origin === 'aanvraag' ? ' · mail om wachtwoord in te stellen verstuurd' : ''}`);
+    UI.adding = false; UI.form = {kq: f.kq}; UI.formError = null; save();
+    showToast(origin === 'aanvraag' ? `${name} toegevoegd · mail verstuurd ✓` : `${name} toegevoegd ✓`); return 'rendered';
+  },
+  openKlant(el){ UI.sheet = {type:'klant', email:el.dataset.email}; },
+  askDeleteKlant(el){ const u = userBy(el.dataset.email); UI.confirm = {title:`${u.name} verwijderen?`, text:'De klant, de strippenkaart, lessen en chatberichten worden definitief verwijderd. Dit kan niet ongedaan worden gemaakt.', ok:'Verwijderen', act:'doDeleteKlant', email:u.email}; },
+  doDeleteKlant(){ const u = userBy(UI.confirm.email); deleteCustomer(u.email); log(`Klant ${u.name} verwijderd`); UI.confirm = null; UI.sheet = null; save(); showToast(`${u.name} verwijderd`); return 'rendered'; },
   userStrip(el){ const u = userBy(el.dataset.email); u.strippen = Math.max(0, (u.strippen ?? 0) + num(el.dataset.d)); log(`Strippen ${u.name}: ${u.strippen}`); save(); },
 
   openRequest(el){ UI.sheet = {type:'request', id:el.dataset.id}; },
@@ -807,11 +876,12 @@ const ACTIONS = {
     UI.sheet = null; save();
   },
 
-  startPick(){ UI.picking = true; },
+  startPick(){ UI.picking = true; UI.pickQ = ''; },
   stopPick(){ UI.picking = false; },
+  calDay(el){ document.getElementById(`day-${el.dataset.date}`)?.scrollIntoView({behavior:'smooth', block:'start'}); return 'rendered'; },
   pickUser(el){ const u = userBy(el.dataset.email); UI.prompt = {kind:'add', email:u.email, name:u.name, weeks:1}; },
   askRemove(el){
-    const {sid, d} = UI.stack.at(-1); const u = userBy(el.dataset.email); const st = statusFor(u.email, sid, d);
+    const {sid, d} = lessonCtx(); const u = userBy(el.dataset.email); const st = statusFor(u.email, sid, d);
     if (st.source === 'vast') { UI.prompt = {kind:'remove', email:u.email, name:u.name, weeks:1}; return; }
     UI.confirm = {title:`${u.name} afmelden?`, text:`Losse les ${lessonName(sid, d)}. De plek komt weer vrij.`, ok:'Afmelden', act:'doRemoveBooking', email:u.email, sid, d};
   },
@@ -824,7 +894,7 @@ const ACTIONS = {
   weeksSet(el){ UI.prompt.weeks = num(el.dataset.v); },
   cancelPrompt(){ UI.prompt = null; },
   confirmPrompt(){
-    const {sid, d} = UI.stack.at(-1); const p = UI.prompt;
+    const {sid, d} = lessonCtx(); const p = UI.prompt;
     if (p.kind === 'add') {
       if (addVast(sid, d, p.email, p.weeks)) log(`${p.name} vast ingepland op ${SES[sid].day.toLowerCase()} ${SES[sid].time.split(' – ')[0]} vanaf ${shortDate(d)} (${p.weeks >= 99 ? 'doorlopend' : `${p.weeks} weken`})`);
     } else {
@@ -866,7 +936,7 @@ const ACTIONS = {
 
   // Berichten
   openNews(el){ const u = me(); UI.stack.push({screen:'nieuws-item', id:el.dataset.id}); if (u) { markNewsRead(u.email); save(); } },
-  openChat(el){ UI.stack = UI.stack.filter(s => s.screen !== 'chat-kiezen'); UI.stack.push({screen:'chat', email:el.dataset.email}); UI.chatDraft = ''; UI.form = {}; },
+  openChat(el){ UI.sheet = null; UI.stack = UI.stack.filter(s => s.screen !== 'chat-kiezen'); UI.stack.push({screen:'chat', email:el.dataset.email}); UI.chatDraft = ''; UI.form = {}; },
   sendChat(){
     const top = UI.stack.at(-1); const text = UI.chatDraft.trim();
     if (!text || top?.screen !== 'chat') return;
@@ -939,6 +1009,8 @@ document.addEventListener('keydown', (e) => {
 });
 document.addEventListener('input', (e) => {
   if (e.target.id === 'chatInput') { UI.chatDraft = e.target.value; phoneEl.querySelector('.send')?.classList.toggle('off', !UI.chatDraft.trim()); }
+  if (e.target.id === 'pickQ') { UI.pickQ = e.target.value; render(); const pi = document.getElementById('pickQ'); pi.focus(); pi.setSelectionRange(pi.value.length, pi.value.length); return; }
+  if (e.target.dataset.f === 'kq') { UI.form.kq = e.target.value; render(); const ki = phoneEl.querySelector('input[data-f="kq"]'); ki.focus(); ki.setSelectionRange(ki.value.length, ki.value.length); return; }
   if (e.target.dataset.f === 'q') { UI.form.q = e.target.value; render(); const qi = phoneEl.querySelector('input[data-f="q"]'); qi.focus(); qi.setSelectionRange(qi.value.length, qi.value.length); return; }
   if (e.target.id === 'loginEmail') UI.loginEmail = e.target.value;
   if (e.target.id === 'loginPw') UI.loginPw = e.target.value;
@@ -983,7 +1055,8 @@ function renderSide(){
       <li>Open als <b>Marieke</b> de tab <b>Mijn lessen</b>: haar vaste dinsdagavond, komende en afgenomen lessen.</li>
       <li>Meld je af voor een komende les en spoel de tijd vooruit met <b>+1 week</b>. Als <b>Beheer</b>: Profiel → Vandaag · presentielijst → bevestig de les. Pas dan gaat er een strip af.</li>
       <li>Reserveer als Marieke een losse les en keur hem als <b>Beheer</b> goed onder Profiel → Reservering aanvragen.</li>
-      <li>Plan als beheerder via een les → "Deelnemers beheren" <b>Daan</b> vast in, en kijk als Daan bij Mijn lessen.</li>
+      <li>Tik als beheerder op een les: je ziet direct alle deelnemers. Plan via <b>＋ Klant toevoegen</b> <b>Daan</b> vast in, en kijk als Daan bij Mijn lessen.</li>
+      <li>Ga als <b>Beheer</b> naar Profiel → Klanten beheren: voeg een klant zonder app toe (geel) of na een accountaanvraag (groen), of verwijder een klant.</li>
       <li>Zet als Marieke het schuifje bij de Algemene voorwaarden aan; bekijk als Beheer wie akkoord heeft.</li>
       <li>Open als <b>Marieke</b> de tab <b>Berichten</b>: stuur Marjolijn een bericht en lees het nieuws. Wissel naar <b>Beheer</b>: je krijgt een melding en kunt antwoorden. Wissel terug: Marieke ziet "Gelezen" en krijgt een pushmelding.</li>
       <li>Schrijf als <b>Beheer</b> onder Berichten een nieuwsbericht met pushmelding en wissel naar een klant.</li>

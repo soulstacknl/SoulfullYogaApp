@@ -8,6 +8,14 @@ type UserStripRowProps = {
   detail?: string;
   onActivateCard?: () => void;
   onAdjust: (delta: number) => void;
+  // Tapping the name opens the customer's details.
+  onOpen?: () => void;
+};
+
+// Initials coloured by how the customer came in: green = account request, yellow = added by hand.
+const ORIGIN_COLORS = {
+  aanvraag: { backgroundColor: '#EAF3EE', color: colors.teal },
+  beheer: { backgroundColor: '#FCF1DE', color: '#9A6512' },
 };
 
 function initialsFor(name: string) {
@@ -19,21 +27,24 @@ function initialsFor(name: string) {
     .toUpperCase();
 }
 
-export default function UserStripRow({ user, detail, onActivateCard, onAdjust }: UserStripRowProps) {
+export default function UserStripRow({ user, detail, onActivateCard, onAdjust, onOpen }: UserStripRowProps) {
+  const tint = ORIGIN_COLORS[user.origin];
   const strips = user.strippen ?? 0;
 
   return (
     <View style={styles.row}>
-      <View style={styles.initials}>
-        <Text style={styles.initialsText}>{initialsFor(user.name)}</Text>
-      </View>
-
-      <View style={styles.info}>
-        <Text style={styles.name}>{user.name}</Text>
-        <Text style={styles.strip}>
-          {strips} lessen over{detail ? ` · ${detail}` : ''}
-        </Text>
-      </View>
+      <Pressable style={styles.open} onPress={onOpen} disabled={!onOpen}>
+        <View style={[styles.initials, { backgroundColor: tint.backgroundColor }]}>
+          <Text style={[styles.initialsText, { color: tint.color }]}>{initialsFor(user.name)}</Text>
+        </View>
+        <View style={styles.info}>
+          <Text style={styles.name}>{user.name}</Text>
+          <Text style={styles.strip}>
+            {user.strippen === null ? 'geen kaart' : `${strips} lessen over`}
+            {detail ? ` · ${detail}` : ''}
+          </Text>
+        </View>
+      </Pressable>
 
       <View style={styles.stripAdjust}>
         <Pressable style={styles.adjustBtn} onPress={() => onAdjust(-1)} hitSlop={10}>
@@ -63,6 +74,12 @@ const styles = StyleSheet.create({
     borderColor: colors.sand,
     padding: 12,
     marginBottom: 9,
+  },
+  open: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   initials: {
     width: 38,

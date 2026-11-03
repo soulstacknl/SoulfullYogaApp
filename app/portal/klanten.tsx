@@ -3,19 +3,21 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { weekLabel, weeklySessions } from '@/components/portal/KlantDrawer';
 import { usePortal } from '@/components/portal/PortalContext';
-import { Btn, Card, Empty, ErrorText, Field, Input, Meta, Meter, Note, PageHeader, Pill, portalStyles, s, Select, StyleDot } from '@/components/portal/ui';
+import { Btn, Card, Empty, ErrorText, Field, Input, Meta, Meter, Note, PageHeader, Pill, portalStyles, s, Segmented, Select, StyleDot } from '@/components/portal/ui';
 import Stepper from '@/components/Stepper';
 import { colors, fonts, styleMeta } from '@/constants/theme';
 import { useSchedule } from '@/contexts/ScheduleContext';
 import { CARD_SIZE, useUsers } from '@/contexts/UsersContext';
-import type { AppUser } from '@/data/users';
+import type { AppUser, CustomerOrigin } from '@/data/users';
+import { ORIGIN_LABEL, ORIGIN_TONE, shownEmail } from '@/data/users';
 import { dateLabel, plusDays } from '@/lib/dutchDate';
 import { activeOn, openChargeCount, startTimeOf } from '@/lib/schedule';
 
-type Filters = { les: string; strippen: string; voorwaarden: string; open: string };
-const NO_FILTERS: Filters = { les: '', strippen: '', voorwaarden: '', open: '' };
+type Filters = { les: string; strippen: string; voorwaarden: string; open: string; herkomst: string };
+const NO_FILTERS: Filters = { les: '', strippen: '', voorwaarden: '', open: '', herkomst: '' };
 
-const FILTER_OPTIONS: Record<'strippen' | 'voorwaarden' | 'open', [string, string][]> = {
+const FILTER_OPTIONS: Record<'strippen' | 'voorwaarden' | 'open' | 'herkomst', [string, string][]> = {
+  herkomst: [['', 'Herkomst: alle'], ['aanvraag', ORIGIN_LABEL.aanvraag], ['beheer', ORIGIN_LABEL.beheer]],
   strippen: [['', 'Alle strippen'], ['op', 'Op (0)'], ['bijna', 'Bijna op (1–2)'], ['genoeg', '3 of meer'], ['geen', 'Geen kaart']],
   voorwaarden: [['', 'Voorwaarden: alle'], ['ja', 'Akkoord'], ['nee', 'Nog niet akkoord']],
   open: [['', 'Openstaand: alle'], ['ja', 'Met openstaande lessen'], ['nee', 'Zonder openstaande lessen']],
@@ -47,6 +49,7 @@ export default function PortalKlanten() {
     if (filters.voorwaarden === 'nee' && u.termsAcceptedAt) return false;
     if (filters.open === 'ja' && !open) return false;
     if (filters.open === 'nee' && open) return false;
+    if (filters.herkomst && u.origin !== filters.herkomst) return false;
     const q = search.trim().toLowerCase();
     return !q || u.name.toLowerCase().includes(q) || u.email.includes(q);
   };
@@ -96,14 +99,14 @@ export default function PortalKlanten() {
     <View>
       <PageHeader
         title="Klanten"
-        subtitle={`${active ? `${list.length} van ${students.length}` : students.length} klanten met de app · klik op een klant voor de lessen`}>
+        subtitle={`${active ? `${list.length} van ${students.length}` : students.length} klanten · groen = via accountaanvraag, geel = handmatig toegevoegd · klik op een klant voor de lessen`}>
         {!adding ? <Btn label="＋ Klant toevoegen" tone="ink" onPress={() => setAdding(true)} /> : null}
       </PageHeader>
       {adding ? (
         <NewCustomerCard
           onClose={() => setAdding(false)}
-          onCreate={async (email, name, phone) => {
-            if (!(await createCustomer(email, name, phone))) return false;
+          onCreate={async (name, email, phone, origin) => {
+            if (!(await createCustomer(name, email, phone, origin))) return false;
             setAdding(false);
             portal.toast(`${name} toegevoegd ✓`);
             return true;
@@ -121,6 +124,7 @@ export default function PortalKlanten() {
         <Select value={filters.strippen} onChange={setFilter('strippen')} highlight={!!filters.strippen} options={FILTER_OPTIONS.strippen} />
         <Select value={filters.voorwaarden} onChange={setFilter('voorwaarden')} highlight={!!filters.voorwaarden} options={FILTER_OPTIONS.voorwaarden} />
         <Select value={filters.open} onChange={setFilter('open')} highlight={!!filters.open} options={FILTER_OPTIONS.open} />
+        <Select value={filters.herkomst} onChange={setFilter('herkomst')} highlight={!!filters.herkomst} options={FILTER_OPTIONS.herkomst} />
         {active ? (
           <Btn
             label="Wis filters"
@@ -153,7 +157,8 @@ export default function PortalKlanten() {
                   style={({ hovered }: { hovered?: boolean }) => [styles.tr, hovered && { backgroundColor: '#FBF7EF' }]}>
                   <View style={COLS[0]}>
                     <Text style={s.nm}>{u.name}</Text>
-                    <Text style={s.dt}>{u.email}</Text>
+                    <Text style={s.dt}>{shownEmail(u.email)}</Text>
+                    <Pill label={ORIGIN_LABEL[u.origin]} tone={ORIGIN_TONE[u.origin]} />
                   </View>
                   <Text style={[s.body, COLS[1]]}>{u.phone}</Text>
                   <View style={[s.row, COLS[2]]}>
@@ -187,9 +192,10 @@ export default function PortalKlanten() {
   );
 }
 
-// Adds a customer account (e.g. after an account request). The customer then sets
-// a password via "Wachtwoord vergeten" in the app.
-function NewCustomerCard({ onClose, onCreate }: { onClose: () => void; onCreate: (email: string, name: string, phone: string) => Promise<boolean> }) {
+// Adds a customer: after an account request (gets a mail to set a password for the app),
+// or by hand for a customer who doesn't use the app (e-mail optional).
+function NewCustomerCard({ onClose, onCreate }: { onClose: () => void; onCreate: (name: string, email: string, phone: string, origin: CustomerOrigin) => Promise<boolean> }) {
+  const [origin, setOrigin] = useState<CustomerOrigin>('beheer');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -197,18 +203,20 @@ function NewCustomerCard({ onClose, onCreate }: { onClose: () => void; onCreate:
 
   const save = async () => {
     if (!name.trim()) return setError('Vul een naam in.');
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return setError('Vul een geldig e-mailadres in.');
+    const mail = email.trim().toLowerCase();
+    if ((origin === 'aanvraag' || mail) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) return setError('Vul een geldig e-mailadres in.');
     setError(null);
-    await onCreate(email.trim().toLowerCase(), name.trim(), phone.trim());
+    await onCreate(name.trim(), mail, phone.trim(), origin);
   };
 
   return (
     <Card title="Klant toevoegen" style={{ marginBottom: 14 }}>
+      <Segmented<CustomerOrigin> options={[['beheer', ORIGIN_LABEL.beheer], ['aanvraag', ORIGIN_LABEL.aanvraag]]} value={origin} onChange={setOrigin} />
       <View style={portalStyles.form}>
         <Field label="Naam">
           <Input value={name} onChange={setName} placeholder="Voor- en achternaam" />
         </Field>
-        <Field label="E-mailadres">
+        <Field label={origin === 'aanvraag' ? 'E-mailadres' : 'E-mailadres (optioneel)'}>
           <Input type="email" value={email} onChange={setEmail} placeholder="naam@voorbeeld.nl" />
         </Field>
         <Field label="Telefoon (optioneel)">
@@ -225,7 +233,11 @@ function NewCustomerCard({ onClose, onCreate }: { onClose: () => void; onCreate:
         </View>
         <Note
           style={portalStyles.full}
-          text={'De klant kiest zelf een wachtwoord: in de app via "Wachtwoord vergeten" met dit e-mailadres.'}
+          text={
+            origin === 'aanvraag'
+              ? 'De klant krijgt een mail om een wachtwoord in te stellen en kan daarna inloggen in de app.'
+              : 'Voor een klant zonder de app: je houdt strippen en lessen zelf bij. Er gaat geen mail naar de klant.'
+          }
         />
       </View>
     </Card>

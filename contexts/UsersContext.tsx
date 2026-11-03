@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import type { AppUser } from '@/data/users';
+import type { AppUser, CustomerOrigin } from '@/data/users';
 import { remote } from '@/lib/remote';
 
 type UsersContextValue = {
@@ -13,7 +13,9 @@ type UsersContextValue = {
   adjustStrip: (email: string, delta: number) => void;
   activateCard: (email: string) => void;
   setTermsAccepted: (email: string, acceptedAt: string | null) => void;
-  createCustomer: (email: string, name: string, phone: string) => Promise<boolean>;
+  // origin 'aanvraag': the customer also gets a mail to set a password for the app.
+  createCustomer: (name: string, email: string, phone: string, origin: CustomerOrigin) => Promise<boolean>;
+  deleteCustomer: (email: string) => Promise<boolean>;
   deleteOwnAccount: () => Promise<boolean>;
 };
 
@@ -24,11 +26,12 @@ const UsersContext = createContext<UsersContextValue | null>(null);
 // Customer profiles from Supabase: a customer sees only themselves, the admin everyone.
 export function UsersProvider({ children }: { children: ReactNode }) {
   const { users, run } = useData();
+  const { sendPasswordReset } = useAuth();
   const byEmail = (email: string) => users.find((u) => u.email === email);
 
   const adjustStrip = (email: string, delta: number) => {
     const user = byEmail(email);
-    if (user) run(() => remote.setStrips(user.id, Math.max(0, (user.strippen ?? 0) + delta)));
+    if (user) run(() => remote.adjustStrips(user.id, delta));
   };
 
   // A new 10-strip card on top of what's left; total follows so the card never shows e.g. 12 / 10.
@@ -55,7 +58,15 @@ export function UsersProvider({ children }: { children: ReactNode }) {
         adjustStrip,
         activateCard,
         setTermsAccepted,
-        createCustomer: (email, name, phone) => run(() => remote.createCustomer(email, name, phone)),
+        createCustomer: async (name, email, phone, origin) => {
+          const ok = await run(() => remote.createCustomer(name, email, phone, origin));
+          if (ok && origin === 'aanvraag') await sendPasswordReset(email);
+          return ok;
+        },
+        deleteCustomer: async (email) => {
+          const user = byEmail(email);
+          return !!user && run(() => remote.deleteCustomer(user.id));
+        },
         deleteOwnAccount: () => run(() => remote.deleteOwnAccount()),
       }}>
       {children}

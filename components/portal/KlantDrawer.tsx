@@ -11,6 +11,7 @@ import type { Lesson } from '@/contexts/ScheduleContext';
 import { useSchedule } from '@/contexts/ScheduleContext';
 import { CARD_SIZE, useUsers } from '@/contexts/UsersContext';
 import type { Session } from '@/data/schedule';
+import { ORIGIN_LABEL, ORIGIN_TONE, shownEmail } from '@/data/users';
 import { dateLabel, shortDate } from '@/lib/dutchDate';
 import { enrollmentOf, horizonEnd, isExtra, lastLessonOf, nextOccurrence, ONGOING_WEEKS, openChargeCount, startTimeOf } from '@/lib/schedule';
 
@@ -27,7 +28,7 @@ export function weeklySessions(sessions: Session[], today: string) {
 // One customer: strips, standing lessons (add / stop) and their lessons.
 export default function KlantDrawer({ email }: { email: string }) {
   const schedule = useSchedule();
-  const { users, adjustStrip, activateCard } = useUsers();
+  const { users, adjustStrip, activateCard, deleteCustomer } = useUsers();
   const portal = usePortal();
   const [sessionId, setSessionId] = useState('');
   const [from, setFrom] = useState(schedule.today);
@@ -109,7 +110,7 @@ export default function KlantDrawer({ email }: { email: string }) {
   const standing = current[0] && schedule.sessionById(current[0].sessionId);
 
   return (
-    <Drawer eyebrow="Klant" title={user.name} subtitle={`${user.email} · ${user.phone}`} onClose={portal.closeDrawer}>
+    <Drawer eyebrow="Klant" title={user.name} subtitle={[shownEmail(user.email), user.phone].filter(Boolean).join(' · ')} onClose={portal.closeDrawer}>
       <Card>
         <KV label="Strippen">
           <View style={s.row}>
@@ -122,6 +123,9 @@ export default function KlantDrawer({ email }: { email: string }) {
           {user.termsAcceptedAt ? <Pill label={`✓ ${user.termsAcceptedAt}`} tone="teal" /> : <Pill label="Nog niet akkoord" tone="rani" />}
         </KV>
         <KV label="Openstaande lessen">{open || '—'}</KV>
+        <KV label="Herkomst">
+          <Pill label={ORIGIN_LABEL[user.origin]} tone={ORIGIN_TONE[user.origin]} />
+        </KV>
         <View style={[s.row, { marginTop: 8 }]}>
           <Btn
             label={`💬 Chat met ${user.name.split(' ')[0]}`}
@@ -130,6 +134,24 @@ export default function KlantDrawer({ email }: { email: string }) {
               portal.closeDrawer();
               router.navigate({ pathname: '/portal/berichten', params: { klant: user.id } });
             }}
+          />
+          <Btn
+            label="Klant verwijderen"
+            small
+            tone="ghost"
+            onPress={() =>
+              portal.confirm({
+                title: `${user.name} verwijderen?`,
+                message: 'De klant, de strippenkaart, lessen en chatberichten worden definitief verwijderd. Dit kan niet ongedaan worden gemaakt.',
+                confirmLabel: 'Verwijderen',
+                onConfirm: async () => {
+                  if (await deleteCustomer(user.email)) {
+                    portal.closeDrawer();
+                    portal.toast(`${user.name} verwijderd`);
+                  }
+                },
+              })
+            }
           />
         </View>
       </Card>

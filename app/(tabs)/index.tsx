@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import type { ScrollViewInstance } from 'react-native';
 
 import BookingSheet from '@/components/BookingSheet';
 import type { LessonSelection } from '@/components/BookingSheet';
@@ -8,6 +9,7 @@ import ClassCard from '@/components/ClassCard';
 import type { SpotsTone } from '@/components/ClassCard';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import type { ConfirmRequest } from '@/components/ConfirmDialog';
+import MonthCalendar from '@/components/MonthCalendar';
 import ScreenHeader from '@/components/ScreenHeader';
 import Toast, { useToast } from '@/components/Toast';
 import { colors, fonts } from '@/constants/theme';
@@ -28,6 +30,8 @@ export default function ScheduleScreen() {
   const [selected, setSelected] = useState<LessonSelection | null>(null);
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
   const toast = useToast();
+  const scroll = useRef<ScrollViewInstance>(null);
+  const dayY = useRef<Record<string, number>>({});
 
   const first = monthStart(month, now);
   const days: { date: string; sessions: Session[] }[] = [];
@@ -82,7 +86,16 @@ export default function ScheduleScreen() {
         </Pressable>
       </View>
 
-      <ScrollView key={month} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView key={month} ref={scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <MonthCalendar
+          first={first}
+          today={today}
+          lessonsOn={(date) => schedule.sessionsOn(date).filter((s) => !schedule.closureOf(s.id, date)).map((s) => s.style)}
+          onSelect={(date) => {
+            const y = dayY.current[date];
+            if (y !== undefined) scroll.current?.scrollTo({ y: y - 8, animated: true });
+          }}
+        />
         {days.length === 0 ? (
           <>
             <Text style={styles.empty}>Geen lessen meer in {monthName(month)}.</Text>
@@ -94,7 +107,7 @@ export default function ScheduleScreen() {
           </>
         ) : (
           days.map(({ date, sessions }, index) => (
-            <View key={date}>
+            <View key={date} onLayout={(e) => (dayY.current[date] = e.nativeEvent.layout.y)}>
               <Text
                 style={[
                   styles.dayLabel,
@@ -128,10 +141,6 @@ export default function ScheduleScreen() {
         onLoginRequired={() => {
           setSelected(null);
           router.push('/profiel');
-        }}
-        onManageSpots={({ sessionId, date }) => {
-          setSelected(null);
-          router.push({ pathname: '/admin/plekken', params: { sessionId, date } });
         }}
         onConfirm={(request) => {
           setSelected(null);
