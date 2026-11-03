@@ -22,7 +22,7 @@ const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 // The admin's full customer file: strips (−/+/+10), add customers by hand or after an
 // account request, and remove customers. Green initials = account request, yellow = by hand.
 export default function KlantenScreen() {
-  const { students, adjustStrip, activateCard, createCustomer, deleteCustomer } = useUsers();
+  const { students, adjustStrip, activateCard, createCustomer, deleteCustomer, accountRequests, approveAccountRequest, rejectAccountRequest } = useUsers();
   const { data, today } = useSchedule();
   const insets = useSafeAreaInsets();
   const toast = useToast();
@@ -74,6 +74,42 @@ export default function KlantenScreen() {
             <Text style={styles.addText}>＋ Klant toevoegen</Text>
           </Pressable>
         )}
+        {accountRequests.length ? (
+          <View style={styles.requests}>
+            <Text style={styles.formTitle}>Accountaanvragen · {accountRequests.length}</Text>
+            {accountRequests.map((r) => (
+              <View key={r.id} style={styles.request}>
+                <Text style={styles.requestName}>{r.name}</Text>
+                <Text style={styles.requestDetail}>
+                  {r.email} · {r.phone}
+                </Text>
+                <View style={styles.requestBtns}>
+                  <Pressable
+                    style={[styles.requestBtn, { backgroundColor: colors.teal }]}
+                    onPress={async () => {
+                      if (await approveAccountRequest(r.id)) toast.show(`${r.name} aangemaakt · mail verstuurd ✓`);
+                    }}>
+                    <Text style={styles.requestBtnText}>✓ Account aanmaken</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.requestBtn, styles.requestBtnGhost]}
+                    onPress={() =>
+                      setConfirm({
+                        title: 'Aanvraag weigeren?',
+                        message: `De aanvraag van ${r.name} wordt verwijderd. Er gaat geen mail naar de klant.`,
+                        confirmLabel: 'Weigeren',
+                        onConfirm: async () => {
+                          if (await rejectAccountRequest(r.id)) toast.show('Aanvraag geweigerd');
+                        },
+                      })
+                    }>
+                    <Text style={[styles.requestBtnText, { color: colors.rani }]}>Weigeren</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : null}
         <TextInput style={styles.search} value={query} onChangeText={setQuery} placeholder="Zoek op naam of e-mail" placeholderTextColor="#9DAFA2" autoCorrect={false} autoCapitalize="none" />
         <View style={styles.legend}>
           <View style={styles.legendItem}>
@@ -218,6 +254,14 @@ const styles = StyleSheet.create({
   addBtn: { backgroundColor: colors.rani, borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginBottom: 12 },
   addText: { fontFamily: fonts.bodyBold, fontSize: 14.5, color: '#fff' },
   search: { fontFamily: fonts.body, fontSize: 14.5, color: colors.ink, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.sand, borderRadius: 12, paddingVertical: 11, paddingHorizontal: 14, marginBottom: 10 },
+  requests: { backgroundColor: '#FCF1DE', borderWidth: 1, borderColor: '#EFC97A', borderRadius: 18, padding: 14, marginBottom: 14 },
+  request: { backgroundColor: colors.card, borderRadius: 14, padding: 12, marginTop: 8 },
+  requestName: { fontFamily: fonts.bodySemiBold, fontSize: 14.5, color: colors.ink },
+  requestDetail: { fontFamily: fonts.body, fontSize: 12.5, color: colors.mutedText, marginTop: 2 },
+  requestBtns: { flexDirection: 'row', gap: 8, marginTop: 10 },
+  requestBtn: { flex: 1, borderRadius: 12, paddingVertical: 10, alignItems: 'center' },
+  requestBtnGhost: { borderWidth: 1.5, borderColor: colors.rani },
+  requestBtnText: { fontFamily: fonts.bodyBold, fontSize: 13, color: '#fff' },
   legend: { flexDirection: 'row', gap: 16, marginBottom: 10, paddingHorizontal: 2 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   legendDot: { width: 12, height: 12, borderRadius: 6 },

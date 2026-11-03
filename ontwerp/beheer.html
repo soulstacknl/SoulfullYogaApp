@@ -241,7 +241,7 @@ const sourceTag = (st, d) => {
 function act(msg){ log(`Portaal: ${msg}`); save(); }
 
 // Teller naast een menu-item (open aanvragen, presentie nog te bevestigen).
-const badge = (k) => { const c = k === 'reserveringen' ? S.requests.length : k === 'presentie' ? unconfirmedLessons(14).length : k === 'berichten' ? studioUnread() : 0; return c ? `<span class="bdg">${c}</span>` : ''; };
+const badge = (k) => { const c = k === 'reserveringen' ? S.requests.length : k === 'presentie' ? unconfirmedLessons(14).length : k === 'berichten' ? studioUnread() : k === 'klanten' ? (S.accountRequests || []).length : 0; return c ? `<span class="bdg">${c}</span>` : ''; };
 
 /* ── Pagina's ──────────────────────────────────────────────────────── */
 const NAV = [
@@ -302,6 +302,13 @@ function matchesFilters(u){
 }
 
 // Klant toevoegen: na een accountaanvraag (krijgt een mail voor een wachtwoord) of handmatig, zonder app (e-mail optioneel).
+// Accountaanvragen uit de app: met één klik een account maken (de klant krijgt een mail voor een wachtwoord).
+function requestsCard(){
+  const list = S.accountRequests || []; if (!list.length) return '';
+  return `<div class="card" style="margin-bottom:14px;background:#FFFBF2"><h2>Accountaanvragen <small>${list.length} open · de klant krijgt na aanmaken een mail om een wachtwoord in te stellen</small></h2>
+    ${list.map(r => `<div class="list-row"><div class="meta"><div class="nm">${esc(r.name)}</div><div class="dt">${esc(r.email)} · ${esc(r.phone)}</div></div>
+      <button class="btn sm teal" data-act="approveRequest" data-id="${r.id}">✓ Account aanmaken</button><button class="btn sm ghost-r" data-act="askRejectRequest" data-id="${r.id}">Weigeren</button></div>`).join('')}</div>`;
+}
 function newKlantCard(){
   const n = P.nk; if (!n) return '';
   return `<div class="card" style="margin-bottom:14px"><h2>Klant toevoegen</h2>
@@ -337,7 +344,7 @@ function klanten(){
   }
 
   return `<div class="ph"><div><h1>Klanten</h1><p>${active ? `${list.length} van ${all.length}` : all.length} klanten · groen = via accountaanvraag, geel = handmatig toegevoegd · klik op een klant voor de lessen</p></div>${P.nk ? '' : '<div class="acts"><button class="btn ink" data-act="startNewKlant">＋ Klant toevoegen</button></div>'}</div>
-    ${newKlantCard()}
+    ${newKlantCard()}${requestsCard()}
     <div class="filterbar">
       <input type="search" id="klantSearch" value="${esc(P.search)}" placeholder="Zoek op naam of e-mail…">
       ${sel('les', lesOptions)}${sel('strippen', KLANT_FILTERS.strippen)}${sel('voorwaarden', KLANT_FILTERS.voorwaarden)}${sel('open', KLANT_FILTERS.open)}${sel('herkomst', [['', 'Herkomst: alle'], ['aanvraag', ORIGIN_LABEL.aanvraag], ['beheer', ORIGIN_LABEL.beheer]])}
@@ -638,6 +645,8 @@ const resetForm = (kind) => {
     : {day: 'Maandag', from: today(), until: '', date: today(), start: '19:00', end: '20:00', style: 'yin', capacity: 10};
 };
 const ACTIONS = {
+  approveRequest(el){ const r = S.accountRequests.find(x => x.id === el.dataset.id); if (!approveAccountRequest(r.id)) { toast('Er bestaat al een klant met dit e-mailadres'); return 'rendered'; } act(`account aangemaakt voor ${r.name}`); toast(`${r.name} aangemaakt · mail verstuurd ✓`); return 'rendered'; },
+  askRejectRequest(el){ const r = S.accountRequests.find(x => x.id === el.dataset.id); P.confirm = {title: 'Aanvraag weigeren?', text: `De aanvraag van ${esc(r.name)} wordt verwijderd. Er gaat geen mail naar de klant.`, ok: 'Weigeren', run: () => { rejectAccountRequest(r.id); act('accountaanvraag geweigerd'); }}; },
   startNewKlant(){ P.nk = {origin: 'beheer', name: '', email: '', phone: '', error: null}; },
   cancelNewKlant(){ P.nk = null; },
   nkOrigin(el){ P.nk.origin = el.dataset.v; },

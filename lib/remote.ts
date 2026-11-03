@@ -12,7 +12,9 @@ import { supabase } from '@/lib/supabase';
 
 type Row = Record<string, any>;
 
-export type Snapshot = { users: AppUser[]; data: ScheduleData };
+// A guest's request for an account (only the admin can read them).
+export type AccountRequest = { id: string; name: string; email: string; phone: string; at: string };
+export type Snapshot = { users: AppUser[]; data: ScheduleData; accountRequests: AccountRequest[] };
 
 // "19:00:00" → "19.00"
 const dotTime = (t: string) => t.slice(0, 5).replace(':', '.');
@@ -30,10 +32,10 @@ async function rows(table: string): Promise<Row[]> {
 }
 
 export async function loadSnapshot(): Promise<Snapshot> {
-  const [profiles, sessions, enrollments, bookings, requests, cancels, closures, caps, roster, drafts, confirmations, records] =
+  const [profiles, sessions, enrollments, bookings, requests, cancels, closures, caps, roster, drafts, confirmations, records, accountRequests] =
     await Promise.all(
       ['profiles', 'sessions', 'enrollments', 'bookings', 'requests', 'cancellations', 'closures', 'capacity_overrides',
-        'roster_entries', 'attendance_drafts', 'confirmations', 'attendance_records'].map(rows)
+        'roster_entries', 'attendance_drafts', 'confirmations', 'attendance_records', 'account_requests'].map(rows)
     );
 
   // Sorted by name: the database returns rows in a different order after each change.
@@ -110,7 +112,13 @@ export async function loadSnapshot(): Promise<Snapshot> {
     });
   }
 
-  return { users, data };
+  return {
+    users,
+    data,
+    accountRequests: accountRequests
+      .map((r) => ({ id: r.id, name: r.name, email: r.email, phone: r.phone, at: r.created_at }))
+      .sort((a, b) => b.at.localeCompare(a.at)),
+  };
 }
 
 /* ── Writes ─────────────────────────────────────────────────────────────── */
@@ -198,6 +206,13 @@ export const remote = {
   setTermsAccepted: (userId: string, acceptedAt: string | null) =>
     check(supabase.from('profiles').update({ terms_accepted_at: toIsoDate(acceptedAt) }).eq('id', userId)),
   adjustStrips: (userId: string, delta: number) => check(supabase.rpc('admin_adjust_strips', { p_id: userId, p_delta: delta })),
+  // Returns the new customer's e-mail, for the password mail.
+  approveAccountRequest: async (requestId: string) => {
+    const { data, error } = await supabase.rpc('admin_approve_request', { p_id: requestId });
+    if (error) throw new Error(error.message);
+    return data as string;
+  },
+  rejectAccountRequest: (requestId: string) => check(supabase.from('account_requests').delete().eq('id', requestId)),
   deleteCustomer: (userId: string) => check(supabase.rpc('admin_delete_customer', { p_id: userId })),
   createCustomer: (name: string, email: string, phone: string, origin: CustomerOrigin) =>
     check(supabase.rpc('admin_create_customer', { p_name: name, p_email: email, p_phone: phone, p_origin: origin })),

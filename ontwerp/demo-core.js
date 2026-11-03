@@ -480,3 +480,17 @@ function deleteCustomer(email){
 }
 // Oudere bewaarde demo's: herkomst ontbreekt nog.
 if (S.users.some(u => !u.origin)) { S.users.forEach(u => { u.origin ??= 'aanvraag'; }); save(); }
+
+/* ── Accountaanvragen ──────────────────────────────────────────────── */
+// De app stuurt de aanvraag zelf naar Soulful Yoga: opgeslagen, pushmelding en mail naar info@soulfulyoga.nl.
+function requestAccount({name, email, phone}){
+  S.accountRequests = (S.accountRequests || []).filter(r => r.email !== email);
+  S.accountRequests.unshift({id:`a-${Date.now()}`, name, email, phone, at:nowIso()});
+}
+function approveAccountRequest(id){
+  const r = S.accountRequests.find(x => x.id === id); if (!r) return null;
+  S.accountRequests = S.accountRequests.filter(x => x !== r);
+  return createCustomer({name:r.name, email:r.email, phone:r.phone, origin:'aanvraag'});
+}
+function rejectAccountRequest(id){ S.accountRequests = S.accountRequests.filter(x => x.id !== id); }
+if (!S.accountRequests) { S.accountRequests = [{id:'a-seed', name:'Joke Peters', email:'joke.peters@gmail.com', phone:'06 18273645', at:agoIso(0, 3)}]; save(); }

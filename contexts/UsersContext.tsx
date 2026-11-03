@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import type { AppUser, CustomerOrigin } from '@/data/users';
+import type { AccountRequest } from '@/lib/remote';
 import { remote } from '@/lib/remote';
 
 type UsersContextValue = {
@@ -16,6 +17,10 @@ type UsersContextValue = {
   // origin 'aanvraag': the customer also gets a mail to set a password for the app.
   createCustomer: (name: string, email: string, phone: string, origin: CustomerOrigin) => Promise<boolean>;
   deleteCustomer: (email: string) => Promise<boolean>;
+  // Account requests from the app (admin): approve creates the customer and sends the password mail.
+  accountRequests: AccountRequest[];
+  approveAccountRequest: (id: string) => Promise<boolean>;
+  rejectAccountRequest: (id: string) => Promise<boolean>;
   deleteOwnAccount: () => Promise<boolean>;
 };
 
@@ -25,7 +30,7 @@ const UsersContext = createContext<UsersContextValue | null>(null);
 
 // Customer profiles from Supabase: a customer sees only themselves, the admin everyone.
 export function UsersProvider({ children }: { children: ReactNode }) {
-  const { users, run } = useData();
+  const { users, run, accountRequests } = useData();
   const { sendPasswordReset } = useAuth();
   const byEmail = (email: string) => users.find((u) => u.email === email);
 
@@ -63,6 +68,16 @@ export function UsersProvider({ children }: { children: ReactNode }) {
           if (ok && origin === 'aanvraag') await sendPasswordReset(email);
           return ok;
         },
+        accountRequests,
+        approveAccountRequest: async (id) => {
+          let email = '';
+          const ok = await run(async () => {
+            email = await remote.approveAccountRequest(id);
+          });
+          if (ok && email) await sendPasswordReset(email);
+          return ok;
+        },
+        rejectAccountRequest: (id) => run(() => remote.rejectAccountRequest(id)),
         deleteCustomer: async (email) => {
           const user = byEmail(email);
           return !!user && run(() => remote.deleteCustomer(user.id));

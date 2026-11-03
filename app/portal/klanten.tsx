@@ -26,7 +26,7 @@ const FILTER_OPTIONS: Record<'strippen' | 'voorwaarden' | 'open' | 'herkomst', [
 // All customers with filters per column (combined) plus a name/e-mail search.
 export default function PortalKlanten() {
   const schedule = useSchedule();
-  const { students, adjustStrip, activateCard, createCustomer } = useUsers();
+  const { students, adjustStrip, activateCard, createCustomer, accountRequests, approveAccountRequest, rejectAccountRequest } = useUsers();
   const [adding, setAdding] = useState(false);
   const portal = usePortal();
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
@@ -112,6 +112,43 @@ export default function PortalKlanten() {
             return true;
           }}
         />
+      ) : null}
+      {accountRequests.length ? (
+        <Card title="Accountaanvragen" note={`${accountRequests.length} open · de klant krijgt na aanmaken een mail om een wachtwoord in te stellen`} style={{ marginBottom: 14, backgroundColor: '#FFFBF2' }}>
+          {accountRequests.map((r) => (
+            <View key={r.id} style={styles.tr}>
+              <View style={{ flex: 1 }}>
+                <Text style={s.nm}>{r.name}</Text>
+                <Text style={s.dt}>
+                  {r.email} · {r.phone}
+                </Text>
+              </View>
+              <Btn
+                label="✓ Account aanmaken"
+                tone="teal"
+                small
+                onPress={async () => {
+                  if (await approveAccountRequest(r.id)) portal.toast(`${r.name} aangemaakt · mail verstuurd ✓`);
+                }}
+              />
+              <Btn
+                label="Weigeren"
+                tone="ghost"
+                small
+                onPress={() =>
+                  portal.confirm({
+                    title: 'Aanvraag weigeren?',
+                    message: `De aanvraag van ${r.name} wordt verwijderd. Er gaat geen mail naar de klant.`,
+                    confirmLabel: 'Weigeren',
+                    onConfirm: async () => {
+                      if (await rejectAccountRequest(r.id)) portal.toast('Aanvraag geweigerd');
+                    },
+                  })
+                }
+              />
+            </View>
+          ))}
+        </Card>
       ) : null}
       <View style={[s.row, { marginBottom: 14 }]}>
         <Input type="search" value={search} onChange={setSearch} placeholder="Zoek op naam of e-mail…" style={{ width: 220 }} />

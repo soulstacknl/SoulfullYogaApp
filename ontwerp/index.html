@@ -280,21 +280,17 @@ Fijne feestdagen! 🎄</p></div>`)) },
        <div class="ask-account">Nog geen account? <a>Account aanvragen</a></div>
        <div class="hint2">Demo-account: marieke@soulfulyoga.nl · yoga123<br>(of daan@soulfulyoga.nl · yoga123 voor een account zonder strippenkaart)</div></div>`, 'profiel')) },
   { id:'account-aanvragen', group:'student', name:'Account aanvragen', src:'app/account-aanvragen.tsx',
-    flag:'De gast moet de mail zelf nog versturen in het mailprogramma; automatisch versturen kan pas met een server.',
+    flag:'De app stuurt de aanvraag zelf: opgeslagen, pushmelding naar de beheerder en een mail naar info@soulfulyoga.nl.',
     html: () => phone(screen(header({back:'Inloggen', eyebrow:'Soulful Yoga', title:'Account aanvragen', subtitle:'Vul je gegevens in, dan maken wij je account aan'}) +
       `<div style="padding:24px 20px 20px"><div class="field"><label>Naam</label><div class="in">Voor- en achternaam</div></div>
-       <div class="field"><label>E-mailadres</label><div class="in">naam@voorbeeld.nl</div></div><div class="cta" style="margin-top:4px">Aanvraag versturen</div>
-       <div class="hint2">Je mailprogramma opent met de aanvraag aan info@soulfulyoga.nl.<br>Je krijgt bericht zodra je account klaarstaat.</div></div>`, 'profiel')) },
-  { id:'account-klaar', group:'student', name:'Account aanvragen — mail klaar', src:'app/account-aanvragen.tsx',
-    html: () => phone(screen(header({back:'Inloggen', eyebrow:'Account aanvragen', title:'Bijna klaar', subtitle:'Verstuur de e-mail in je mailprogramma'}) +
-      `<div style="padding:24px 20px 20px"><div class="note">✓ Je aanvraag staat klaar in je mailprogramma.</div>
-       <p class="sub2">Druk daar op Verzenden om de aanvraag naar Soulful Yoga te sturen. Zodra je account klaarstaat, krijg je bericht op <b>joke.peters@gmail.com</b>.</p>
-       <div class="mailprev"><div class="mh">E-mail in je mailprogramma</div><div><span>Aan</span>info@soulfulyoga.nl</div><div><span>Onderwerp</span>Accountaanvraag: Joke Peters</div>
-       <pre>Nieuwe accountaanvraag via de Soulful Yoga app.
-
-Naam: Joke Peters
-E-mailadres: joke.peters@gmail.com</pre></div>
-       <div class="cta">Terug naar inloggen</div><div class="logout">Mailprogramma opnieuw openen</div></div>`, 'profiel')) },
+       <div class="field"><label>E-mailadres</label><div class="in">naam@voorbeeld.nl</div></div>
+       <div class="field"><label>Telefoonnummer</label><div class="in">06 12345678</div></div><div class="cta" style="margin-top:4px">Aanvraag versturen</div>
+       <div class="hint2">Je aanvraag gaat direct naar Soulful Yoga.<br>Je krijgt bericht zodra je account klaarstaat.</div></div>`, 'profiel')) },
+  { id:'account-klaar', group:'student', name:'Account aanvragen — verstuurd', src:'app/account-aanvragen.tsx',
+    html: () => phone(screen(header({back:'Inloggen', eyebrow:'Account aanvragen', title:'Aanvraag verstuurd', subtitle:'We maken je account zo snel mogelijk aan'}) +
+      `<div style="padding:24px 20px 20px"><div class="note">✓ Je aanvraag is verstuurd naar Soulful Yoga.</div>
+       <p class="sub2">Zodra je account klaarstaat, krijg je een mail op <b>joke.peters@gmail.com</b> om een wachtwoord in te stellen. Daarna kun je inloggen.</p>
+       <div class="cta">Terug naar inloggen</div></div>`, 'profiel')) },
   { id:'profiel-kaart', group:'student', name:'Profiel — met strippenkaart', src:'app/(tabs)/profiel.tsx',
     html: () => phone(screen(header({eyebrow:'Jouw account', title:'Profiel', subtitle:'Berghem · info@soulfulyoga.nl'}) +
       `<div class="hero"><div class="avatar"></div><h2>Marieke Jansen</h2><p>marieke@soulfulyoga.nl</p></div>
@@ -382,6 +378,8 @@ E-mailadres: joke.peters@gmail.com</pre></div>
     flag:'Groen = via accountaanvraag (gebruikt de app), geel = handmatig toegevoegd (zonder app). De lijst staat altijd op naam.',
     html: () => phone(screen(header({back:'Terug', eyebrow:'Docentmodus', title:'Klanten', subtitle:'5 klanten · strippen, toevoegen en verwijderen'}) +
       `<div class="pad"><div class="cta" style="margin-bottom:12px">＋ Klant toevoegen</div>
+       <div class="reqbox"><div class="sect" style="padding:0;margin-bottom:4px">Accountaanvragen · 1</div><div class="req"><div class="nm">Joke Peters</div><div class="dt">joke.peters@gmail.com · 06 18273645</div>
+         <div class="twobtn" style="margin-top:10px"><div class="cta" style="background:var(--teal);padding:10px 0;font-size:13px">✓ Account aanmaken</div><div class="cta outline" style="padding:8.5px 0;font-size:13px">Weigeren</div></div></div></div>
        <div class="field" style="margin-bottom:10px"><div class="in">Zoek op naam of e-mail</div></div>
        <div class="orglegend"><span><i style="background:#CFE7DA"></i>Via accountaanvraag</span><span><i style="background:#F6DDAF"></i>Handmatig toegevoegd</span></div>
        ${[['Daan de Vries',26,'aanvraag','vast: vrijdag 10.15'],['Els van Dijk',8,'beheer','vast: maandag 19.00'],['Marieke Jansen',6,'aanvraag','vast: dinsdag 19.00'],['Marjolijn N.',5,'aanvraag','vast: donderdag 20.15'],['Martijn Beijerink',10,'aanvraag','vast: dinsdag 19.00']]

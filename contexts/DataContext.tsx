@@ -4,6 +4,7 @@ import { Alert, Platform } from 'react-native';
 
 import { useAuth } from '@/contexts/AuthContext';
 import type { AppUser } from '@/data/users';
+import type { AccountRequest } from '@/lib/remote';
 import { loadSnapshot } from '@/lib/remote';
 import type { ScheduleData } from '@/lib/schedule';
 import { emptyScheduleData } from '@/lib/schedule';
@@ -13,6 +14,7 @@ type DataContextValue = {
   loading: boolean; // true until the first load for the current session finished
   users: AppUser[];
   data: ScheduleData;
+  accountRequests: AccountRequest[];
   // Runs a write and reloads afterwards; a failure is shown to the user.
   run: (write: () => Promise<unknown>) => Promise<boolean>;
 };
@@ -30,6 +32,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const { ready, userId } = useAuth();
   const [users, setUsers] = useState<AppUser[]>([]);
   const [data, setData] = useState<ScheduleData>(emptyScheduleData);
+  const [accountRequests, setAccountRequests] = useState<AccountRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const loadId = useRef(0);
 
@@ -39,6 +42,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (id !== loadId.current) return; // a newer load is under way
     setUsers(snapshot.users);
     setData(snapshot.data);
+    setAccountRequests(snapshot.accountRequests);
     setLoading(false);
   }, []);
 
@@ -73,7 +77,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  return <DataContext.Provider value={{ loading, users, data, run }}>{children}</DataContext.Provider>;
+  return <DataContext.Provider value={{ loading, users, data, accountRequests, run }}>{children}</DataContext.Provider>;
 }
 
 export function useData() {

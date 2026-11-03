@@ -343,3 +343,8 @@
 .facts{background:var(--card); border:1px solid var(--sand); border-radius:16px; padding:6px 14px; margin:14px 0;}
 .facts div{display:flex; justify-content:space-between; gap:12px; padding:7px 0; font:400 13px var(--body); color:var(--mutedText);}
 .facts b{font-weight:600; color:var(--ink); text-align:right;}
+
+/* Accountaanvragen bovenaan Klanten beheren */
+.reqbox{background:#FCF1DE; border:1px solid #EFC97A; border-radius:18px; padding:12px; margin-bottom:14px;}
+.reqbox .req{background:var(--card); border-radius:14px; padding:12px; margin-top:8px;}
+.reqbox .nm{font:600 14.5px var(--body);} .reqbox .dt{font:400 12.5px var(--body); color:var(--mutedText); margin-top:2px;}

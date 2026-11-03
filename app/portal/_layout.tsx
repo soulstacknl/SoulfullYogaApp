@@ -15,7 +15,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSchedule } from '@/contexts/ScheduleContext';
 import { useData } from '@/contexts/DataContext';
 import { useInbox } from '@/contexts/InboxContext';
-import { useCurrentUser } from '@/contexts/UsersContext';
+import { useCurrentUser, useUsers } from '@/contexts/UsersContext';
 
 const NAV = [
   { path: '/portal', icon: '🗓️', label: 'Rooster' },
@@ -35,6 +35,7 @@ export default function PortalLayout() {
   const { logout } = useAuth();
   const schedule = useSchedule();
   const inbox = useInbox();
+  const { accountRequests } = useUsers();
   const pathname = usePathname();
   const { width } = useWindowDimensions();
   const [drawer, setDrawer] = useState<PortalDrawer>(null);
@@ -63,14 +64,14 @@ export default function PortalLayout() {
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToastMessage(null), 2400);
   };
-  const badge = (path: string) =>
-    path === '/portal/reserveringen'
-      ? schedule.data.requests.length
-      : path === '/portal/presentie'
-        ? schedule.unconfirmedLessons().length
-        : path === '/portal/berichten'
-          ? inbox.badge
-          : 0;
+  // Counter next to a menu item: what still needs the admin's attention.
+  const badges: Record<string, number> = {
+    '/portal/reserveringen': schedule.data.requests.length,
+    '/portal/presentie': schedule.unconfirmedLessons().length,
+    '/portal/klanten': accountRequests.length,
+    '/portal/berichten': inbox.badge,
+  };
+  const badge = (path: string) => badges[path] ?? 0;
   const narrow = width < 800;
 
   return (

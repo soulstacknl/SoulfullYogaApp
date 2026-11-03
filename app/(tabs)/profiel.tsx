@@ -23,7 +23,7 @@ export default function ProfielScreen() {
   const { logout, userId } = useAuth();
   const { loading } = useData();
   const user = useCurrentUser();
-  const { students, deleteOwnAccount } = useUsers();
+  const { students, deleteOwnAccount, accountRequests } = useUsers();
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
   const { data, unconfirmedLessons } = useSchedule();
   const { requests } = data;
@@ -88,6 +88,11 @@ export default function ProfielScreen() {
               <Pressable style={styles.adminActionBtn} onPress={() => router.push('/admin/klanten')}>
                 <Text style={styles.adminActionIcon}>👥</Text>
                 <Text style={styles.adminActionText}>Klanten beheren</Text>
+                {accountRequests.length > 0 ? (
+                  <View style={styles.adminActionBadge}>
+                    <Text style={styles.adminActionBadgeText}>{accountRequests.length}</Text>
+                  </View>
+                ) : null}
                 <Text style={styles.adminActionChevron}>›</Text>
               </Pressable>
               <Pressable style={styles.adminActionBtn} onPress={() => router.push('/admin/reserveringen')}>

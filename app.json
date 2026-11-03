@@ -60,6 +60,12 @@
         "projectId": "806d5c4f-a20c-418c-a4e9-83e26472f867"
       }
     },
-    "owner": "soulfulyogaberghem"
+    "owner": "soulfulyogaberghem",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/806d5c4f-a20c-418c-a4e9-83e26472f867"
+    }
   }
 }
