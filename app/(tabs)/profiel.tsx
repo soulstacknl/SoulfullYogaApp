@@ -46,29 +46,29 @@ export default function ProfielScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader eyebrow="Jouw account" title="Profiel" subtitle="Berghem · info@soulfulyoga.nl" />
+      <ScreenHeader
+        eyebrow={isAdmin ? 'Beheerder' : 'Jouw account'}
+        title="Profiel"
+        subtitle={isAdmin ? `${user.name} · ${user.email}` : 'Berghem · info@soulfulyoga.nl'}
+      />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
-          <LinearGradient
-            colors={[colors.marigold, colors.rani]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.avatar}
-          />
-          <Text style={styles.name}>{user.name}</Text>
-          <Text style={styles.email}>{user.email}</Text>
-          {isAdmin ? <Text style={styles.adminBadge}>Beheerder</Text> : null}
-        </View>
+        {/* The admin starts straight with the buttons; a customer sees their name and strip card. */}
+        {!isAdmin ? (
+          <View style={styles.hero}>
+            <LinearGradient
+              colors={[colors.marigold, colors.rani]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.avatar}
+            />
+            <Text style={styles.name}>{user.name}</Text>
+            <Text style={styles.email}>{user.email}</Text>
+          </View>
+        ) : null}
 
         {isAdmin ? (
           <>
-            <View style={styles.stripCard}>
-              <Text style={styles.stripLabel}>Beheerdersaccount</Text>
-              <Text style={styles.stripCountEmpty}>Beheer je studio</Text>
-              <Text style={styles.stripSub}>gebruik de knoppen hieronder om rooster en strippenkaarten bij te werken</Text>
-            </View>
-
             <View style={styles.adminActions}>
               <Pressable style={styles.adminActionBtn} onPress={() => router.push('/admin')}>
                 <Text style={styles.adminActionIcon}>✅</Text>
@@ -124,9 +124,9 @@ export default function ProfielScreen() {
               {hasStrippenkaart ? (
                 <>
                   <Text style={styles.stripCount}>
-                    {user.strippen} / {user.total}
+                    {user.strippen} {user.strippen === 1 ? 'strip' : 'strippen'}
                   </Text>
-                  <Text style={styles.stripSub}>nog {user.strippen} lessen tegoed</Text>
+                  <Text style={styles.stripSub}>1 strip per les</Text>
                 </>
               ) : (
                 <>
@@ -226,14 +226,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 13,
     color: colors.mutedText,
-  },
-  adminBadge: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 10.5,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    color: colors.rani,
-    marginTop: 6,
   },
   stripCard: {
     marginHorizontal: 20,

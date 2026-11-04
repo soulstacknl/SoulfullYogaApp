@@ -1,8 +1,12 @@
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ChatRow, NewsCard, SectionHead, TEACHER_NAME } from '@/components/BerichtenParts';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import type { ConfirmRequest } from '@/components/ConfirmDialog';
 import ScreenHeader from '@/components/ScreenHeader';
+import Toast, { useToast } from '@/components/Toast';
 import { colors, fonts } from '@/constants/theme';
 import { useInbox } from '@/contexts/InboxContext';
 import { useCurrentUser, useUsers } from '@/contexts/UsersContext';
@@ -15,6 +19,18 @@ export default function BerichtenScreen() {
   const inbox = useInbox();
   const isAdmin = user?.role === 'admin';
   const shownNews = inbox.news.slice(0, isAdmin ? 3 : 2);
+  const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
+  const toast = useToast();
+  // Admin: remove a news item for everyone.
+  const askDelete = (id: string, title: string) =>
+    setConfirm({
+      title: 'Nieuwsbericht verwijderen?',
+      message: `"${title}" verdwijnt voor iedereen uit de app.`,
+      confirmLabel: 'Verwijderen',
+      onConfirm: async () => {
+        if (await inbox.deleteNews(id)) toast.show('Nieuwsbericht verwijderd');
+      },
+    });
 
   const newsSection = (
     <>
@@ -24,7 +40,15 @@ export default function BerichtenScreen() {
         onAction={() => router.push(isAdmin ? '/admin/nieuws-schrijven' : '/nieuws')}
       />
       {shownNews.length ? (
-        shownNews.map((n) => <NewsCard key={n.id} item={n} unread={inbox.isNewsUnread(n)} onPress={() => router.push(`/nieuws/${n.id}`)} />)
+        shownNews.map((n) => (
+          <NewsCard
+            key={n.id}
+            item={n}
+            unread={inbox.isNewsUnread(n)}
+            onPress={() => router.push(`/nieuws/${n.id}`)}
+            onDelete={isAdmin ? () => askDelete(n.id, n.title) : undefined}
+          />
+        ))
       ) : (
         <Text style={styles.empty}>Nog geen nieuws.</Text>
       )}
@@ -61,6 +85,8 @@ export default function BerichtenScreen() {
           )}
           {newsSection}
         </ScrollView>
+        <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} />
+        <Toast message={toast.message} visible={toast.visible} />
       </View>
     );
   }

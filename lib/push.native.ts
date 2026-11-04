@@ -1,6 +1,8 @@
 // Push notifications are sent by the database (lesson reminders, chat, news,
 // cancellations and requests); the app registers this device and opens what a
-// tapped notification is about.
+// tapped notification is about. Every notification carries data.uid: the account
+// it is meant for. A phone that switched accounts never shows another account's
+// notifications.
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import * as Notifications from 'expo-notifications';
@@ -9,16 +11,21 @@ import { Platform } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
 
+const currentUserId = async () => (await supabase.auth.getSession()).data.session?.user.id ?? null;
+// Meant for whoever is logged in now? Older notifications without uid are shown.
+const isForMe = async (notification: Notifications.Notification) => {
+  const uid = notification.request.content.data?.uid;
+  return typeof uid !== 'string' || uid === (await currentUserId());
+};
+
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
+  handleNotification: async (notification) => {
+    const show = await isForMe(notification);
+    return { shouldShowBanner: show, shouldShowList: show, shouldPlaySound: false, shouldSetBadge: false };
+  },
 });
 
-let registeredToken: string | null = null;
+const projectId = () => Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
 
 // Asks permission (once) and links this device to the signed-in user.
 export async function registerPush() {
@@ -38,27 +45,37 @@ export async function registerPush() {
     if (status !== 'granted') status = (await Notifications.requestPermissionsAsync()).status;
     if (status !== 'granted') return;
 
-    const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
-    const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-    const { error } = await supabase.rpc('register_push_token', { p_token: token, p_platform: Platform.OS });
-    if (!error) registeredToken = token;
+    const token = (await Notifications.getExpoPushTokenAsync({ projectId: projectId() })).data;
+    await supabase.rpc('register_push_token', { p_token: token, p_platform: Platform.OS });
   } catch {
     // No push in Expo Go, on simulators or offline; the app works fine without it.
   }
 }
 
-// Before logging out, so the next user of this phone doesn't get these reminders.
+// Before logging out: this phone stops getting the account's notifications. The token is
+// looked up again, so this also works when registering at startup didn't finish.
 export async function unregisterPush() {
-  if (!registeredToken) return;
-  await supabase.rpc('unregister_push_token', { p_token: registeredToken });
-  registeredToken = null;
+  try {
+    if ((await Notifications.getPermissionsAsync()).status !== 'granted') return;
+    const token = (await Notifications.getExpoPushTokenAsync({ projectId: projectId() })).data;
+    await supabase.rpc('unregister_push_token', { p_token: token });
+    // Notifications already in the tray belong to the account that is logging out.
+    await Notifications.dismissAllNotificationsAsync();
+  } catch {
+    // Offline: the next login on this phone takes the device over anyway.
+  }
 }
 
-// Tapping a notification opens what it is about (data.url, e.g. /chat or /nieuws/<id>).
+// Tapping a notification opens what it is about (data.url, e.g. /chat or /nieuws/<id>),
+// only when it is meant for the account that is logged in.
 export function useNotificationLinks() {
   const response = Notifications.useLastNotificationResponse();
   useEffect(() => {
-    const url = response?.notification.request.content.data?.url;
-    if (typeof url === 'string') router.push(url as never);
+    if (!response) return;
+    const url = response.notification.request.content.data?.url;
+    if (typeof url !== 'string') return;
+    isForMe(response.notification).then((mine) => {
+      if (mine) router.push(url as never);
+    });
   }, [response]);
 }

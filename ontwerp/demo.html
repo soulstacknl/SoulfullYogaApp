@@ -204,7 +204,7 @@ function lessenTab(){
   const upcoming = all.filter(l => !isPast(l.sid, l.d));
   const past = all.filter(l => isPast(l.sid, l.d) && l.st.source !== 'aanvraag').reverse();
   const vast = vastLabel(u);
-  const strip = u.strippen === null ? 'Geen kaart' : `${u.strippen} <small>/ ${u.total} over</small>`;
+  const strip = u.strippen === null ? 'Geen kaart' : `${u.strippen} <small>${u.strippen === 1 ? 'strip' : 'strippen'}</small>`;
   let list = '';
   if (UI.myTab === 'komend') {
     let lastMonth = -1;
@@ -235,7 +235,7 @@ function videosTab(){
 
 /* ── Tab: Berichten (nieuws + chat) ─────────────────────────────────── */
 const newsCard = (n, email) => `<div class="ncard ${email && n.at > (S.read[email]?.news || '') ? 'new' : ''}" data-act="openNews" data-id="${n.id}">
-  <div class="nt">${esc(n.title)}</div><div class="nb">${esc(n.body)}</div><div class="nd">${msgTime(n.at)}</div></div>`;
+  <div class="nt">${esc(n.title)}</div><div class="nb">${esc(n.body)}</div><div class="nfoot"><div class="nd">${msgTime(n.at)}</div>${isAdmin() ? `<span class="ndel" data-act="askDeleteNews" data-id="${n.id}">Verwijderen</span>` : ''}</div></div>`;
 // Marjolijn beantwoordt de chat: haar foto staat bij het gesprek.
 const TEACHER_PHOTO = 'marjolijn.jpg';
 const logoAv = `<div class="av photo"><img src="${TEACHER_PHOTO}" alt="Marjolijn"></div>`;
@@ -281,11 +281,11 @@ function termsCount(){ const st = students(); return `${st.filter(u => u.termsAc
 function profielTab(){
   const u = me();
   if (!u) return loginScreen();
+  // De beheerder begint direct met de knoppen; een klant ziet naam en strippenkaart.
   const top = header({eyebrow:'Jouw account', title:'Profiel', subtitle:'Berghem · info@soulfulyoga.nl'}) +
-    `<div class="hero"><div class="avatar"></div><h2>${esc(u.name)}</h2><p>${esc(u.email)}</p>${u.role==='admin'?'<div class="badge">Beheerder</div>':''}</div>`;
-  if (u.role === 'admin') return top + `
-    <div class="strip"><div class="l">Beheerdersaccount</div><div class="c e">Beheer je studio</div><div class="su">gebruik de knoppen hieronder om rooster en strippenkaarten bij te werken</div></div>
-    <div class="aactions">
+    `<div class="hero"><div class="avatar"></div><h2>${esc(u.name)}</h2><p>${esc(u.email)}</p></div>`;
+  if (u.role === 'admin') return header({eyebrow:'Beheerder', title:'Profiel', subtitle:`${u.name} · ${u.email}`}) + `
+    <div class="aactions" style="margin-top:18px">
       <div class="abtn" data-act="push" data-v="vandaag"><span class="ic">✅</span><span class="t">Vandaag · presentielijst</span>${unconfirmedLessons().length ? `<span class="bdg">${unconfirmedLessons().length}</span>` : ''}<span class="chev">›</span></div>
       <div class="abtn" data-act="push" data-v="rooster-beheer"><span class="ic">🗓️</span><span class="t">Rooster beheren</span><span class="chev">›</span></div>
       <div class="abtn" data-act="push" data-v="klanten"><span class="ic">👥</span><span class="t">Klanten beheren</span>${(S.accountRequests || []).length ? `<span class="bdg">${S.accountRequests.length}</span>` : ''}<span class="chev">›</span></div>
@@ -293,7 +293,7 @@ function profielTab(){
       <div class="abtn" data-act="push" data-v="voorwaarden-overzicht"><span class="ic">📄</span><span class="t">Algemene voorwaarden<small class="abtn-sub">${termsCount()}</small></span><span class="chev">›</span></div>
     </div>${profileFooter}`;
   const card = u.strippen !== null
-    ? `<div class="c">${u.strippen} / ${u.total}</div><div class="su">nog ${u.strippen} lessen tegoed</div>`
+    ? `<div class="c">${u.strippen} ${u.strippen === 1 ? 'strip' : 'strippen'}</div><div class="su">1 strip per les</div>`
     : `<div class="c e">Nog geen kaart</div><div class="su">koop een strippenkaart hieronder om te starten</div>`;
   const terms = u.termsAcceptedAt ? `<div class="dt ok">✓ Akkoord op ${u.termsAcceptedAt}</div>` : `<div class="dt todo">Nog niet akkoord</div>`;
   return top + `<div class="strip"><div class="l">Strippenkaart</div>${card}</div>
@@ -479,7 +479,7 @@ const STACK = {
         <div class="field" style="margin-bottom:10px"><input type="text" data-f="kq" value="${esc(f.kq || '')}" placeholder="Zoek op naam of e-mail"></div>
         <div class="orglegend"><span><i style="background:#CFE7DA"></i>${ORIGIN_LABEL.aanvraag}</span><span><i style="background:#F6DDAF"></i>${ORIGIN_LABEL.beheer}</span></div>
         ${list.map(u => { const v = vastLabel(u); return `<div class="row tight"><div class="ini org-${u.origin}" data-act="openKlant" data-email="${u.email}">${initials(u.name)}</div>
-          <div class="meta" data-act="openKlant" data-email="${u.email}"><div class="nm">${esc(u.name)}</div><div class="st">${u.strippen === null ? 'geen kaart' : `${u.strippen} lessen over`}${v ? ` · vast: ${v}` : ''}</div></div>
+          <div class="meta" data-act="openKlant" data-email="${u.email}"><div class="nm">${esc(u.name)}</div><div class="st">${u.strippen === null ? 'geen kaart' : `${u.strippen} ${u.strippen === 1 ? 'strip' : 'strippen'}`}${v ? ` · vast: ${v}` : ''}</div></div>
           <div class="adj"><div class="circ" data-act="userStrip" data-email="${u.email}" data-d="-1">–</div><div class="circ" data-act="userStrip" data-email="${u.email}" data-d="1">+</div><div class="obtn teal" data-act="askCard" data-email="${u.email}">+10</div></div></div>`; }).join('') || '<div class="empty">Geen klant gevonden.</div>'}</div>`;
   },
 
@@ -942,7 +942,7 @@ const ACTIONS = {
     UI.stack.pop(); UI.form = {}; UI.formError = null; save(); showToast(push ? 'Gepubliceerd en verstuurd ✓' : 'Gepubliceerd ✓'); return 'rendered';
   },
   askDeleteNews(el){ UI.confirm = {title:'Nieuwsbericht verwijderen?', text:'Het bericht verdwijnt voor iedereen uit de app.', ok:'Verwijderen', act:'doDeleteNews', id:el.dataset.id}; },
-  doDeleteNews(){ deleteNews(UI.confirm.id); log('Nieuwsbericht verwijderd'); UI.confirm = null; UI.stack.pop(); save(); },
+  doDeleteNews(){ deleteNews(UI.confirm.id); log('Nieuwsbericht verwijderd'); UI.confirm = null; if (UI.stack.at(-1)?.screen === 'nieuws-item') UI.stack.pop(); save(); showToast('Nieuwsbericht verwijderd'); return 'rendered'; },
   openPush(){
     const o = UI.push?.open; UI.push = null; if (!o) return;
     UI.sheet = null; UI.tab = 'berichten';

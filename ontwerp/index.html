@@ -229,7 +229,7 @@ const SCREENS = [
       <div class="cta">Afmelden (−1 strip)</div><div class="cancel">Annuleren</div></div></div>`) },
   { id:'mijn-lessen', group:'student', name:'Mijn lessen', src:'app/(tabs)/lessen.tsx',
     html: () => phone(screen(header({title:'Mijn lessen', subtitle:'Vaste les: dinsdag 19.00'}) +
-      `<div class="ministrip"><span class="l">Strippenkaart</span><span class="c">6 <small>/ 10 over</small></span></div>
+      `<div class="ministrip"><span class="l">Strippenkaart</span><span class="c">12 <small>strippen</small></span></div>
        <div class="cancelrule">Kosteloos afmelden tot 24 uur voor aanvang. Daarna gaat er 1 strip af.</div>
        <div class="seg"><div class="on">Komend (7)</div><div>Afgenomen (3)</div></div>
        <div class="content" style="padding-top:8px">
@@ -294,7 +294,7 @@ Fijne feestdagen! 🎄</p></div>`)) },
   { id:'profiel-kaart', group:'student', name:'Profiel — met strippenkaart', src:'app/(tabs)/profiel.tsx',
     html: () => phone(screen(header({eyebrow:'Jouw account', title:'Profiel', subtitle:'Berghem · info@soulfulyoga.nl'}) +
       `<div class="hero"><div class="avatar"></div><h2>Marieke Jansen</h2><p>marieke@soulfulyoga.nl</p></div>
-       <div class="strip"><div class="l">Strippenkaart</div><div class="c">7 / 10</div><div class="su">nog 7 lessen tegoed</div></div>${prices}${profileFooter}`, 'profiel')) },
+       <div class="strip"><div class="l">Strippenkaart</div><div class="c">12 strippen</div><div class="su">1 strip per les</div></div>${prices}${profileFooter}`, 'profiel')) },
   { id:'profiel-leeg', group:'student', name:'Profiel — zonder strippenkaart', src:'app/(tabs)/profiel.tsx',
     flag:'Er staat "koop een strippenkaart hieronder", maar je kunt hieronder (nog) niets kopen.',
     html: () => phone(screen(header({eyebrow:'Jouw account', title:'Profiel', subtitle:'Berghem · info@soulfulyoga.nl'}) +
@@ -339,10 +339,9 @@ Fijne feestdagen! 🎄</p></div>`)) },
        <div class="toggle-row"><div><b>Pushbericht sturen</b><span>Iedereen krijgt een melding op de telefoon</span></div><div class="switch" style="background:var(--teal)"></div></div>
        <div class="cta">Publiceren</div></div>`)) },
   { id:'admin-profiel', group:'admin', name:'Profiel (beheerder)', src:'app/(tabs)/profiel.tsx',
-    html: () => phone(screen(header({eyebrow:'Jouw account', title:'Profiel', subtitle:'Berghem · info@soulfulyoga.nl'}) +
-      `<div class="hero"><div class="avatar"></div><h2>Studio Beheer</h2><p>beheer@soulfulyoga.nl</p><div class="badge">Beheerder</div></div>
-       <div class="strip"><div class="l">Beheerdersaccount</div><div class="c e">Beheer je studio</div><div class="su">gebruik de knoppen hieronder om rooster en strippenkaarten bij te werken</div></div>
-       <div class="aactions">
+    flag:'Geen profielfoto en geen beheerdersblok: de beheerder begint direct met de knoppen.',
+    html: () => phone(screen(header({eyebrow:'Beheerder', title:'Profiel', subtitle:'Studio Beheer · beheer@soulfulyoga.nl'}) +
+      `<div class="aactions" style="margin-top:18px">
          <div class="abtn"><span class="ic">🗓️</span><span class="t">Rooster beheren</span><span class="chev">›</span></div>
          <div class="abtn"><span class="ic">👥</span><span class="t">Klanten beheren</span><span class="chev">›</span></div>
          <div class="abtn"><span class="ic">📨</span><span class="t">Reservering aanvragen</span><span class="bdg">2</span><span class="chev">›</span></div>
@@ -383,7 +382,7 @@ Fijne feestdagen! 🎄</p></div>`)) },
        <div class="field" style="margin-bottom:10px"><div class="in">Zoek op naam of e-mail</div></div>
        <div class="orglegend"><span><i style="background:#CFE7DA"></i>Via accountaanvraag</span><span><i style="background:#F6DDAF"></i>Handmatig toegevoegd</span></div>
        ${[['Daan de Vries',26,'aanvraag','vast: vrijdag 10.15'],['Els van Dijk',8,'beheer','vast: maandag 19.00'],['Marieke Jansen',6,'aanvraag','vast: dinsdag 19.00'],['Marjolijn N.',5,'aanvraag','vast: donderdag 20.15'],['Martijn Beijerink',10,'aanvraag','vast: dinsdag 19.00']]
-        .map(([n,s,o,v]) => `<div class="row tight"><div class="ini org-${o}">${initials(n)}</div><div class="meta"><div class="nm">${n}</div><div class="st">${s} lessen over · ${v}</div></div><div class="adj"><div class="circ">–</div><div class="circ">+</div><div class="obtn teal">+10</div></div></div>`).join('')}</div>`)) },
+        .map(([n,s,o,v]) => `<div class="row tight"><div class="ini org-${o}">${initials(n)}</div><div class="meta"><div class="nm">${n}</div><div class="st">${s} strippen · ${v}</div></div><div class="adj"><div class="circ">–</div><div class="circ">+</div><div class="obtn teal">+10</div></div></div>`).join('')}</div>`)) },
   { id:'klant-toevoegen', group:'admin', name:'Klant toevoegen', src:'app/admin/klanten.tsx',
     html: () => phone(screen(header({back:'Terug', eyebrow:'Docentmodus', title:'Klanten', subtitle:'5 klanten · strippen, toevoegen en verwijderen'}) +
       `<div class="pad"><div class="row" style="display:block"><div class="sect" style="padding:0;margin-bottom:10px">Klant toevoegen</div>
@@ -407,7 +406,7 @@ Fijne feestdagen! 🎄</p></div>`)) },
     html: () => phone(screen(header({back:'Vandaag', eyebrow:'Yin Yoga', title:'20.15 – 21.15', subtitle:'Tik op een naam om in te checken'}) +
       `<div class="cap"><span>Maximaal aantal plekken</span><div class="stepper"><div class="sb">–</div><div class="sv">10</div><div class="sb">+</div></div></div>
        <div class="pad" style="padding-top:16px">${[['Marieke de Groot',3,1],['Sanne Verhoeven',0,0],['Petra Willems',6,1],['Anouk Bakker',1,0],['Noor Bos',5,0],['Eva de Wit',2,1],['Tessa Mulder',0,0]]
-        .map(([n,s,c]) => `<div class="row tight ${c?'checked':''}"><div class="chk ${c?'on':''}">${c?'✓':''}</div><div class="ini">${initials(n)}</div><div class="meta"><div class="nm">${n}</div><div class="st">${s} lessen over</div></div><div class="adj"><div class="circ">–</div><div class="circ">+</div></div></div>`).join('')}</div>`)) },
+        .map(([n,s,c]) => `<div class="row tight ${c?'checked':''}"><div class="chk ${c?'on':''}">${c?'✓':''}</div><div class="ini">${initials(n)}</div><div class="meta"><div class="nm">${n}</div><div class="st">${s} strippen</div></div><div class="adj"><div class="circ">–</div><div class="circ">+</div></div></div>`).join('')}</div>`)) },
 ];
 
 /* ── Bord opbouwen + notities ───────────────────────────────────────── */

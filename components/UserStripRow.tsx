@@ -40,7 +40,7 @@ export default function UserStripRow({ user, detail, onActivateCard, onAdjust, o
         <View style={styles.info}>
           <Text style={styles.name}>{user.name}</Text>
           <Text style={styles.strip}>
-            {user.strippen === null ? 'geen kaart' : `${strips} lessen over`}
+            {user.strippen === null ? 'geen kaart' : `${strips} ${strips === 1 ? 'strip' : 'strippen'}`}
             {detail ? ` · ${detail}` : ''}
           </Text>
         </View>

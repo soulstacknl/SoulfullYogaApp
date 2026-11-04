@@ -161,7 +161,7 @@ export default function MijnLessenScreen() {
             <Text style={styles.stripCount}>Geen kaart</Text>
           ) : (
             <Text style={styles.stripCount}>
-              {user.strippen} <Text style={styles.stripTotal}>/ {user.total} over</Text>
+              {user.strippen} <Text style={styles.stripTotal}>{user.strippen === 1 ? 'strip' : 'strippen'}</Text>
             </Text>
           )}
         </View>

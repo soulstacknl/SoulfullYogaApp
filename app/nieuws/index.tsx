@@ -3,14 +3,19 @@ import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { NewsCard } from '@/components/BerichtenParts';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import type { ConfirmRequest } from '@/components/ConfirmDialog';
 import ScreenHeader from '@/components/ScreenHeader';
 import { colors, fonts } from '@/constants/theme';
 import { useInbox } from '@/contexts/InboxContext';
+import { useCurrentUser } from '@/contexts/UsersContext';
 
 // All news, newest first.
 export default function NieuwsScreen() {
   const inbox = useInbox();
   const { markNewsRead } = inbox;
+  const isAdmin = useCurrentUser()?.role === 'admin';
+  const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
   // Seen once the list is open; the dots stay visible until the next visit.
   const [unreadIds] = useState(() => inbox.news.filter(inbox.isNewsUnread).map((n) => n.id));
   useEffect(() => {
@@ -28,11 +33,30 @@ export default function NieuwsScreen() {
       />
       <ScrollView contentContainerStyle={styles.content}>
         {inbox.news.length ? (
-          inbox.news.map((n) => <NewsCard key={n.id} item={n} unread={unreadIds.includes(n.id)} onPress={() => router.push(`/nieuws/${n.id}`)} />)
+          inbox.news.map((n) => (
+            <NewsCard
+              key={n.id}
+              item={n}
+              unread={unreadIds.includes(n.id)}
+              onPress={() => router.push(`/nieuws/${n.id}`)}
+              onDelete={
+                isAdmin
+                  ? () =>
+                      setConfirm({
+                        title: 'Nieuwsbericht verwijderen?',
+                        message: `"${n.title}" verdwijnt voor iedereen uit de app.`,
+                        confirmLabel: 'Verwijderen',
+                        onConfirm: () => inbox.deleteNews(n.id),
+                      })
+                  : undefined
+              }
+            />
+          ))
         ) : (
           <Text style={styles.empty}>Nog geen nieuws.</Text>
         )}
       </ScrollView>
+      <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} />
     </View>
   );
 }

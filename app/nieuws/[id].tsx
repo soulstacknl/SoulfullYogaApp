@@ -45,6 +45,7 @@ export default function NieuwsItemScreen() {
         {isAdmin ? (
           <Text
             style={styles.delete}
+            accessibilityRole="button"
             onPress={() =>
               setConfirm({
                 title: 'Nieuwsbericht verwijderen?',
@@ -69,6 +70,17 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 22, paddingTop: 18, paddingBottom: 32 },
   date: { fontFamily: fonts.body, fontSize: 12.5, color: colors.mutedText, marginBottom: 10 },
   body: { fontFamily: fonts.body, fontSize: 15, lineHeight: 23, color: colors.descText },
-  delete: { fontFamily: fonts.bodySemiBold, fontSize: 13.5, color: colors.rani, textAlign: 'center', marginTop: 28, textDecorationLine: 'underline' },
+  delete: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: colors.rani,
+    textAlign: 'center',
+    marginTop: 28,
+    borderWidth: 1.5,
+    borderColor: colors.rani,
+    borderRadius: 14,
+    paddingVertical: 13,
+    overflow: 'hidden',
+  },
   empty: { fontFamily: fonts.body, fontSize: 14, color: colors.mutedText, textAlign: 'center', marginTop: 24 },
 });
