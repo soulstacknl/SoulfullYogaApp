@@ -8,6 +8,7 @@ export default function AdminLayout() {
       <Stack.Screen name="klanten" />
       <Stack.Screen name="rooster-beheer" />
       <Stack.Screen name="les-form" />
+      <Stack.Screen name="priveles" />
       <Stack.Screen name="vervallen" />
       <Stack.Screen name="les-bewerken" />
       <Stack.Screen name="voorwaarden" />

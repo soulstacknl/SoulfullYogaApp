@@ -8,16 +8,20 @@ import Stepper from '@/components/Stepper';
 import { styleMeta } from '@/constants/theme';
 import type { ClassStyle } from '@/constants/theme';
 import { useSchedule } from '@/contexts/ScheduleContext';
-import { dateLabel, plusDays, shortDate, WEEKDAYS, weekdayOf } from '@/lib/dutchDate';
+import { useUsers } from '@/contexts/UsersContext';
+import { dateLabel, plusDays, shortDate, toDate, WEEKDAYS, weekdayOf } from '@/lib/dutchDate';
 import { isActiveEnrollment, isExtra, startTimeOf } from '@/lib/schedule';
 
-type Kind = 'vast' | 'extra' | 'vervallen';
+type Kind = 'vast' | 'extra' | 'prive' | 'vervallen';
 const DAYS = [...WEEKDAYS.slice(1), WEEKDAYS[0]]; // Monday first
 
-// Weekly schedule, extra lessons and holidays.
+// Weekly schedule, extra lessons, private lessons and holidays.
 export default function PortalBeheer() {
   const schedule = useSchedule();
   const portal = usePortal();
+  const { users } = useUsers();
+  const privates = schedule.upcomingPrivates();
+  const nameOf = (email: string) => users.find((u) => u.email === email)?.name ?? email;
   const { data, today } = schedule;
   const [stopDates, setStopDates] = useState<Record<string, string>>({});
   const [kind, setKind] = useState<Kind>('vast');
@@ -31,10 +35,10 @@ export default function PortalBeheer() {
 
   return (
     <View>
-      <PageHeader title="Rooster beheren" subtitle="Weekrooster, extra lessen en vakanties." />
+      <PageHeader title="Rooster beheren" subtitle="Weekrooster, extra lessen, privélessen en vakanties." />
       <View style={portalStyles.grid2}>
         <View style={[portalStyles.col, { flexBasis: 560 }]}>
-          <Card title="Weekrooster" note={`${weekly.length} vaste lessen`}>
+          <Card title="Weekrooster" note={`${weekly.length} groepslessen`}>
             {weekly.map((x) => (
               <Row key={x.id}>
                 <StyleDot style={x.style} />
@@ -117,20 +121,99 @@ export default function PortalBeheer() {
             ))}
             {closures.length || extras.length ? null : <Empty text="Geen vakanties of extra lessen gepland." />}
           </Card>
+          <Card title="Privélessen" note="geen strippen · de klant kan afmelden tot de les begint">
+            {privates.map((p) => (
+              <Row key={p.id}>
+                <Meta title={nameOf(p.email)} detail={`${dateLabel(p.date)} · ${p.time}`} />
+                <Pill label={p.cancelled ? 'Afgemeld door klant' : 'Privéles'} tone={p.cancelled ? 'muted' : 'rani'} />
+                <IconBtn
+                  label="✕"
+                  danger
+                  title="Verwijderen"
+                  onPress={() =>
+                    portal.confirm({
+                      title: 'Privéles verwijderen?',
+                      message: p.cancelled
+                        ? `${nameOf(p.email)} had zich al afgemeld.`
+                        : `${nameOf(p.email)} · ${dateLabel(p.date)} · ${p.time}. De klant krijgt een pushmelding dat de les niet doorgaat.`,
+                      confirmLabel: 'Verwijderen',
+                      onConfirm: () => schedule.removePrivateLesson(p.id),
+                    })
+                  }
+                />
+              </Row>
+            ))}
+            {privates.length ? null : <Empty text="Geen privélessen gepland." />}
+          </Card>
         </View>
         <View style={[portalStyles.col, { flexBasis: 380 }]}>
           <Card title="Toevoegen">
             <Segmented<Kind>
-              options={[['vast', 'Vaste les'], ['extra', 'Extra les'], ['vervallen', 'Vakantie']]}
+              options={[['vast', 'Groepsles'], ['extra', 'Extra les'], ['prive', 'Privéles'], ['vervallen', 'Vakantie']]}
               value={kind}
               onChange={(k) => {
                 setKind(k);
                 setScope('');
               }}
             />
-            {kind === 'vervallen' ? <HolidayForm key={scope} initialScope={scope} /> : <LessonForm key={kind} extra={kind === 'extra'} />}
+            {kind === 'vervallen' ? (
+              <HolidayForm key={scope} initialScope={scope} />
+            ) : kind === 'prive' ? (
+              <PrivateForm />
+            ) : (
+              <LessonForm key={kind} extra={kind === 'extra'} />
+            )}
           </Card>
         </View>
+      </View>
+    </View>
+  );
+}
+
+// A private lesson with one customer: push to the customer, no strips.
+function PrivateForm() {
+  const schedule = useSchedule();
+  const portal = usePortal();
+  const { students } = useUsers();
+  const { today } = schedule;
+  const [email, setEmail] = useState('');
+  const [date, setDate] = useState(today);
+  const [start, setStart] = useState('10:00');
+  const [end, setEnd] = useState('11:00');
+  const [error, setError] = useState<string | null>(null);
+
+  const save = () => {
+    const problem = !email
+      ? 'Kies een klant.'
+      : !date ? 'Kies een datum.' : date < today ? 'Die datum is al voorbij.' : !start || !end ? 'Vul een begin- en eindtijd in.' : end <= start ? 'De eindtijd moet na de begintijd liggen.' : toDate(date, start.replace(':', '.')) <= new Date() ? 'Dat tijdstip is al voorbij.' : '';
+    if (problem) return setError(problem);
+    schedule.addPrivateLesson(email, date, `${start.replace(':', '.')} – ${end.replace(':', '.')}`);
+    setError(null);
+    setEmail('');
+    portal.toast('Privéles ingepland ✓ · de klant krijgt een pushmelding');
+  };
+
+  return (
+    <View style={portalStyles.form}>
+      <Field label="Klant" style={portalStyles.full}>
+        <Select value={email} onChange={setEmail} options={[['', 'Kies een klant…'], ...students.map((u): [string, string] => [u.email, u.name])]} />
+      </Field>
+      <Field label="Datum" style={portalStyles.full}>
+        <Input type="date" min={today} value={date} onChange={setDate} />
+      </Field>
+      <Field label="Begintijd">
+        <Input type="time" value={start} onChange={setStart} />
+      </Field>
+      <Field label="Eindtijd">
+        <Input type="time" value={end} onChange={setEnd} />
+      </Field>
+      {error ? (
+        <View style={portalStyles.full}>
+          <ErrorText text={error} />
+        </View>
+      ) : null}
+      <View style={[portalStyles.full, { flexDirection: 'row' }]}>
+        <Btn label="Privéles inplannen" tone="primary" onPress={save} />
       </View>
     </View>
   );
@@ -226,7 +309,7 @@ function LessonForm({ extra }: { extra: boolean }) {
         : { day, style, time, capacity, from, until: until || null }
     );
     setError(null);
-    portal.toast(extra ? 'Extra les toegevoegd ✓' : 'Vaste les toegevoegd ✓');
+    portal.toast(extra ? 'Extra les toegevoegd ✓' : 'Groepsles toegevoegd ✓');
   };
 
   return (
@@ -272,7 +355,7 @@ function LessonForm({ extra }: { extra: boolean }) {
         </View>
       ) : null}
       <View style={[portalStyles.full, { flexDirection: 'row' }]}>
-        <Btn label={extra ? 'Extra les opslaan' : 'Vaste les opslaan'} tone="primary" onPress={save} />
+        <Btn label={extra ? 'Extra les opslaan' : 'Groepsles opslaan'} tone="primary" onPress={save} />
       </View>
     </View>
   );

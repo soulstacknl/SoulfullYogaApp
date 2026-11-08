@@ -10,15 +10,26 @@ import type { TagTone } from '@/components/Tag';
 import Toast, { useToast } from '@/components/Toast';
 import { colors, fonts, styleMeta } from '@/constants/theme';
 import { useSchedule } from '@/contexts/ScheduleContext';
-import type { Lesson } from '@/contexts/ScheduleContext';
+import type { Lesson, PrivateLesson } from '@/contexts/ScheduleContext';
 import { useCurrentUser } from '@/contexts/UsersContext';
 import { capitalize, isoOf, monthStart, MONTHS, shortDate, toDate } from '@/lib/dutchDate';
-import { cancelNotice, currentStandingSession, LATE_CANCEL_HOURS, MONTHS_AHEAD, startTimeOf } from '@/lib/schedule';
+import {
+  cancelNotice,
+  currentStandingSession,
+  LATE_CANCEL_HOURS,
+  MONTHS_AHEAD,
+  privateEnd,
+  privateStart,
+  startOf,
+  startTimeOf,
+} from '@/lib/schedule';
 
 type Segment = 'komend' | 'afgenomen';
+// Group lessons and private lessons in one list, in time order.
+type Item = { at: number; date: string } & ({ lesson: Lesson; prive?: never } | { prive: PrivateLesson; lesson?: never });
 
-// What a customer is scheduled for: upcoming lessons (with cancel) and the
-// finished ones, each showing whether it cost a strip.
+// What a customer is scheduled for: upcoming group and private lessons (with cancel)
+// and the finished ones, each showing whether it cost a strip.
 export default function MijnLessenScreen() {
   const user = useCurrentUser();
   const schedule = useSchedule();
@@ -46,11 +57,21 @@ export default function MijnLessenScreen() {
   const all = schedule.myLessons(user.email, '2000-01-01', isoOf(horizon));
   const upcoming = all.filter((l) => !schedule.isPast(l.session, l.date));
   const past = all.filter((l) => schedule.isPast(l.session, l.date) && l.status.source !== 'aanvraag').reverse();
-  const upcomingCount = upcoming.filter((l) => !l.status.cancelled && !l.closure).length;
-  const takenCount = past.filter((l) => {
-    const charge = schedule.chargeFor(user.email, l.session.id, l.date);
-    return charge === 'strip' || charge === 'open' || charge === 'los';
-  }).length;
+  const privates = schedule.privatesOf(user.email);
+  const upcomingPrivates = privates.filter((p) => privateEnd(p) > schedule.now);
+  const pastPrivates = privates.filter((p) => privateEnd(p) <= schedule.now);
+  const groupItem = (l: Lesson): Item => ({ lesson: l, date: l.date, at: startOf(l.session, l.date).getTime() });
+  const privateItem = (p: PrivateLesson): Item => ({ prive: p, date: p.date, at: privateStart(p).getTime() });
+  const upcomingItems = [...upcoming.map(groupItem), ...upcomingPrivates.map(privateItem)].sort((a, b) => a.at - b.at);
+  const pastItems = [...past.map(groupItem), ...pastPrivates.map(privateItem)].sort((a, b) => b.at - a.at);
+
+  const upcomingCount =
+    upcoming.filter((l) => !l.status.cancelled && !l.closure).length + upcomingPrivates.filter((p) => !p.cancelled).length;
+  const takenCount =
+    past.filter((l) => {
+      const charge = schedule.chargeFor(user.email, l.session.id, l.date);
+      return charge === 'strip' || charge === 'open' || charge === 'los';
+    }).length + pastPrivates.filter((p) => !p.cancelled).length;
 
   const standing = currentStandingSession(schedule.data, user.email, schedule.today);
   const lessonName = (l: Lesson) =>
@@ -69,6 +90,38 @@ export default function MijnLessenScreen() {
       },
     });
   };
+
+  // Private lessons cost no strip; Marjolijn gets a push when the customer cancels.
+  const askCancelPrivate = (p: PrivateLesson) =>
+    setConfirm({
+      title: 'Privéles afmelden?',
+      message: `Privéles ${shortDate(p.date)} ${p.time.split(' – ')[0]}. Marjolijn krijgt hiervan bericht.`,
+      confirmLabel: 'Afmelden',
+      onConfirm: () => {
+        schedule.cancelPrivateLesson(p.id);
+        toast.show('Afgemeld voor je privéles');
+      },
+    });
+
+  const renderPrivate = (p: PrivateLesson, isPastLesson: boolean) => (
+    <LessonCard
+      key={p.id}
+      date={p.date}
+      title="Privéles"
+      time={p.time}
+      color={colors.ink}
+      dimmed={p.cancelled}
+      tag={p.cancelled ? { label: 'Privéles · afgemeld', tone: 'muted' } : { label: 'Privéles', tone: 'rani' }}
+      action={
+        !isPastLesson && !p.cancelled && privateStart(p) > schedule.now
+          ? { label: 'Afmelden', tone: 'rani', onPress: () => askCancelPrivate(p) }
+          : undefined
+      }
+    />
+  );
+
+  const renderItem = (item: Item, isPastLesson: boolean) =>
+    item.prive ? renderPrivate(item.prive, isPastLesson) : renderCard(item.lesson!, isPastLesson);
 
   const renderCard = (l: Lesson, isPastLesson: boolean) => {
     const key = `${l.session.id}-${l.date}`;
@@ -112,16 +165,19 @@ export default function MijnLessenScreen() {
     } else if (l.status.source === 'aanvraag') {
       tag = { label: 'Aangevraagd · wacht op goedkeuring', tone: 'pending' };
     } else {
-      tag = l.status.source === 'vast' ? { label: 'Vaste les', tone: 'teal' } : { label: 'Losse les', tone: 'ink' };
+      tag = l.status.source === 'vast' ? { label: 'Groepsles', tone: 'teal' } : { label: 'Losse les', tone: 'ink' };
       if (!schedule.hasStarted(l.session, l.date)) {
         action = { label: 'Afmelden', tone: 'rani', onPress: () => askCancel(l) };
       }
     }
-    return <LessonCard key={key} lesson={l} tag={tag} dimmed={dimmed} action={action} />;
+    const meta = styleMeta[l.session.style];
+    return (
+      <LessonCard key={key} date={l.date} title={meta.label} time={l.session.time} color={meta.color} tag={tag} dimmed={dimmed} action={action} />
+    );
   };
 
   const renderUpcoming = () => {
-    if (upcoming.length === 0) {
+    if (upcomingItems.length === 0) {
       return (
         <>
           <Text style={styles.empty}>Je staat nog nergens voor ingepland.</Text>
@@ -132,17 +188,17 @@ export default function MijnLessenScreen() {
       );
     }
     let lastMonth = -1;
-    return upcoming.map((l) => {
-      const m = toDate(l.date).getMonth();
+    return upcomingItems.map((item) => {
+      const m = toDate(item.date).getMonth();
       const showMonth = m !== lastMonth;
       const isFirst = lastMonth === -1;
       lastMonth = m;
       return (
-        <View key={`${l.session.id}-${l.date}`}>
+        <View key={item.prive ? item.prive.id : `${item.lesson.session.id}-${item.date}`}>
           {showMonth ? (
             <Text style={[styles.monthLabel, isFirst && styles.monthLabelFirst]}>{capitalize(MONTHS[m])}</Text>
           ) : null}
-          {renderCard(l, false)}
+          {renderItem(item, false)}
         </View>
       );
     });
@@ -152,7 +208,7 @@ export default function MijnLessenScreen() {
     <View style={styles.container}>
       <ScreenHeader
         title="Mijn lessen"
-        subtitle={standing ? `Vaste les: ${standing.day.toLowerCase()} ${startTimeOf(standing)}` : 'Geen vaste les'}
+        subtitle={standing ? `Groepsles: ${standing.day.toLowerCase()} ${startTimeOf(standing)}` : 'Geen groepsles'}
       />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.stripBar}>
@@ -180,8 +236,8 @@ export default function MijnLessenScreen() {
         <View style={styles.list}>
           {segment === 'komend'
             ? renderUpcoming()
-            : past.length
-              ? past.map((l) => renderCard(l, true))
+            : pastItems.length
+              ? pastItems.map((item) => renderItem(item, true))
               : <Text style={styles.empty}>Nog geen lessen afgenomen.</Text>}
         </View>
       </ScrollView>

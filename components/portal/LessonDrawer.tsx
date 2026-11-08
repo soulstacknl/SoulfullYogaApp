@@ -153,7 +153,7 @@ export default function LessonDrawer({ sessionId, date }: { sessionId: string; d
                   <Btn label="Inplannen" tone="primary" onPress={addStanding} />
                 </View>
               </View>
-              <Note text={`${ONGOING_WEEKS} weken = doorlopende vaste les.`} style={{ marginTop: 8 }} />
+              <Note text={`${ONGOING_WEEKS} weken = doorlopende groepsles.`} style={{ marginTop: 8 }} />
             </>
           ) : (
             <Note text={occupancy.available <= 0 ? 'Deze les is vol.' : 'Alle klanten zijn al vaste klant.'} />
@@ -166,13 +166,13 @@ export default function LessonDrawer({ sessionId, date }: { sessionId: string; d
       <WeeksPrompt
         visible
         title={`${removing.name} afmelden voor hoeveel weken?`}
-        hint={`Kies ${ONGOING_WEEKS} om de vaste les helemaal te stoppen.`}
+        hint={`Kies ${ONGOING_WEEKS} om de groepsles helemaal te stoppen.`}
         confirmLabel="Afmelden"
         onCancel={() => setRemoving(null)}
         onConfirm={(n) => {
           if (removing) {
             const result = schedule.removeStanding(sessionId, date, removing.email, n);
-            portal.toast(result === 'gestopt' ? `${removing.name}: vaste les gestopt` : `${removing.name} afgemeld`);
+            portal.toast(result === 'gestopt' ? `${removing.name}: groepsles gestopt` : `${removing.name} afgemeld`);
           }
           setRemoving(null);
         }}

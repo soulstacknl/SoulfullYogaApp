@@ -29,6 +29,9 @@ export type Charge = 'strip' | 'open' | 'los';
 export type Attendee = { id: string; name: string; usesApp: boolean; walkIn?: boolean };
 export type AttendanceEntry = Attendee & { planned: boolean; present: boolean };
 export type Confirmation = { at: string; people: (AttendanceEntry & { charge: Charge | null })[] };
+// One-to-one lesson the admin planned with a customer: outside the timetable, no strips.
+// time like "14.00 – 15.00"; cancelled = the customer cancelled it.
+export type PrivateLesson = { id: string; email: string; date: string; time: string; cancelled: boolean };
 
 export type ScheduleData = {
   sessions: Session[];
@@ -42,6 +45,7 @@ export type ScheduleData = {
   checkins: Record<string, Record<string, boolean>>; // per lesson key: attendee id → present (draft)
   extras: Record<string, Attendee[]>; // per lesson key: people the admin added to the list
   confirmed: Record<string, Confirmation>; // per lesson key — strips are only deducted here
+  privates: PrivateLesson[]; // only the customer's own, or all of them for the admin
 };
 
 // 'extra' = not scheduled, but confirmed present by the admin.
@@ -74,6 +78,13 @@ export function cancelNotice(late: boolean, paysStrip: boolean) {
   return `Deze les begint binnen ${LATE_CANCEL_HOURS} uur. Volgens de voorwaarden wordt afmelden binnen ${LATE_CANCEL_HOURS} uur in rekening gebracht.`;
 }
 export const isPast =(session: Session, date: string, now: Date) => endOf(session, date) <= now;
+export const privateStart = (p: PrivateLesson) => toDate(p.date, p.time.split(' – ')[0]);
+export const privateEnd = (p: PrivateLesson) => toDate(p.date, p.time.split(' – ')[1]);
+export const privatesOf = (data: ScheduleData, email: string) =>
+  data.privates.filter((p) => p.email === email).sort((a, b) => privateStart(a).getTime() - privateStart(b).getTime());
+// Upcoming private lessons of every customer (admin), first one first.
+export const upcomingPrivates = (data: ScheduleData, now: Date) =>
+  data.privates.filter((p) => privateEnd(p) > now).sort((a, b) => privateStart(a).getTime() - privateStart(b).getTime());
 export const isExtra = (session: Session) => session.from !== null && session.from === session.until;
 
 export const activeOn = (session: Session, date: string) =>
@@ -344,4 +355,5 @@ export const emptyScheduleData = (): ScheduleData => ({
   checkins: {},
   extras: {},
   confirmed: {},
+  privates: [],
 });

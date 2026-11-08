@@ -147,7 +147,7 @@ export default function AdminLessonPanel({ session, date, onToast }: { session: 
       <WeeksPrompt
         visible={pending !== null}
         title={pending?.kind === 'add' ? `${pending.user.name} inplannen voor hoeveel weken?` : pending ? `${pending.user.name} afmelden voor hoeveel weken?` : ''}
-        hint={pending?.kind === 'add' ? `Kies ${ONGOING_WEEKS} voor een doorlopende vaste les.` : `Kies ${ONGOING_WEEKS} om de vaste les helemaal te stoppen.`}
+        hint={pending?.kind === 'add' ? `Kies ${ONGOING_WEEKS} voor een doorlopende groepsles.` : `Kies ${ONGOING_WEEKS} om de groepsles helemaal te stoppen.`}
         confirmLabel={pending?.kind === 'add' ? 'Inplannen' : 'Afmelden'}
         onCancel={() => setPending(null)}
         onConfirm={handleWeeks}

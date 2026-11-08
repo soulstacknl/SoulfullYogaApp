@@ -11,7 +11,7 @@ Soulful Yoga is verantwoordelijk voor de verwerking van je persoonsgegevens.
 
 ## Welke gegevens verwerken we?
 - **Naam, e-mailadres en (als je dat opgeeft) telefoonnummer**: voor je account en om contact met je te hebben.
-- **Je lessen**: je vaste les, reserveringen, afmeldingen, aanwezigheid en het aantal strippen op je strippenkaart.
+- **Je lessen**: je groepsles, reserveringen, afmeldingen, aanwezigheid en het aantal strippen op je strippenkaart.
 - **Je akkoord met de algemene voorwaarden** en de datum waarop je akkoord gaf.
 - **Chatberichten** die je met Soulful Yoga uitwisselt in de app.
 - **Een pushmeldingssleutel van je telefoon**, alleen als je meldingen toestaat. Daarmee sturen we je herinneringen voor je lessen en meldingen bij berichten en nieuws.

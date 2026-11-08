@@ -23,7 +23,7 @@ ROOSTER
 • Zie direct hoeveel plekken er nog vrij zijn en vraag een plek aan in een les.
 
 MIJN LESSEN
-• Je vaste les staat automatisch voor je klaar.
+• Je groepsles staat automatisch voor je klaar.
 • Kun je een keer niet? Meld je af in de app. Tot 24 uur van tevoren is dat kosteloos.
 • Je ziet welke lessen je hebt gevolgd en hoeveel strippen je nog over hebt.
 
@@ -59,7 +59,7 @@ Soulful Yoga · Runselstraat 18 · 5351 NJ Berghem · www.soulfulyoga.nl
 - Naam: `Testaccount klant`
 - Gebruikersnaam: `review@soulfulyoga.nl`
 - Wachtwoord: staat in `.env.local` (`PLAY_REVIEW_PASSWORD`), niet in deze repo
-- Instructies: `Open de tab Profiel en log in. Het account heeft 10 strippen en een vaste les op woensdag 9.00. Onder Berichten staan het nieuws en de chat met de studio.`
+- Instructies: `Open de tab Profiel en log in. Het account heeft 10 strippen en een groepsles op woensdag 9.00. Onder Berichten staan het nieuws en de chat met de studio.`
 
 **Advertenties** – *Nee, mijn app bevat geen advertenties.*
 

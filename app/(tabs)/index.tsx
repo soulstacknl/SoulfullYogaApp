@@ -5,7 +5,7 @@ import type { ScrollViewInstance } from 'react-native';
 
 import BookingSheet from '@/components/BookingSheet';
 import type { LessonSelection } from '@/components/BookingSheet';
-import ClassCard from '@/components/ClassCard';
+import ClassCard, { PrivateClassCard } from '@/components/ClassCard';
 import type { SpotsTone } from '@/components/ClassCard';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import type { ConfirmRequest } from '@/components/ConfirmDialog';
@@ -14,8 +14,9 @@ import ScreenHeader from '@/components/ScreenHeader';
 import Toast, { useToast } from '@/components/Toast';
 import { colors, fonts } from '@/constants/theme';
 import { useSchedule } from '@/contexts/ScheduleContext';
-import { useCurrentUser } from '@/contexts/UsersContext';
+import { useCurrentUser, useUsers } from '@/contexts/UsersContext';
 import type { Session } from '@/data/schedule';
+import type { PrivateLesson } from '@/lib/schedule';
 import { capitalize, dateLabel, isoOf, monthStart, MONTHS, plusDays, toDate } from '@/lib/dutchDate';
 import { isExtra, MONTHS_AHEAD } from '@/lib/schedule';
 
@@ -30,14 +31,18 @@ export default function ScheduleScreen() {
   const [selected, setSelected] = useState<LessonSelection | null>(null);
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
   const toast = useToast();
+  const { users } = useUsers();
   const scroll = useRef<ScrollViewInstance>(null);
   const dayY = useRef<Record<string, number>>({});
 
   const first = monthStart(month, now);
-  const days: { date: string; sessions: Session[] }[] = [];
+  // The admin also sees the private lessons in the timetable.
+  const privates = isAdmin ? schedule.upcomingPrivates().filter((p) => !p.cancelled) : [];
+  const days: { date: string; sessions: Session[]; privates: PrivateLesson[] }[] = [];
   for (let date = month === 0 ? today : isoOf(first); toDate(date).getMonth() === first.getMonth(); date = plusDays(date, 1)) {
     const sessions = schedule.sessionsOn(date).filter((s) => !schedule.hasStarted(s, date));
-    if (sessions.length) days.push({ date, sessions });
+    const privatesOn = privates.filter((p) => p.date === date);
+    if (sessions.length || privatesOn.length) days.push({ date, sessions, privates: privatesOn });
   }
 
   const spotsFor = (session: Session, date: string): [string, SpotsTone] => {
@@ -106,7 +111,7 @@ export default function ScheduleScreen() {
             ) : null}
           </>
         ) : (
-          days.map(({ date, sessions }, index) => (
+          days.map(({ date, sessions, privates: privatesOn }, index) => (
             <View key={date} onLayout={(e) => (dayY.current[date] = e.nativeEvent.layout.y)}>
               <Text
                 style={[
@@ -116,20 +121,33 @@ export default function ScheduleScreen() {
                 ]}>
                 {dateLabel(date)}
               </Text>
-              {sessions.map((session) => {
-                const [spotsText, spotsTone] = spotsFor(session, date);
-                return (
-                  <ClassCard
-                    key={session.id}
-                    session={session}
-                    spotsText={spotsText}
-                    spotsTone={spotsTone}
-                    closedReason={schedule.closureOf(session.id, date)?.reason}
-                    extra={isExtra(session)}
-                    onPress={() => setSelected({ sessionId: session.id, date })}
-                  />
-                );
-              })}
+              {[...sessions, ...privatesOn]
+                .sort((x, y) => x.time.localeCompare(y.time))
+                .map((item) => {
+                  if ('email' in item) {
+                    return (
+                      <PrivateClassCard
+                        key={item.id}
+                        name={users.find((u) => u.email === item.email)?.name ?? ''}
+                        time={item.time}
+                        onPress={() => router.push('/admin/rooster-beheer')}
+                      />
+                    );
+                  }
+                  const session = item;
+                  const [spotsText, spotsTone] = spotsFor(session, date);
+                  return (
+                    <ClassCard
+                      key={session.id}
+                      session={session}
+                      spotsText={spotsText}
+                      spotsTone={spotsTone}
+                      closedReason={schedule.closureOf(session.id, date)?.reason}
+                      extra={isExtra(session)}
+                      onPress={() => setSelected({ sessionId: session.id, date })}
+                    />
+                  );
+                })}
             </View>
           ))
         )}

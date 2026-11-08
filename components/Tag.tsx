@@ -13,7 +13,7 @@ const tones: Record<TagTone, { backgroundColor: string; color: string }> = {
   rani: { backgroundColor: '#FBE7EE', color: colors.rani },
 };
 
-// Small status pill, e.g. "Vaste les" or "Afgemeld · telt niet mee".
+// Small status pill, e.g. "Groepsles" or "Afgemeld · telt niet mee".
 export default function Tag({ label, tone, style }: { label: string; tone: TagTone; style?: StyleProp<TextStyle> }) {
   return <Text style={[styles.tag, tones[tone], style]}>{label}</Text>;
 }

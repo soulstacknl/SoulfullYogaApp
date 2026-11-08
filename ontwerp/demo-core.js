@@ -9,7 +9,7 @@ const DESC = {
   flow:'Met Flow Yoga laat je je meevoeren met de muziek — elke in- en uitademing wordt een beweging, tot er een soort yogadans ontstaat. De les wordt een maand lang herhaald zodat je volledig zonder nadenken in de Flow komt.',
   gentle:'Een milde vorm van yoga waarin je met aandacht beweegt, diep ademhaalt en het lichaam souplesse geeft. De houdingen zijn voor iedereen goed te volgen en aan te passen waar nodig.',
 };
-// Leeg in de eerste versies: het tabblad Video's toont "volgen binnenkort".
+// Leeg in de eerste versies: het tabblad Video's meldt dat hier later video's en mediabestanden komen.
 const VIDEOS = [];
 // Gelijk aan data/terms.ts (gebaseerd op soulfulyoga.nl/general-5, plus artikel 14 over de app).
 const TERMS_VERSION = 'Versie 1.1 · november 2026';
@@ -27,7 +27,7 @@ const TERMS = [
   ['Artikel 11: Opschorting en ontbinding', '<p>11.1 Indien voor het tijdstip van levering van diensten aan Klant blijkt dat laatstgenoemde niet, niet behoorlijk of niet tijdig voldoet aan enige verplichting jegens Soulful Yoga, heeft Soulful Yoga het recht de nakoming van al haar verplichtingen jegens Klant op te schorten dan wel de overeenkomst met Klant, zonder enige ingebrekestelling of gerechtelijke tussenkomst en zonder zelf tot enige schadevergoeding gehouden te zijn, geheel of gedeeltelijk te ontbinden, één en ander onverminderd de overige rechten van Soulful Yoga in een dergelijk geval.</p>'],
   ['Artikel 12: Auteursrecht en eigendom', '<p>12.1 Van het door Soulful Yoga verstrekte lesmateriaal, waaronder video’s in de app, blijven alle rechten voorbehouden. Niets uit de uitgave(n) mag digitaal worden opgeslagen of openbaar worden gemaakt in enigerlei vorm of enigerlei wijze zonder voorafgaande schriftelijke toestemming van Soulful Yoga. Het is niet toegestaan het lesmateriaal aan derden ter beschikking te stellen.</p>'],
   ['Artikel 13: Klachten', '<p>13.1 Klachten kunnen schriftelijk of per mail (info@soulfulyoga.nl) worden ingediend onder vermelding van datum, plaats, de situatie waar de klacht betrekking op heeft en je voorstel om tot een oplossing te komen. Soulful Yoga zal binnen vier weken na ontvangst reageren met een voorstel tot oplossing. Bij onduidelijkheid zal Soulful Yoga contact opnemen met de indiener van de klacht. Indien de klacht betrekking heeft op een docent, zal contact opgenomen worden met de docent. Daarna volgt een voorstel ter oplossing van je klacht.</p><p>13.2 Mochten Soulful Yoga en klager het niet eens worden over een oplossing, dan wordt de klacht voorgelegd aan de Geschillencommissie Algemeen van de Stichting Geschillencommissies Consumentenzaken. De uitspraak van de Geschillencommissie is bindend voor partijen.</p><p>13.3 Klachten worden geregistreerd bij Soulful Yoga en worden vertrouwelijk behandeld. Klachten zijn omwille van de privacy alleen inzichtelijk voor direct belanghebbenden.</p>'],
-  ['Artikel 14: De Soulful Yoga-app', '<p>14.1 Een account voor de app wordt aangemaakt door Soulful Yoga. Je account is persoonlijk; houd je wachtwoord geheim.</p><p>14.2 Via de app kun je het rooster bekijken, een plek in een les aanvragen en lessen annuleren. Een aanvraag is pas definitief wanneer Soulful Yoga deze heeft goedgekeurd. Voor je vaste les staat je plek automatisch gereserveerd.</p><p>14.3 Een strip wordt afgeschreven wanneer Soulful Yoga je aanwezigheid bij een les bevestigt, of bij annulering binnen 24 uur zoals bepaald in artikel 5.4. Het saldo in de app is leidend; meld het bij Soulful Yoga als je denkt dat het niet klopt.</p><p>14.4 In de app worden je naam, e-mailadres, telefoonnummer, strippenkaart, reserveringen, aanwezigheid en je chatberichten met Soulful Yoga bewaard. Soulful Yoga gebruikt deze gegevens alleen voor je lessen en deelt ze niet met derden, behalve met de dienstverlener die de app technisch mogelijk maakt (opslag binnen de EU).</p><p>14.5 Je kunt je account en de bijbehorende gegevens zelf verwijderen via Profiel → Account verwijderen. Een resterend tegoed op je strippenkaart vervalt daarmee niet; neem daarvoor contact op met Soulful Yoga.</p>'],
+  ['Artikel 14: De Soulful Yoga-app', '<p>14.1 Een account voor de app wordt aangemaakt door Soulful Yoga. Je account is persoonlijk; houd je wachtwoord geheim.</p><p>14.2 Via de app kun je het rooster bekijken, een plek in een les aanvragen en lessen annuleren. Een aanvraag is pas definitief wanneer Soulful Yoga deze heeft goedgekeurd. Voor je groepsles staat je plek automatisch gereserveerd.</p><p>14.3 Een strip wordt afgeschreven wanneer Soulful Yoga je aanwezigheid bij een les bevestigt, of bij annulering binnen 24 uur zoals bepaald in artikel 5.4. Het saldo in de app is leidend; meld het bij Soulful Yoga als je denkt dat het niet klopt.</p><p>14.4 In de app worden je naam, e-mailadres, telefoonnummer, strippenkaart, reserveringen, aanwezigheid en je chatberichten met Soulful Yoga bewaard. Soulful Yoga gebruikt deze gegevens alleen voor je lessen en deelt ze niet met derden, behalve met de dienstverlener die de app technisch mogelijk maakt (opslag binnen de EU).</p><p>14.5 Je kunt je account en de bijbehorende gegevens zelf verwijderen via Profiel → Account verwijderen. Een resterend tegoed op je strippenkaart vervalt daarmee niet; neem daarvoor contact op met Soulful Yoga.</p>'],
 ];
 
 /* ── Lessen per week — gelijk aan data/schedule.ts ──────────────────── */
@@ -100,7 +100,7 @@ const FIRST_NAMES = ['Anna','Sanne','Lotte','Femke','Iris','Noor','Eva','Lisa','
 const LAST_NAMES = ['Jansen','de Vries','van Dijk','Bakker','Visser','Smit','Meijer','de Boer','Mulder','de Groot','Bos','Vos','Peters','Hendriks','van Leeuwen','Dekker','Brouwer','de Wit','Dijkstra','Smits','de Graaf','van der Meer','Kok','Jacobs','Willems','van den Berg','Verhoeven','Schouten','Hoekstra','Kuiper','Postma','Timmer','van Beek','Kramer','Sanders','Groen','Blom','Peeters','Aarts','Verweij','van Erp','Coolen','van Lith','Hermans','van Rooij','Verbeek','Kuijpers','van Gerwen','Wijnen','Cornelissen'];
 const DEMO_CUSTOMERS = 100;
 
-// 100 klanten met elk één vaste les, gelijk verdeeld over de lessen (Gentle iets kleiner).
+// 100 klanten met elk één groepsles, gelijk verdeeld over de lessen (Gentle iets kleiner).
 function seedCustomers(s){
   const rnd = seededRandom(20261031);
   const pick = (list) => list[Math.floor(rnd() * list.length)];
@@ -110,7 +110,7 @@ function seedCustomers(s){
   for (let round = 0; slots.length < DEMO_CUSTOMERS; round++) {
     for (const sid of sessionIds) if (slots.length < DEMO_CUSTOMERS && round < SES[sid].capacity - 1) slots.push(sid);
   }
-  // Marieke, Daan en Marjolijn hebben al een vaste les; de rest krijgt een plek uit de pot
+  // Marieke, Daan en Marjolijn hebben al een groepsles; de rest krijgt een plek uit de pot
   const taken = {'marieke@soulfulyoga.nl':'tue-1', 'marjolijn_n@hotmail.com':'thu-2', 'daan@soulfulyoga.nl':'fri-2'};
   for (const sid of Object.values(taken)) slots.splice(slots.indexOf(sid), 1);
   for (let i = slots.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [slots[i], slots[j]] = [slots[j], slots[i]]; }
@@ -199,7 +199,7 @@ const isExtra = (s) => !!s.from && s.from === s.until;
 const activeOn = (s, d) => s.day === weekdayOf(d) && (!s.from || d >= s.from) && (!s.until || d <= s.until);
 const sessionsOn = (d) => S.sessions.filter(s => activeOn(s, d)).sort((a, b) => a.time.localeCompare(b.time));
 const closureOf = (sid, d) => S.closures.find(c => d >= c.from && d <= c.to && (!c.sessionId || c.sessionId === sid));
-// Een vaste les is actief zolang er nog een les op of na vandaag in zit.
+// Een groepsles is actief zolang er nog een les op of na vandaag in zit.
 const lastLessonOf = (e) => plusDays(e.start, 7 * (e.weeks - 1));
 const isActiveEnrollment = (e) => e.weeks > 0 && lastLessonOf(e) >= isoOf(now());
 const covers = (e, d) => { const n = daysBetween(e.start, d); return n >= 0 && n % 7 === 0 && n / 7 < e.weeks; };
@@ -354,7 +354,7 @@ function addVast(sid, d, email, weeks){
   S.enrollments.push({id:`e-${Date.now()}`, sessionId:sid, email, start:d, weeks});
   return true;
 }
-// Vaste klant afmelden voor N weken vanaf deze datum; 99 (of meer dan er over is) = vaste les stoppen.
+// Vaste klant afmelden voor N weken vanaf deze datum; 99 (of meer dan er over is) = groepsles stoppen.
 function removeVast(sid, d, email, weeks){
   const e = enrollmentOf(email, sid, d);
   const idx = daysBetween(e.start, d) / 7;
@@ -411,7 +411,7 @@ const nowIso = () => now().toISOString();
 const agoIso = (days, hours = 0) => new Date(Date.now() - (days * 24 + hours) * 3600000).toISOString();
 function seedMessages(s){
   s.news = [
-    {id:'n-3', title:'Kerstvakantie', body:'Van 21 december tot en met 3 januari is de studio dicht. Je vaste lessen in die periode vervallen en kosten geen strip. Vanaf maandag 4 januari staan we weer voor je klaar. Fijne feestdagen! 🎄', at:agoIso(2), push:true},
+    {id:'n-3', title:'Kerstvakantie', body:'Van 21 december tot en met 3 januari is de studio dicht. Je groepslessen in die periode vervallen en kosten geen strip. Vanaf maandag 4 januari staan we weer voor je klaar. Fijne feestdagen! 🎄', at:agoIso(2), push:true},
     {id:'n-2', title:'Nieuw: Gentle Yoga op vrijdagochtend', body:'Vanaf deze maand is er op vrijdag om 9.00 een Gentle Yoga-les: rustig bewegen, diep ademen en souplesse. Fijn als je net begint of na een blessure. Reserveer een plek via het rooster.', at:agoIso(9), push:false},
     {id:'n-1', title:'Welkom in de Soulful Yoga-app', body:'Vanaf nu regel je alles in de app: je lessen, je strippenkaart en afmelden. Heb je een vraag? Stuur ons een bericht via de chat.', at:agoIso(21), push:true},
   ];
@@ -493,4 +493,27 @@ function approveAccountRequest(id){
   return createCustomer({name:r.name, email:r.email, phone:r.phone, origin:'aanvraag'});
 }
 function rejectAccountRequest(id){ S.accountRequests = S.accountRequests.filter(x => x.id !== id); }
+/* ── Privélessen: één-op-één met de docent, buiten het rooster, geen strippen ── */
+// S.privates: {id, email, date, time:'10.00 – 11.00', cancelled}. Alleen de klant zelf en de beheerder zien ze.
+// S.pushQueue: pushmeldingen die verschijnen zodra die klant (of de beheerder: to 'admin') inlogt.
+if (!S.privates) { S.privates = [{id:'p-seed', email:'marieke@soulfulyoga.nl', date:plusDays(isoOf(now()), 5), time:'10.00 – 11.00', cancelled:false}]; save(); }
+if (!S.pushQueue) S.pushQueue = [];
+const privStart = (p) => toDate(p.date, p.time.split(' – ')[0]);
+const privEnd = (p) => toDate(p.date, p.time.split(' – ')[1]);
+const privatesOf = (email) => S.privates.filter(p => p.email === email).sort((a, b) => privStart(a) - privStart(b));
+const upcomingPrivates = () => S.privates.filter(p => privEnd(p) > now()).sort((a, b) => privStart(a) - privStart(b));
+const privLabel = (p) => `${shortDate(p.date)} ${p.time.split(' – ')[0]}`;
+function addPrivate(email, date, time){
+  const p = {id:`p-${Date.now()}`, email, date, time, cancelled:false}; S.privates.push(p);
+  S.pushQueue.push({to:email, text:`🧘 Privéles gepland: ${privLabel(p)} met Marjolijn. Namasté!`, open:{tab:'lessen'}});
+}
+function cancelPrivate(id){
+  const p = S.privates.find(x => x.id === id); p.cancelled = true;
+  S.pushQueue.push({to:'admin', text:`✕ ${userBy(p.email).name} meldt zich af · privéles ${privLabel(p)}`, open:{screen:'rooster-beheer'}});
+}
+function removePrivate(id){
+  const p = S.privates.find(x => x.id === id); S.privates = S.privates.filter(x => x !== p);
+  if (!p.cancelled) S.pushQueue.push({to:p.email, text:`✕ Privéles ${privLabel(p)} gaat niet door.`, open:{tab:'lessen'}});
+}
+
 if (!S.accountRequests) { S.accountRequests = [{id:'a-seed', name:'Joke Peters', email:'joke.peters@gmail.com', phone:'06 18273645', at:agoIso(0, 3)}]; save(); }

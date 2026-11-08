@@ -49,7 +49,7 @@ export default function LesBewerkenScreen() {
           <Text style={styles.note}>Geldt voor elke week, behalve datums die je apart hebt aangepast.</Text>
         </View>
 
-        <Text style={styles.sectionLabel}>Vaste les stoppen</Text>
+        <Text style={styles.sectionLabel}>Groepsles stoppen</Text>
         {session.until ? (
           <>
             <Text style={styles.status}>Laatste les: {dateLabel(session.until)}</Text>

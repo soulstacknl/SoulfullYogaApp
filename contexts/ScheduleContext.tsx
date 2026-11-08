@@ -19,6 +19,7 @@ import type {
   LessonStatus,
   Occupancy,
   Person,
+  PrivateLesson,
   ReservationRequest,
   ScheduleData,
 } from '@/lib/schedule';
@@ -32,6 +33,7 @@ export type {
   Lesson,
   LessonStatus,
   Occupancy,
+  PrivateLesson,
   ReservationRequest,
 } from '@/lib/schedule';
 
@@ -80,6 +82,12 @@ type ScheduleContextValue = {
   removeAttendee: (sessionId: string, date: string, attendeeId: string) => void;
   confirmAttendance: (sessionId: string, date: string) => { present: number; strips: number };
   undoConfirmation: (sessionId: string, date: string) => void;
+  // Private lessons (no strips): planned by the admin, cancellable by the customer until the start
+  privatesOf: (email: string) => PrivateLesson[];
+  upcomingPrivates: () => PrivateLesson[];
+  addPrivateLesson: (email: string, date: string, time: string) => void;
+  removePrivateLesson: (id: string) => void;
+  cancelPrivateLesson: (id: string) => void;
 };
 
 const ScheduleContext = createContext<ScheduleContextValue | null>(null);
@@ -255,6 +263,11 @@ export function ScheduleProvider({ children }: { children: ReactNode }) {
         removeAttendee,
         confirmAttendance,
         undoConfirmation,
+        privatesOf: (email) => rules.privatesOf(data, email),
+        upcomingPrivates: () => rules.upcomingPrivates(data, now),
+        addPrivateLesson: (email, date, time) => run(() => remote.addPrivateLesson(idOf(email), date, time)),
+        removePrivateLesson: (id) => run(() => remote.removePrivateLesson(id)),
+        cancelPrivateLesson: (id) => run(() => remote.cancelPrivateLesson(id)),
       }}>
       {children}
     </ScheduleContext.Provider>

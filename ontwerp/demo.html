@@ -92,10 +92,10 @@ const header = ({eyebrow, title, subtitle='', back, photo}) => `
       <h1>${esc(title)}</h1><p>${esc(subtitle)}</p>
     </div><img src="${photo || 'logo-mark.png'}" class="${photo ? 'hphoto' : ''}" alt=""></div>
   </div>`;
-// Video's staat verborgen tot er video's zijn; Berichten neemt die plek in.
+// Video's staat er al; daar komen later video's en mediabestanden.
 const tabs = () => isAdmin()
-  ? [['rooster','Rooster'],['berichten','Berichten'],['profiel','Profiel']]
-  : [['rooster','Rooster'],['lessen','Mijn lessen'],['berichten','Berichten'],['profiel','Profiel']];
+  ? [['rooster','Rooster'],['berichten','Berichten'],['videos',"Video's"],['profiel','Profiel']]
+  : [['rooster','Rooster'],['lessen','Mijn lessen'],['berichten','Berichten'],['videos',"Video's"],['profiel','Profiel']];
 // Rood getal op de tab Berichten: ongelezen nieuws en chat (beheerder: gesprekken met nieuwe berichten).
 const berichtenBadge = () => { const u = me(); return !u ? 0 : u.role === 'admin' ? studioUnread() : unreadNews(u.email) + unreadChat(u.email); };
 const tabbar = () => `<div class="tabbar">${tabs().map(([k,l]) => { const n = k === 'berichten' ? berichtenBadge() : 0;
@@ -113,7 +113,9 @@ function monthDays(offset){
   const out = [];
   for (let d = from; toDate(d).getMonth() === first.getMonth(); d = plusDays(d, 1)) {
     const classes = sessionsOn(d).filter(c => !hasStarted(c.id, d));
-    if (classes.length) out.push({d, classes});
+    // De beheerder ziet ook de privélessen in het rooster.
+    const privs = isAdmin() ? upcomingPrivates().filter(p => p.date === d && !p.cancelled) : [];
+    if (classes.length || privs.length) out.push({d, classes, privs});
   }
   return out;
 }
@@ -158,12 +160,13 @@ function roosterTab(){
     <div class="mlabel">${label(m)}${m === 0 ? '<small>resterende lessen</small>' : ''}</div>
     <div class="mbtn ${m === MONTHS_AHEAD ? 'off' : ''}" ${m === MONTHS_AHEAD ? '' : 'data-act="month" data-d="1"'}>›</div></div>`;
   const days = monthDays(m);
-  const h = days.length ? days.map(({d, classes}, i) =>
+  const h = days.length ? days.map(({d, classes, privs}, i) =>
     `<div class="day ${i === 0 ? 'first' : ''} ${i > 0 && toDate(d).getDay() === 1 ? 'week' : ''}" id="day-${d}">${dateLabel(d)}</div>` +
     classes.map(c => { const [txt, cls] = spotLabel(c.id, d);
       const cl = closureOf(c.id, d);
       return `<div class="ccard ${cl ? 'closed' : ''}" data-act="openClass" ${at(c.id, d)}>${dot(c.style)}<div class="meta"><div class="nm">${STYLE[c.style].label}${isExtra(c) ? ' <span class="tag pend" style="margin:0 0 0 4px">Extra</span>' : ''}</div><div class="tm">${c.time}${cl ? ` · ${esc(cl.reason)}` : ''}</div></div>
-        <div class="spots ${cls}">${txt}</div><div class="chev">›</div></div>`; }).join('')).join('')
+        <div class="spots ${cls}">${txt}</div><div class="chev">›</div></div>`; }).join('') +
+    privs.map(p => `<div class="ccard" data-act="push" data-v="rooster-beheer"><div class="dot prive">P</div><div class="meta"><div class="nm">Privéles <span class="tag open" style="margin:0 0 0 4px">${esc(userBy(p.email).name)}</span></div><div class="tm">${p.time}</div></div><div class="chev">›</div></div>`).join('')).join('')
     : `<div class="empty" style="margin-top:36px">Geen lessen meer in ${MONTHS[monthStart(m).getMonth()]}.</div>
        ${m < MONTHS_AHEAD ? `<div class="cta" style="margin-top:18px" data-act="month" data-d="1">Bekijk ${MONTHS[monthStart(m + 1).getMonth()]} ›</div>` : ''}`;
   return header({eyebrow: isAdmin() ? 'Beheerder' : undefined, title:'Soulful Yoga', subtitle:'Meer rust en ruimte voor jezelf'}) + nav + `<div class="content">${monthCalendar(m)}${h}</div>`;
@@ -189,11 +192,17 @@ function lessonCard(l, past){
   } else if (l.st.source === 'aanvraag') {
     tag = '<span class="tag pend">Aangevraagd · wacht op goedkeuring</span>';
   } else {
-    tag = `<span class="tag ${l.st.source}">${l.st.source === 'vast' ? 'Vaste les' : 'Losse les'}</span>`;
+    tag = `<span class="tag ${l.st.source}">${l.st.source === 'vast' ? 'Groepsles' : 'Losse les'}</span>`;
     if (!hasStarted(l.sid, l.d)) btn = `<div class="obtn" data-act="askCancel" ${at(l.sid, l.d)}>Afmelden</div>`;
   }
   return `<div class="lcard ${dim ? 'dim' : ''}"><div class="datebox ${s.style}"><b>${dt.getDate()}</b><span>${WEEKDAYS[dt.getDay()].slice(0,2)}</span></div>
     <div class="meta"><div class="nm">${STYLE[s.style].label}</div><div class="tm">${s.time}</div>${tag}</div>${btn}</div>`;
+}
+function privateCard(p, past){
+  const dt = toDate(p.date);
+  const btn = !past && !p.cancelled && privStart(p) > now() ? `<div class="obtn" data-act="askCancelPrivate" data-id="${p.id}">Afmelden</div>` : '';
+  return `<div class="lcard ${p.cancelled ? 'dim' : ''}"><div class="datebox prive"><b>${dt.getDate()}</b><span>${WEEKDAYS[dt.getDay()].slice(0,2)}</span></div>
+    <div class="meta"><div class="nm">Privéles</div><div class="tm">${p.time}</div>${p.cancelled ? '<span class="tag off">Privéles · afgemeld</span>' : '<span class="tag open">Privéles</span>'}</div>${btn}</div>`;
 }
 function lessenTab(){
   const u = me();
@@ -203,31 +212,38 @@ function lessenTab(){
   const all = myLessons(u.email, '2000-01-01', horizonEnd());
   const upcoming = all.filter(l => !isPast(l.sid, l.d));
   const past = all.filter(l => isPast(l.sid, l.d) && l.st.source !== 'aanvraag').reverse();
+  // Groeps- en privélessen in één lijst, op tijd.
+  const privs = privatesOf(u.email);
+  const upPriv = privs.filter(p => privEnd(p) > now()), pastPriv = privs.filter(p => privEnd(p) <= now());
+  const items = (ls, ps) => [...ls.map(l => ({d:l.d, at:startOf(l.sid, l.d), l})), ...ps.map(p => ({d:p.date, at:privStart(p), p}))];
+  const upItems = items(upcoming, upPriv).sort((a, b) => a.at - b.at);
+  const pastItems = items(past, pastPriv).sort((a, b) => b.at - a.at);
+  const card = (it, isPast) => it.p ? privateCard(it.p, isPast) : lessonCard(it.l, isPast);
   const vast = vastLabel(u);
   const strip = u.strippen === null ? 'Geen kaart' : `${u.strippen} <small>${u.strippen === 1 ? 'strip' : 'strippen'}</small>`;
   let list = '';
   if (UI.myTab === 'komend') {
     let lastMonth = -1;
-    list = upcoming.length ? upcoming.map(l => {
-      const m = toDate(l.d).getMonth();
+    list = upItems.length ? upItems.map(it => {
+      const m = toDate(it.d).getMonth();
       const head = m !== lastMonth ? `<div class="sect" style="padding:0;margin:${lastMonth === -1 ? 4 : 18}px 0 8px">${cap1(MONTHS[m])}</div>` : '';
-      lastMonth = m; return head + lessonCard(l, false);
+      lastMonth = m; return head + card(it, false);
     }).join('') : `<div class="empty">Je staat nog nergens voor ingepland.</div><div class="cta" style="margin-top:18px" data-act="tab" data-v="rooster">Bekijk het rooster</div>`;
   } else {
-    list = past.length ? past.map(l => lessonCard(l, true)).join('') : '<div class="empty">Nog geen lessen afgenomen.</div>';
+    list = pastItems.length ? pastItems.map(it => card(it, true)).join('') : '<div class="empty">Nog geen lessen afgenomen.</div>';
   }
-  return header({title:'Mijn lessen', subtitle: vast ? `Vaste les: ${vast}` : 'Geen vaste les'}) +
+  return header({title:'Mijn lessen', subtitle: vast ? `Groepsles: ${vast}` : 'Geen groepsles'}) +
     `<div class="ministrip"><span class="l">Strippenkaart</span><span class="c">${strip}</span></div>
      <div class="cancelrule">Kosteloos afmelden tot ${LATE_CANCEL_HOURS} uur voor aanvang. Daarna gaat er 1 strip af.</div>
-     <div class="seg"><div class="${UI.myTab === 'komend' ? 'on' : ''}" data-act="myTab" data-v="komend">Komend (${upcoming.filter(l => !l.st.cancelled && !l.closed).length})</div>
-       <div class="${UI.myTab === 'afgenomen' ? 'on' : ''}" data-act="myTab" data-v="afgenomen">Afgenomen (${past.filter(l => ['strip', 'open', 'los'].includes(chargeFor(u.email, l.sid, l.d))).length})</div></div>
+     <div class="seg"><div class="${UI.myTab === 'komend' ? 'on' : ''}" data-act="myTab" data-v="komend">Komend (${upcoming.filter(l => !l.st.cancelled && !l.closed).length + upPriv.filter(p => !p.cancelled).length})</div>
+       <div class="${UI.myTab === 'afgenomen' ? 'on' : ''}" data-act="myTab" data-v="afgenomen">Afgenomen (${past.filter(l => ['strip', 'open', 'los'].includes(chargeFor(u.email, l.sid, l.d))).length + pastPriv.filter(p => !p.cancelled).length})</div></div>
      <div class="pad" style="padding-top:8px">${list}</div>`;
 }
 
 /* ── Tab: Video's ───────────────────────────────────────────────────── */
 function videosTab(){
   const list = VIDEOS.filter(v => UI.filter === 'alles' || v.s === UI.filter);
-  if (!VIDEOS.length) return header({title:"Video's", subtitle:'Oefen op jouw moment, in jouw tempo'}) + `<div class="soon"><div class="soon-ic"></div><h3>Video's volgen binnenkort</h3><p>Straks kun je hier thuis oefenen met video's van Yin, Flow en Gentle Yoga, op jouw moment en in jouw tempo.</p></div>`;
+  if (!VIDEOS.length) return header({title:"Video's", subtitle:'Oefen op jouw moment, in jouw tempo'}) + `<div class="soon"><div class="soon-ic"></div><h3>Video's en media volgen binnenkort</h3><p>Hier deelt Soulful Yoga straks video's en mediabestanden, zoals lessen om thuis mee te oefenen, op jouw moment en in jouw tempo.</p></div>`;
   return header({title:"Video's", subtitle:'Oefen op jouw moment, in jouw tempo'}) +
     `<div class="filters">${[['alles','Alles'],['yin','Yin'],['flow','Flow'],['gentle','Gentle']].map(([k,l]) => `<div class="chip ${UI.filter===k?'on':''}" data-act="filter" data-v="${k}">${l}</div>`).join('')}</div>
      <div style="padding:10px 0 24px">${list.map(v => `<div class="vcard"><div class="thumb ${v.s}"><div class="play"></div></div><div class="vinfo"><div class="nm">${v.t}</div><div class="sb2">${v.m} min · ${v.l}</div></div></div>`).join('')}</div>`;
@@ -390,11 +406,13 @@ const STACK = {
     const extras = S.sessions.filter(s => isExtra(s) && s.from >= today).sort((a, b) => a.from.localeCompare(b.from));
     const closures = S.closures.filter(c => c.to >= today).sort((a, b) => a.from.localeCompare(b.from));
     const period = (s) => [s.from && s.from > today ? `vanaf ${shortDate(s.from)}` : '', s.until ? `t/m ${shortDate(s.until)}` : ''].filter(Boolean).join(' · ');
+    const privs = upcomingPrivates();
     return header({back:'Terug', eyebrow:'Docentmodus', title:'Rooster beheren', subtitle:'Weekrooster en uitzonderingen'}) +
       `<div class="pad">
         <div class="actgrid">
-          <div class="actbtn" data-act="newForm" data-v="vast"><b>＋</b>Vaste les</div>
+          <div class="actbtn" data-act="newForm" data-v="vast"><b>＋</b>Groepsles</div>
           <div class="actbtn" data-act="newForm" data-v="extra"><b>＋</b>Extra les</div>
+          <div class="actbtn" data-act="newForm" data-v="prive"><b>＋</b>Privéles</div>
           <div class="actbtn" data-act="newForm" data-v="vervallen"><b>🌴</b>Vakantie</div>
         </div>
         <div class="sect" style="padding:0;margin:18px 0 10px">Weekrooster</div>
@@ -408,10 +426,15 @@ const STACK = {
         ${extras.map(s => `<div class="row">${dot(s.style, true)}<div class="meta"><div class="nm">Extra: ${STYLE[s.style].label}</div><div class="dt">${dateLabel(s.from)} · ${s.time}</div><span class="tag pend">Eenmalig · ${s.capacity} plekken</span></div>
           <div class="circ rm" data-act="askRemoveExtra" data-sid="${s.id}">✕</div></div>`).join('')}
         ${closures.length || extras.length ? '' : '<div class="small-note">Geen vakanties of extra lessen gepland.</div>'}
+        <div class="sect" style="padding:0;margin:18px 0 10px">Privélessen</div>
+        ${privs.map(p => `<div class="row" style="${p.cancelled ? 'opacity:.6' : ''}"><div class="ini prive">P</div>
+          <div class="meta"><div class="nm">${esc(userBy(p.email).name)}</div><div class="dt">${dateLabel(p.date)} · ${p.time}</div>${p.cancelled ? '<span class="tag off">Afgemeld door klant</span>' : '<span class="tag open">Privéles</span>'}</div>
+          <div class="circ rm" data-act="askRemovePrivate" data-id="${p.id}">✕</div></div>`).join('')}
+        ${privs.length ? '' : '<div class="small-note">Geen privélessen gepland.</div>'}
       </div>`;
   },
 
-  // Formulier: vaste les, extra les of vakantie
+  // Formulier: groepsles, extra les of vakantie
   form: () => {
     const f = UI.form;
     const input = (k, type, extra = '') => `<input type="${type}" data-f="${k}" value="${esc(f[k] ?? '')}" ${extra}>`;
@@ -428,8 +451,22 @@ const STACK = {
           ${p ? `<div class="preview">${p.lessons} ${p.lessons === 1 ? 'les vervalt' : 'lessen vervallen'}${p.people ? `; ${p.people} keer stond er een klant ingepland. Er gaat daarvoor geen strip af.` : '.'}</div>` : ''}
           ${err}<div class="cta" data-act="saveClosure">Opslaan</div></div>`;
     }
+    if (f.kind === 'prive') {
+      const q = (f.pq || '').toLowerCase();
+      if (!f.email) return header({back:'Terug', eyebrow:'Rooster beheren', title:'Privéles', subtitle:'Kies eerst de klant'}) +
+        `<div class="pad form">${field('Klant zoeken', input('pq', 'text', 'placeholder="Zoek op naam of e-mail"'))}
+          ${students().filter(u => !q || u.name.toLowerCase().includes(q) || u.email.includes(q)).slice(0, 40).map(u => `<div class="row" data-act="fSet" data-k="email" data-v="${u.email}"><div class="meta"><div class="nm">${esc(u.name)}</div><div class="dt">${esc(u.email)}</div></div><div class="chev">›</div></div>`).join('')}</div>`;
+      const u = userBy(f.email);
+      return header({back:'Terug', eyebrow:'Rooster beheren', title:'Privéles', subtitle:`Met ${esc(u.name)}`}) +
+        `<div class="pad form">
+          <div class="row" style="border:1.5px solid var(--ink)"><div class="meta"><div class="nm">${esc(u.name)}</div><div class="dt">${esc(u.email)}</div></div><span class="obtn" data-act="fSet" data-k="email" data-v="">Wijzig</span></div>
+          ${field('Datum', input('date', 'date'))}
+          <div class="frow">${field('Begintijd', input('start', 'time'))}${field('Eindtijd', input('end', 'time'))}</div>
+          <div class="small-note">${esc(u.name.split(' ')[0])} krijgt een pushmelding en ziet de privéles in Mijn lessen. Er gaan geen strippen af; afmelden kan tot de les begint.</div>
+          ${err}<div class="cta" data-act="savePrive">Privéles inplannen</div></div>`;
+    }
     const extra = f.kind === 'extra';
-    return header({back:'Terug', eyebrow:'Rooster beheren', title: extra ? 'Extra les' : 'Vaste les toevoegen', subtitle: extra ? 'Eenmalig, op één datum' : 'Komt elke week terug'}) +
+    return header({back:'Terug', eyebrow:'Rooster beheren', title: extra ? 'Extra les' : 'Groepsles toevoegen', subtitle: extra ? 'Eenmalig, op één datum' : 'Komt elke week terug'}) +
       `<div class="pad form">
         ${extra ? field('Datum', input('date', 'date'))
           : field('Dag', `<select data-f="day">${WEEKDAYS.slice(1).concat('Zondag').map(d => `<option ${f.day === d ? 'selected' : ''}>${d}</option>`).join('')}</select>`) +
@@ -440,7 +477,7 @@ const STACK = {
         ${err}<div class="cta" data-act="${extra ? 'saveExtra' : 'saveVast'}">Opslaan</div></div>`;
   },
 
-  // Vaste les aanpassen: standaard plekken, stoppen, vakantie voor alleen deze les
+  // Groepsles aanpassen: standaard plekken, stoppen, vakantie voor alleen deze les
   'les-bewerken': ({sid}) => {
     const s = SES[sid];
     const klanten = new Set(S.enrollments.filter(e => e.sessionId === sid && isActiveEnrollment(e)).map(e => e.email)).size;
@@ -448,7 +485,7 @@ const STACK = {
       `<div class="pad form">
         <div class="panel"><div class="srow" style="margin:0"><span>Standaard aantal plekken</span>${stepper('tplCap', s.capacity, `data-sid="${sid}"`)}</div>
           <div class="small-note" style="margin:8px 0 0">Geldt voor elke week, behalve datums die je apart hebt aangepast.</div></div>
-        <div class="sect" style="padding:0;margin:4px 0 8px">Vaste les stoppen</div>
+        <div class="sect" style="padding:0;margin:4px 0 8px">Groepsles stoppen</div>
         ${s.until ? `<div class="note muted">Laatste les: ${dateLabel(s.until)}</div><div class="cta outline" style="border-color:var(--teal);color:var(--teal)" data-act="resumeVast" data-sid="${sid}">Toch laten doorlopen</div>`
           : `<div class="field"><label>Laatste les op</label><input type="date" data-f="until" value="${esc(UI.form.until ?? '')}"></div>
              ${UI.formError ? `<div class="err">${UI.formError}</div>` : ''}<div class="cta outline" data-act="stopVast" data-sid="${sid}">Stoppen na deze datum</div>`}
@@ -590,7 +627,7 @@ function bookingSheetBody({sid, d}){
   if (!u) return sheetWrap(body + `<div class="cta" data-act="loginRequired">Inloggen</div>`);
   const st = statusFor(u.email, sid, d);
   if (st && !st.cancelled && st.source !== 'aanvraag') {
-    body += `<div class="note">✓ Je staat ingepland (${st.source === 'vast' ? 'vaste les' : 'losse les'})</div>` +
+    body += `<div class="note">✓ Je staat ingepland (${st.source === 'vast' ? 'groepsles' : 'losse les'})</div>` +
       (started ? '<div class="cta off">Les is al begonnen</div>' : `<div class="cta outline" data-act="askCancel" ${at(sid, d)}>Afmelden voor deze les</div>` +
         (isLateCancel(sid, d) ? `<div class="cancelhint late">Deze les begint binnen ${LATE_CANCEL_HOURS} uur: afmelden kost 1 strip.</div>` : `<div class="cancelhint">Kosteloos afmelden tot ${LATE_CANCEL_HOURS} uur voor aanvang. Daarna gaat er 1 strip af.</div>`));
   } else if (st?.cancelled) {
@@ -609,7 +646,7 @@ function klantSheet({email}){
   const v = vastLabel(u);
   return sheetWrap(`<h2>${esc(u.name)}</h2><span class="tag org-${u.origin}">${ORIGIN_LABEL[u.origin]}</span>
     <div class="facts"><div>E-mailadres<b>${esc(shownEmail(u.email))}</b></div><div>Telefoon<b>${esc(u.phone || '—')}</b></div>
-      <div>Strippen<b>${u.strippen === null ? 'geen kaart' : u.strippen}</b></div><div>Vaste les<b>${v || '—'}</b></div>
+      <div>Strippen<b>${u.strippen === null ? 'geen kaart' : u.strippen}</b></div><div>Groepsles<b>${v || '—'}</b></div>
       <div>Voorwaarden<b>${u.termsAcceptedAt ? `akkoord ${u.termsAcceptedAt}` : 'nog niet akkoord'}</b></div></div>
     ${u.origin === 'aanvraag' && hasEmail(u.email) ? `<div class="cta outline" style="border-color:var(--ink);color:var(--ink);margin-bottom:10px" data-act="openChat" data-email="${u.email}">💬 Chat met ${esc(u.name.split(' ')[0])}</div>` : ''}
     <div class="cta outline" data-act="askDeleteKlant" data-email="${u.email}">Klant verwijderen</div>`);
@@ -625,7 +662,7 @@ function requestSheet({id}){
 function weeksPrompt(){
   const p = UI.prompt;
   const title = p.kind === 'add' ? `${p.name} vast inplannen voor hoeveel weken?` : `${p.name} afmelden voor hoeveel weken?`;
-  const hint = p.kind === 'add' ? 'Kies 99 voor een doorlopende vaste les.' : 'Kies 99 om de vaste les helemaal te stoppen.';
+  const hint = p.kind === 'add' ? 'Kies 99 voor een doorlopende groepsles.' : 'Kies 99 om de groepsles helemaal te stoppen.';
   return `<div class="backdrop center" data-act="cancelPrompt"><div class="wcard" data-act="noop"><h3>${esc(title)}</h3><p class="wtxt">${hint}</p><div class="lb">Aantal weken</div>
     ${stepper('weeks', p.weeks)}
     <div class="quick">${[1,4,12,99].map(n => `<span data-act="weeksSet" data-v="${n}" class="${p.weeks===n?'on':''}">${n}</span>`).join('')}</div>
@@ -731,6 +768,7 @@ const ACTIONS = {
     const k = el.dataset.v; const today = isoOf(now());
     UI.form = k === 'vervallen'
       ? {kind:k, reason:'Vakantie', from:today, to:plusDays(today, 6), scope:el.dataset.sid || ''}
+      : k === 'prive' ? {kind:k, email:'', pq:'', date:today, start:'10:00', end:'11:00'}
       : {kind:k, day:'Maandag', from:today, until:'', date:today, start:'19:00', end:'20:00', style:'yin', capacity:10};
     UI.formError = null; UI.stack.push({screen:'form'});
   },
@@ -741,8 +779,8 @@ const ACTIONS = {
     const err = checkTimes(f) || (!f.from ? 'Kies vanaf wanneer de les start.' : '') || (f.until && f.until < f.from ? 'De einddatum ligt vóór de startdatum.' : '');
     if (err) { UI.formError = err; return; }
     S.sessions.push({id:`s-${Date.now()}`, day:f.day, style:f.style, time:timeOf(f), capacity:f.capacity, from:f.from, until:f.until || null}); reindex();
-    log(`Vaste les toegevoegd: ${f.day.toLowerCase()} ${timeOf(f)} ${STYLE[f.style].label}, vanaf ${shortDate(f.from)}${f.until ? ` t/m ${shortDate(f.until)}` : ''}`);
-    UI.stack.pop(); save(); showToast('Vaste les toegevoegd ✓'); return 'rendered';
+    log(`Groepsles toegevoegd: ${f.day.toLowerCase()} ${timeOf(f)} ${STYLE[f.style].label}, vanaf ${shortDate(f.from)}${f.until ? ` t/m ${shortDate(f.until)}` : ''}`);
+    UI.stack.pop(); save(); showToast('Groepsles toegevoegd ✓'); return 'rendered';
   },
   saveExtra(){
     const f = UI.form;
@@ -752,6 +790,24 @@ const ACTIONS = {
     log(`Extra les: ${STYLE[f.style].label} ${shortDate(f.date)} ${timeOf(f)}`);
     UI.stack.pop(); save(); showToast('Extra les toegevoegd ✓'); return 'rendered';
   },
+  savePrive(){
+    const f = UI.form;
+    const err = (!f.date ? 'Kies een datum.' : f.date < isoOf(now()) ? 'Die datum is al voorbij.' : '') || checkTimes(f) || (toDate(f.date, f.start.replace(':', '.')) <= now() ? 'Dat tijdstip is al voorbij.' : '');
+    if (err) { UI.formError = err; return; }
+    addPrivate(f.email, f.date, timeOf(f));
+    log(`Privéles gepland: ${userBy(f.email).name}, ${shortDate(f.date)} ${timeOf(f)} · pushmelding naar de klant`);
+    UI.stack.pop(); save(); showToast('Privéles ingepland ✓'); return 'rendered';
+  },
+  askRemovePrivate(el){
+    const p = S.privates.find(x => x.id === el.dataset.id); const n = userBy(p.email).name;
+    UI.confirm = {title:'Privéles verwijderen?', text: p.cancelled ? `${esc(n)} had zich al afgemeld.` : `${esc(n)}, ${privLabel(p)}. ${esc(n.split(' ')[0])} krijgt een pushmelding dat de les niet doorgaat.`, ok:'Verwijderen', act:'doRemovePrivate', id:p.id};
+  },
+  doRemovePrivate(){ const p = S.privates.find(x => x.id === UI.confirm.id); removePrivate(p.id); log(`Privéles verwijderd: ${userBy(p.email).name}, ${privLabel(p)}`); UI.confirm = null; save(); },
+  askCancelPrivate(el){
+    const p = S.privates.find(x => x.id === el.dataset.id);
+    UI.confirm = {title:'Privéles afmelden?', text:`Privéles ${privLabel(p)}. Marjolijn krijgt hiervan bericht.`, ok:'Afmelden', act:'doCancelPrivate', id:p.id};
+  },
+  doCancelPrivate(){ const p = S.privates.find(x => x.id === UI.confirm.id); cancelPrivate(p.id); log(`${userBy(p.email).name} meldt zich af voor de privéles van ${privLabel(p)}`); UI.confirm = null; save(); showToast('Afgemeld voor je privéles'); return 'rendered'; },
   saveClosure(){
     const f = UI.form;
     if (!f.from || !f.to) { UI.formError = 'Kies een begin- en einddatum.'; return; }
@@ -794,9 +850,9 @@ const ACTIONS = {
     const s = SES[el.dataset.sid]; const until = UI.form.until;
     if (!until) { UI.formError = 'Kies de datum van de laatste les.'; return; }
     if (until < isoOf(now())) { UI.formError = 'Die datum is al voorbij.'; return; }
-    s.until = until; UI.formError = null; log(`Vaste les ${s.day.toLowerCase()} ${s.time.split(' – ')[0]} stopt na ${shortDate(until)}`); save();
+    s.until = until; UI.formError = null; log(`Groepsles ${s.day.toLowerCase()} ${s.time.split(' – ')[0]} stopt na ${shortDate(until)}`); save();
   },
-  resumeVast(el){ const s = SES[el.dataset.sid]; s.until = null; log(`Vaste les ${s.day.toLowerCase()} ${s.time.split(' – ')[0]} loopt weer door`); save(); },
+  resumeVast(el){ const s = SES[el.dataset.sid]; s.until = null; log(`Groepsles ${s.day.toLowerCase()} ${s.time.split(' – ')[0]} loopt weer door`); save(); },
 
 
   login(){
@@ -885,7 +941,7 @@ const ACTIONS = {
     if (p.kind === 'add') {
       if (addVast(sid, d, p.email, p.weeks)) log(`${p.name} vast ingepland op ${SES[sid].day.toLowerCase()} ${SES[sid].time.split(' – ')[0]} vanaf ${shortDate(d)} (${p.weeks >= 99 ? 'doorlopend' : `${p.weeks} weken`})`);
     } else {
-      log(`${p.name}: vaste les ${SES[sid].day.toLowerCase()} ${removeVast(sid, d, p.email, p.weeks)} vanaf ${shortDate(d)}`);
+      log(`${p.name}: groepsles ${SES[sid].day.toLowerCase()} ${removeVast(sid, d, p.email, p.weeks)} vanaf ${shortDate(d)}`);
     }
     UI.prompt = null; UI.picking = false; save();
   },
@@ -945,6 +1001,7 @@ const ACTIONS = {
   doDeleteNews(){ deleteNews(UI.confirm.id); log('Nieuwsbericht verwijderd'); UI.confirm = null; if (UI.stack.at(-1)?.screen === 'nieuws-item') UI.stack.pop(); save(); showToast('Nieuwsbericht verwijderd'); return 'rendered'; },
   openPush(){
     const o = UI.push?.open; UI.push = null; if (!o) return;
+    if (o.tab || o.screen) { UI.sheet = null; UI.tab = o.tab || 'rooster'; UI.stack = o.screen ? [{screen:o.screen}] : []; return; }
     UI.sheet = null; UI.tab = 'berichten';
     UI.stack = o.chat ? [{screen:'chat', email:o.chat}] : [{screen:'nieuws-item', id:o.news}];
     if (o.news && me()) { markNewsRead(me().email); save(); }
@@ -957,7 +1014,10 @@ const ACTIONS = {
     S.email = email; UI.stack = []; UI.sheet = null; UI.prompt = null; UI.confirm = null; UI.picking = false; UI.loginError = null;
     log(email ? `Gewisseld naar ${me().name}` : 'Uitgelogd (gast)'); save();
     const u = me();
-    if (u?.role === 'student') {
+    // Privéles-meldingen (gepland, vervallen, afgemeld) die op deze gebruiker wachtten.
+    const queued = u && S.pushQueue.find(p => p.to === (u.role === 'admin' ? 'admin' : u.email));
+    if (queued) { S.pushQueue = S.pushQueue.filter(p => p !== queued); save(); setTimeout(() => showPush(queued.text, queued.open), 300); }
+    else if (u?.role === 'student') {
       const msg = chatOf(u.email).filter(m => m.from === 'studio' && m.at > (S.read[u.email]?.chat || '')).at(-1);
       const news = newsList().find(n => n.push && n.at > (S.read[u.email]?.news || ''));
       if (msg) { setTimeout(() => showPush(`💬 ${msg.text}`, {chat:u.email}), 300); }

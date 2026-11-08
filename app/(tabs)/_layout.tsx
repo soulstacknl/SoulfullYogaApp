@@ -60,8 +60,6 @@ export default function TabLayout() {
         options={{
           title: "Video's",
           tabBarIcon: ({ color }) => <VideosIcon color={color} />,
-          // Hidden until there are videos; Berichten takes its place.
-          href: null,
         }}
       />
       <Tabs.Screen

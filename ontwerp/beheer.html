@@ -276,7 +276,7 @@ function reserveringen(){
       </tbody></table>` : '<div class="empty">Geen open aanvragen. Nieuwe aanvragen uit de app verschijnen hier direct.</div>'}</div>`;
 }
 
-// Huidige vaste lessen (sessie-id's) van een klant.
+// Huidige groepslessen (sessie-id's) van een klant.
 const standingIds = (email) => S.enrollments.filter(e => e.email === email && isActiveEnrollment(e) && SES[e.sessionId]).map(e => e.sessionId);
 
 // Filters per kolom; alle filters samen (EN) plus de zoekterm.
@@ -330,7 +330,7 @@ function klanten(){
   const order = (s2) => (WEEKDAYS.indexOf(s2.day) + 6) % 7;
   const weekly = S.sessions.filter(s2 => !isExtra(s2) && (!s2.until || s2.until >= today())).sort((a, b) => order(a) - order(b) || a.time.localeCompare(b.time));
   const sel = (key, options) => `<select data-filter="${key}" class="${f[key] ? 'on' : ''}">${options.map(([v, l]) => `<option value="${v}" ${f[key] === v ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
-  const lesOptions = [['', 'Alle vaste lessen'], ...weekly.map(s2 => [s2.id, `${s2.day} ${startTime(s2)} · ${STYLE[s2.style].label}`]), ['geen', 'Geen vaste les']];
+  const lesOptions = [['', 'Alle groepslessen'], ...weekly.map(s2 => [s2.id, `${s2.day} ${startTime(s2)} · ${STYLE[s2.style].label}`]), ['geen', 'Geen groepsles']];
 
   // Samenvatting als er op één les gefilterd wordt
   let lesInfo = '';
@@ -351,7 +351,7 @@ function klanten(){
       ${active ? '<button class="btn sm" data-act="clearFilters">Wis filters</button>' : ''}
     </div>
     ${lesInfo}
-    <div class="card">${list.length ? `<table><thead><tr><th>Klant</th><th>Telefoon</th><th>Strippen</th><th>Vaste les</th><th>Voorwaarden</th><th>Openstaand</th></tr></thead><tbody>
+    <div class="card">${list.length ? `<table><thead><tr><th>Klant</th><th>Telefoon</th><th>Strippen</th><th>Groepsles</th><th>Voorwaarden</th><th>Openstaand</th></tr></thead><tbody>
       ${list.map(u => { const ids = standingIds(u.email); const open = openCharges(u.email);
         return `<tr data-act="openKlant" data-email="${u.email}"><td><div class="nm">${esc(u.name)}</div><div class="dt">${esc(shownEmail(u.email))}</div><span class="tag org-${u.origin}">${ORIGIN_LABEL[u.origin]}</span></td><td>${esc(u.phone)}</td>
           <td data-act="noop"><span style="display:inline-flex;gap:8px;align-items:center">${stepper('strip', u.strippen ?? 0, `data-email="${u.email}"`)}<button class="btn sm teal" data-act="askCard" data-email="${u.email}" title="Nieuwe 10-strippenkaart">+10</button>${u.strippen === null ? '<span class="tag muted">geen kaart</span>' : ''}</span></td>
@@ -368,10 +368,10 @@ function beheer(){
   const extras = S.sessions.filter(s => isExtra(s) && s.from >= t).sort((a, b) => a.from.localeCompare(b.from));
   const closures = S.closures.filter(c => c.to >= t).sort((a, b) => a.from.localeCompare(b.from));
   const standingCount = (sid) => new Set(S.enrollments.filter(e => e.sessionId === sid && isActiveEnrollment(e)).map(e => e.email)).size;
-  return `<div class="ph"><div><h1>Rooster beheren</h1><p>Weekrooster, extra lessen en vakanties.</p></div></div>
+  return `<div class="ph"><div><h1>Rooster beheren</h1><p>Weekrooster, extra lessen, privélessen en vakanties.</p></div></div>
     <div class="grid2">
       <div class="stack">
-        <div class="card"><h2>Weekrooster <small>${weekly.length} vaste lessen</small></h2>
+        <div class="card"><h2>Weekrooster <small>${weekly.length} groepslessen</small></h2>
           <table><thead><tr><th>Les</th><th>Plekken</th><th>Vaste klanten</th><th>Stoppen</th></tr></thead><tbody>
           ${weekly.map(s => `<tr><td><div style="display:flex;gap:10px;align-items:center">${dot(s.style)}<div><div class="nm">${s.day} ${startTime(s)}</div><div class="dt">${STYLE[s.style].label} · ${s.time}${s.from && s.from > t ? ` · vanaf ${shortDate(s.from)}` : ''}</div></div></div></td>
             <td>${stepper('tplCap', s.capacity, `data-sid="${s.id}"`)}</td><td>${standingCount(s.id)}</td>
@@ -384,6 +384,11 @@ function beheer(){
           ${extras.map(s => `<div class="list-row">${dot(s.style)}<div class="meta"><div class="nm">Extra: ${STYLE[s.style].label}</div><div class="dt">${dateLabel(s.from)} · ${s.time} · ${s.capacity} plekken</div></div><button class="icon-btn rm" data-act="askRemoveExtra" data-sid="${s.id}" title="Verwijderen">✕</button></div>`).join('')}
           ${closures.length || extras.length ? '' : '<div class="empty">Geen vakanties of extra lessen gepland.</div>'}
         </div>
+        <div class="card"><h2>Privélessen <small>geen strippen · de klant kan afmelden tot de les begint</small></h2>
+          ${upcomingPrivates().map(p => `<div class="list-row" style="${p.cancelled ? 'opacity:.6' : ''}"><div class="meta"><div class="nm">${esc(userBy(p.email).name)}</div><div class="dt">${dateLabel(p.date)} · ${p.time}</div></div>
+            ${p.cancelled ? '<span class="tag muted">Afgemeld door klant</span>' : '<span class="tag rani">Privéles</span>'}<button class="icon-btn rm" data-act="askRemovePrivate" data-id="${p.id}" title="Verwijderen">✕</button></div>`).join('')}
+          ${upcomingPrivates().length ? '' : '<div class="empty">Geen privélessen gepland.</div>'}
+        </div>
       </div>
       <div class="card"><h2>Toevoegen</h2>${addForm()}</div>
     </div>`;
@@ -392,7 +397,7 @@ function beheer(){
 function addForm(){
   const f = P.form; const k = P.formKind;
   const input = (name, type, extra = '') => `<input type="${type}" data-f="${name}" value="${esc(f[name] ?? '')}" ${extra}>`;
-  const seg = `<div class="seg">${[['vast', 'Vaste les'], ['extra', 'Extra les'], ['vervallen', 'Vakantie']].map(([v, l]) => `<span class="${k === v ? 'on' : ''}" data-act="formKind" data-v="${v}">${l}</span>`).join('')}</div>`;
+  const seg = `<div class="seg">${[['vast', 'Groepsles'], ['extra', 'Extra les'], ['prive', 'Privéles'], ['vervallen', 'Vakantie']].map(([v, l]) => `<span class="${k === v ? 'on' : ''}" data-act="formKind" data-v="${v}">${l}</span>`).join('')}</div>`;
   const err = P.formError ? `<div class="err full">${P.formError}</div>` : '';
   if (k === 'vervallen') {
     const p = closurePreview(f);
@@ -403,6 +408,12 @@ function addForm(){
       ${p ? `<div class="preview full">${p.lessons} ${p.lessons === 1 ? 'les vervalt' : 'lessen vervallen'}${p.people ? `; ${p.people} keer stond er een klant ingepland. Er gaat daarvoor geen strip af.` : '.'}</div>` : ''}
       ${err}<div class="full"><button class="btn primary" data-act="saveForm">Vakantie opslaan</button></div></div>`;
   }
+  if (k === 'prive') return seg + `<div class="form-grid">
+      <label class="f full">Klant<select data-f="email"><option value="">Kies een klant…</option>${students().map(u => `<option value="${u.email}" ${f.email === u.email ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}</select></label>
+      <label class="f full">Datum${input('date', 'date', `min="${today()}"`)}</label>
+      <label class="f">Begintijd${input('start', 'time')}</label><label class="f">Eindtijd${input('end', 'time')}</label>
+      <div class="preview full">De klant krijgt een pushmelding en ziet de privéles in Mijn lessen. Er gaan geen strippen af.</div>
+      ${err}<div class="full"><button class="btn primary" data-act="saveForm">Privéles inplannen</button></div></div>`;
   const styleChips = `<div class="chips">${Object.entries(STYLE).map(([key2, v]) => `<span class="chip ${f.style === key2 ? 'on' : ''}" data-act="fStyle" data-v="${key2}">${v.label}</span>`).join('')}</div>`;
   return seg + `<div class="form-grid">
     ${k === 'extra' ? `<label class="f full">Datum${input('date', 'date', `min="${today()}"`)}</label>`
@@ -411,7 +422,7 @@ function addForm(){
     <label class="f">Begintijd${input('start', 'time')}</label><label class="f">Eindtijd${input('end', 'time')}</label>
     <div class="full"><div style="font-size:12.5px;font-weight:600;margin-bottom:5px">Soort les</div>${styleChips}</div>
     <div class="full kv"><span style="font-weight:600;font-size:12.5px">Aantal plekken</span>${stepper('fCap', f.capacity)}</div>
-    ${err}<div class="full"><button class="btn primary" data-act="saveForm">${k === 'extra' ? 'Extra les opslaan' : 'Vaste les opslaan'}</button></div></div>`;
+    ${err}<div class="full"><button class="btn primary" data-act="saveForm">${k === 'extra' ? 'Extra les opslaan' : 'Groepsles opslaan'}</button></div></div>`;
 }
 
 const chargeTag = (p) => !p.present ? '<span class="tag muted">Afwezig · geen strip</span>'
@@ -488,7 +499,7 @@ function lessonDrawer({sid, d}){
       ${!cl && !started ? `<div class="card"><h2>Vaste klant inplannen <small>vanaf ${shortDate(d)}</small></h2>
         ${o.available > 0 && pickable.length ? `<div class="form-grid"><label class="f full">Klant<select data-av="email"><option value="">Kies een klant…</option>${pickable.map(u => `<option value="${u.email}" ${P.addVast.email === u.email ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}</select></label>
           <label class="f">Aantal weken<input type="number" min="1" data-av="weeks" value="${P.addVast.weeks}"></label><div class="f" style="justify-content:flex-end"><button class="btn primary" data-act="addVast" ${at(sid, d)}>Inplannen</button></div></div>
-          <p class="note" style="margin-top:8px">99 weken = doorlopende vaste les.</p>`
+          <p class="note" style="margin-top:8px">99 weken = doorlopende groepsles.</p>`
           : `<p class="note">${o.available <= 0 ? 'Deze les is vol.' : 'Alle klanten zijn al vaste klant.'}</p>`}</div>` : ''}
     </div>`;
 }
@@ -500,14 +511,14 @@ function nextOccurrence(sid, from){
 }
 const weekLabel = (s) => `${s.day} ${startTime(s)} · ${STYLE[s.style].label}`;
 
-// Vaste lessen van een klant: overzicht + inplannen op een les uit het weekrooster.
+// Groepslessen van een klant: overzicht + inplannen op een les uit het weekrooster.
 function klantVastCard(email){
   const t = today();
   const current = S.enrollments.filter(e => e.email === email && isActiveEnrollment(e) && SES[e.sessionId]);
   const weekly = S.sessions.filter(s => !isExtra(s) && (!s.until || s.until >= t));
   const f = P.klantVast;
   const first = f.sid ? nextOccurrence(f.sid, f.from || t) : null;
-  return `<div class="card"><h2>Vaste les <small>${current.length ? `${current.length} actief` : 'geen'}</small></h2>
+  return `<div class="card"><h2>Groepsles <small>${current.length ? `${current.length} actief` : 'geen'}</small></h2>
     ${current.map(e => { const s = SES[e.sessionId]; const left = e.weeks >= 99 ? 'doorlopend' : `t/m ${shortDate(plusDays(e.start, 7 * (e.weeks - 1)))}`;
       return `<div class="list-row">${dot(s.style)}<div class="meta"><div class="nm">${weekLabel(s)}</div><div class="dt">vanaf ${shortDate(e.start)} · ${left}</div></div>
         <button class="btn sm ghost-r" data-act="askStopVast" data-email="${email}" data-id="${e.id}">Stoppen</button></div>`; }).join('')}
@@ -533,12 +544,12 @@ function klantDrawer({email}){
     else if (l.st.cancelled) tag = cancellationOf(email, l.sid, l.d)?.charged ? '<span class="tag rani">Afgemeld &lt; 24 uur · −1 strip</span>' : '<span class="tag muted">Afgemeld</span>';
     else if (isPastRow) { const c = chargeFor(email, l.sid, l.d);
       tag = c === undefined ? '<span class="tag pend">Te bevestigen</span>' : c === 'afwezig' ? '<span class="tag muted">Afwezig</span>' : c === 'open' ? '<span class="tag rani">Openstaand</span>' : '<span class="tag teal">−1 strip</span>'; }
-    else tag = l.st.source === 'aanvraag' ? '<span class="tag pend">Aanvraag</span>' : l.st.source === 'vast' ? '<span class="tag teal">Vaste les</span>' : '<span class="tag ink">Losse les</span>';
+    else tag = l.st.source === 'aanvraag' ? '<span class="tag pend">Aanvraag</span>' : l.st.source === 'vast' ? '<span class="tag teal">Groepsles</span>' : '<span class="tag ink">Losse les</span>';
     return `<div class="list-row">${dot(s.style)}<div class="meta"><div class="nm">${dateLabel(l.d)}</div><div class="dt">${STYLE[s.style].label} · ${s.time}</div></div>${tag}</div>`; };
   return `<div class="drawer-head"><button class="x" data-act="closeDrawer">✕</button><div class="eyebrow">Klant</div><h2>${esc(u.name)}</h2><p>${[shownEmail(u.email), u.phone].filter(Boolean).map(esc).join(' · ')}</p></div>
     <div class="drawer-body">
       <div class="card"><div class="kv"><span>Strippen</span><span style="display:inline-flex;gap:8px;align-items:center">${stepper('strip', u.strippen ?? 0, `data-email="${email}"`)}<button class="btn sm teal" data-act="askCard" data-email="${email}">+10 nieuwe kaart</button></span></div>
-        <div class="kv"><span>Vaste les</span><b>${v ? `${v.day} ${startTime(v)}` : '—'}</b></div>
+        <div class="kv"><span>Groepsles</span><b>${v ? `${v.day} ${startTime(v)}` : '—'}</b></div>
         <div class="kv"><span>Algemene voorwaarden</span>${u.termsAcceptedAt ? `<span class="tag teal">✓ ${u.termsAcceptedAt}</span>` : '<span class="tag rani">Nog niet akkoord</span>'}</div>
         <div class="kv"><span>Openstaande lessen</span><b>${openCharges(email) || '—'}</b></div>
         <div class="kv"><span>Herkomst</span><span class="tag org-${u.origin}">${ORIGIN_LABEL[u.origin]}</span></div>
@@ -575,7 +586,7 @@ function berichten(){
             ${c.unread ? `<span class="cnt">${c.unread}</span>` : ''}</div>`; }).join('')}
         ${extra.length ? `<div class="note" style="margin:10px 4px 4px">Nieuw gesprek met</div>${extra.map(u => `<div class="conv" data-act="selChat" data-email="${u.email}"><div class="ini">${initials(u.name)}</div><div class="meta"><div class="nm">${esc(u.name)}</div><div class="last">${esc(u.email)}</div></div></div>`).join('')}` : ''}
         ${!shown.length && !extra.length ? '<div class="empty">Geen gesprekken gevonden.</div>' : ''}</div>
-      ${k ? `<div class="card chatpane"><div class="chathead"><div class="meta"><div class="nm">${esc(k.name)}</div><div class="dt">${esc(k.email)} · ${v ? `vaste les ${v.day.toLowerCase()} ${startTime(v)}` : 'geen vaste les'} · ${k.strippen === null ? 'geen kaart' : `${k.strippen} strippen`}</div></div>
+      ${k ? `<div class="card chatpane"><div class="chathead"><div class="meta"><div class="nm">${esc(k.name)}</div><div class="dt">${esc(k.email)} · ${v ? `groepsles ${v.day.toLowerCase()} ${startTime(v)}` : 'geen groepsles'} · ${k.strippen === null ? 'geen kaart' : `${k.strippen} strippen`}</div></div>
           <button class="btn sm" data-act="gotoKlant" data-email="${k.email}">Klantkaart ›</button></div>
         <div class="bubbles" id="chatScroll">${bubbles || `<div class="empty">Nog geen berichten. Stuur ${esc(k.name.split(' ')[0])} een bericht.</div>`}</div>
         <div class="chatinput"><textarea id="chatText" rows="1" placeholder="Typ een bericht… (Enter = versturen, Shift+Enter = nieuwe regel)">${esc(P.chatDraft)}</textarea><button class="btn primary" data-act="sendChat" data-email="${k.email}">Versturen</button></div></div>`
@@ -620,7 +631,7 @@ function render(){
   const page = {rooster, reserveringen, klanten, beheer, presentie, berichten, nieuws}[P.page]();
   let overlay = '';
   if (P.drawer) overlay += `<div class="scrim" data-act="closeDrawer"></div><aside class="drawer">${P.drawer.type === 'les' ? lessonDrawer(P.drawer) : klantDrawer(P.drawer)}</aside>`;
-  if (P.prompt) overlay += `<div class="modal-bg" data-act="closePrompt"><div class="modal" data-act="noop"><h3>${esc(P.prompt.name)} afmelden voor hoeveel weken?</h3><p>Kies 99 om de vaste les helemaal te stoppen.</p>
+  if (P.prompt) overlay += `<div class="modal-bg" data-act="closePrompt"><div class="modal" data-act="noop"><h3>${esc(P.prompt.name)} afmelden voor hoeveel weken?</h3><p>Kies 99 om de groepsles helemaal te stoppen.</p>
     <label class="f">Aantal weken<input type="number" min="1" id="pWeeks" value="${P.prompt.weeks}"></label><div class="quick">${[1, 4, 12, 99].map(n => `<button class="btn sm" data-act="weeksSet" data-v="${n}">${n}</button>`).join('')}</div>
     <div class="acts"><button class="btn" data-act="closePrompt">Annuleren</button><button class="btn primary" data-act="confirmPrompt">Afmelden</button></div></div></div>`;
   if (P.confirm) overlay += `<div class="modal-bg" data-act="closeConfirm"><div class="modal" data-act="noop"><h3>${esc(P.confirm.title)}</h3><p>${P.confirm.text}</p>
@@ -642,6 +653,7 @@ const resetForm = (kind) => {
   P.formKind = kind; P.formError = null;
   P.form = kind === 'vervallen'
     ? {reason: 'Vakantie', from: today(), to: plusDays(today(), 6), scope: ''}
+    : kind === 'prive' ? {email: '', date: today(), start: '10:00', end: '11:00'}
     : {day: 'Maandag', from: today(), until: '', date: today(), start: '19:00', end: '20:00', style: 'yin', capacity: 10};
 };
 const ACTIONS = {
@@ -705,7 +717,7 @@ const ACTIONS = {
     addVast(f.sid, first, email, weeks);
     act(`${u.name} vast ingepland op ${weekLabel(SES[f.sid])} vanaf ${shortDate(first)} (${weeks >= 99 ? 'doorlopend' : `${weeks} weken`})`);
     P.klantVast = {sid: '', from: today(), weeks: 99}; P.klantError = null;
-    toast('Vaste les ingepland ✓'); return 'rendered';
+    toast('Groepsles ingepland ✓'); return 'rendered';
   },
   askStopVast(el){
     const u = userBy(el.dataset.email); const e = S.enrollments.find(x => x.id === el.dataset.id); const s = SES[e.sessionId];
@@ -713,13 +725,13 @@ const ACTIONS = {
     let from = nextOccurrence(e.sessionId, today());
     if (from && hasStarted(e.sessionId, from)) from = nextOccurrence(e.sessionId, plusDays(from, 1));
     const vanishing = myLessons(u.email, today(), horizonEnd()).filter(l => l.sid === e.sessionId && !hasStarted(l.sid, l.d) && l.st.source === 'vast');
-    P.confirm = {title: 'Vaste les stoppen?', text: `${esc(u.name)} stopt met ${weekLabel(s)}${from ? ` vanaf ${dateLabel(from)}` : ''}. ${vanishing.length ? `${vanishing.length} komende ${vanishing.length === 1 ? 'les verdwijnt' : 'lessen verdwijnen'} uit de planning en het rooster` : 'Er staan geen komende lessen meer'}. Eerdere lessen blijven staan.`, ok: 'Stoppen',
+    P.confirm = {title: 'Groepsles stoppen?', text: `${esc(u.name)} stopt met ${weekLabel(s)}${from ? ` vanaf ${dateLabel(from)}` : ''}. ${vanishing.length ? `${vanishing.length} komende ${vanishing.length === 1 ? 'les verdwijnt' : 'lessen verdwijnen'} uit de planning en het rooster` : 'Er staan geen komende lessen meer'}. Eerdere lessen blijven staan.`, ok: 'Stoppen',
       run: () => {
         if (from && enrollmentOf(u.email, e.sessionId, from)) removeVast(e.sessionId, from, u.email, 99);
         else e.weeks = Math.max(0, Math.ceil(daysBetween(e.start, today()) / 7));
         S.cancels = S.cancels.filter(c => !(c.email === u.email && c.sessionId === e.sessionId && c.date >= today()));   // afmeldingen voor vervallen lessen opruimen
-        act(`${u.name} gestopt met vaste les ${weekLabel(s)} — ${vanishing.length} komende lessen uit de planning`);
-        P.toast = `Vaste les gestopt · ${vanishing.length} ${vanishing.length === 1 ? 'les' : 'lessen'} uit de planning`; setTimeout(() => { P.toast = null; render(); }, 2400);
+        act(`${u.name} gestopt met groepsles ${weekLabel(s)} — ${vanishing.length} komende lessen uit de planning`);
+        P.toast = `Groepsles gestopt · ${vanishing.length} ${vanishing.length === 1 ? 'les' : 'lessen'} uit de planning`; setTimeout(() => { P.toast = null; render(); }, 2400);
       }};
   },
   closeDrawer(){ P.drawer = null; },
@@ -729,8 +741,8 @@ const ACTIONS = {
   strip(el){ const left = adjustUserStrip(el.dataset.email, n(el.dataset.d)); act(`strippen ${userBy(el.dataset.email).name}: ${left}`); },
   askCard(el){ const u = userBy(el.dataset.email); P.confirm = {title: 'Nieuwe strippenkaart?', text: `${esc(u.name)} krijgt een nieuwe 10-strippenkaart: ${u.strippen ?? 0} → ${(u.strippen ?? 0) + CARD_SIZE} strippen.`, ok: 'Activeren', run: () => { activateCard(u.email); act(`nieuwe 10-strippenkaart voor ${u.name} (${u.strippen} strippen)`); }}; },
   tplCap(el){ const s = SES[el.dataset.sid]; s.capacity = Math.max(1, s.capacity + n(el.dataset.d)); act(`standaard plekken ${s.day.toLowerCase()} ${startTime(s)}: ${s.capacity}`); },
-  stopLesson(el){ const s = SES[el.dataset.sid]; const d = P.stopDates[s.id]; if (!d) { toast('Kies eerst de datum van de laatste les'); return 'rendered'; } s.until = d; act(`vaste les ${s.day.toLowerCase()} ${startTime(s)} stopt na ${shortDate(d)}`); },
-  resume(el){ const s = SES[el.dataset.sid]; s.until = null; act(`vaste les ${s.day.toLowerCase()} ${startTime(s)} loopt weer door`); },
+  stopLesson(el){ const s = SES[el.dataset.sid]; const d = P.stopDates[s.id]; if (!d) { toast('Kies eerst de datum van de laatste les'); return 'rendered'; } s.until = d; act(`groepsles ${s.day.toLowerCase()} ${startTime(s)} stopt na ${shortDate(d)}`); },
+  resume(el){ const s = SES[el.dataset.sid]; s.until = null; act(`groepsles ${s.day.toLowerCase()} ${startTime(s)} loopt weer door`); },
   holidayFor(el){ resetForm('vervallen'); P.form.scope = el.dataset.sid; },
 
   formKind(el){ resetForm(el.dataset.v); },
@@ -746,16 +758,24 @@ const ACTIONS = {
       act(`${reason}: ${shortDate(f.from)} – ${shortDate(f.to)}, ${p ? p.lessons : 0} lessen vervallen`);
       resetForm('vervallen'); toast('Vakantie opgeslagen ✓'); return 'rendered';
     }
+    if (k === 'prive') {
+      const perr = (!f.email ? 'Kies een klant.' : '') || (!f.date ? 'Kies een datum.' : f.date < today() ? 'Die datum is al voorbij.' : '') || checkTimes(f)
+        || (toDate(f.date, f.start.replace(':', '.')) <= now() ? 'Dat tijdstip is al voorbij.' : '');
+      if (perr) { P.formError = perr; return; }
+      addPrivate(f.email, f.date, timeOf(f)); act(`privéles ${userBy(f.email).name} ${shortDate(f.date)} ${timeOf(f)} · pushmelding naar de klant`);
+      resetForm('prive'); toast('Privéles ingepland ✓'); return 'rendered';
+    }
     const err = checkTimes(f) || (k === 'extra' ? (!f.date ? 'Kies een datum.' : f.date < today() ? 'Die datum is al voorbij.' : '') : (!f.from ? 'Kies vanaf wanneer de les start.' : f.until && f.until < f.from ? 'De einddatum ligt vóór de startdatum.' : ''));
     if (err) { P.formError = err; return; }
     if (k === 'extra') { addSession({day: weekdayOf(f.date), style: f.style, time: timeOf(f), capacity: f.capacity, from: f.date, until: f.date}); act(`extra les ${STYLE[f.style].label} ${shortDate(f.date)} ${timeOf(f)}`); }
-    else { addSession({day: f.day, style: f.style, time: timeOf(f), capacity: f.capacity, from: f.from, until: f.until || null}); act(`vaste les ${f.day.toLowerCase()} ${timeOf(f)} ${STYLE[f.style].label} vanaf ${shortDate(f.from)}`); }
-    resetForm(k); toast(k === 'extra' ? 'Extra les toegevoegd ✓' : 'Vaste les toegevoegd ✓'); return 'rendered';
+    else { addSession({day: f.day, style: f.style, time: timeOf(f), capacity: f.capacity, from: f.from, until: f.until || null}); act(`groepsles ${f.day.toLowerCase()} ${timeOf(f)} ${STYLE[f.style].label} vanaf ${shortDate(f.from)}`); }
+    resetForm(k); toast(k === 'extra' ? 'Extra les toegevoegd ✓' : 'Groepsles toegevoegd ✓'); return 'rendered';
   },
 
   askCloseOne(el){ const {sid, date} = el.dataset; P.confirm = {title: 'Les laten vervallen?', text: `${lessonName(sid, date)}. Wie ingepland staat ziet "Vervalt" en krijgt geen strip afgeschreven.`, ok: 'Laten vervallen', run: () => { addClosure({from: date, to: date, sessionId: sid, reason: 'Les vervalt'}); act(`${lessonName(sid, date)} vervalt`); }}; },
   reopen(el){ const c = S.closures.find(x => x.id === el.dataset.id); removeClosure(c.id); act(`${lessonName(c.sessionId, c.from)} gaat toch door`); },
   askRemoveClosure(el){ const c = S.closures.find(x => x.id === el.dataset.id); P.confirm = {title: 'Uitzondering verwijderen?', text: `${esc(c.reason)}. De lessen in deze periode gaan dan gewoon door.`, ok: 'Verwijderen', run: () => { removeClosure(c.id); act(`uitzondering verwijderd: ${c.reason}`); }}; },
+  askRemovePrivate(el){ const p = S.privates.find(x => x.id === el.dataset.id); const nm = userBy(p.email).name; P.confirm = {title: 'Privéles verwijderen?', text: p.cancelled ? `${esc(nm)} had zich al afgemeld.` : `${esc(nm)} · ${dateLabel(p.date)} · ${p.time}. De klant krijgt een pushmelding dat de les niet doorgaat.`, ok: 'Verwijderen', run: () => { removePrivate(p.id); act(`privéles ${nm} ${privLabel(p)} verwijderd`); }}; },
   askRemoveExtra(el){ const s = SES[el.dataset.sid]; P.confirm = {title: 'Extra les verwijderen?', text: `${lessonName(s.id, s.from)}. Aanvragen en boekingen voor deze les vervallen ook.`, ok: 'Verwijderen', run: () => { const name = lessonName(s.id, s.from); removeExtraSession(s.id); act(`extra les verwijderd: ${name}`); }}; },
   askRemove(el){
     const {sid, date, email} = el.dataset; const u = userBy(email); const st = statusFor(email, sid, date);
@@ -768,7 +788,7 @@ const ACTIONS = {
   closePrompt(){ P.prompt = null; },
   confirmPrompt(){
     const p = P.prompt; const weeks = Math.max(1, n(document.getElementById('pWeeks').value) || 1);
-    act(`${p.name}: vaste les ${SES[p.sid].day.toLowerCase()} ${removeVast(p.sid, p.d, p.email, weeks)} vanaf ${shortDate(p.d)}`);
+    act(`${p.name}: groepsles ${SES[p.sid].day.toLowerCase()} ${removeVast(p.sid, p.d, p.email, weeks)} vanaf ${shortDate(p.d)}`);
     P.prompt = null;
   },
   addVast(el){

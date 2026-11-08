@@ -8,13 +8,17 @@ import ScreenHeader from '@/components/ScreenHeader';
 import Tag from '@/components/Tag';
 import { colors, fonts, styleMeta } from '@/constants/theme';
 import { useSchedule } from '@/contexts/ScheduleContext';
+import { useUsers } from '@/contexts/UsersContext';
 import type { Session } from '@/data/schedule';
 import { dateLabel, shortDate, WEEKDAYS } from '@/lib/dutchDate';
 import { isExtra, startTimeOf } from '@/lib/schedule';
 
-// Weekly schedule plus exceptions (extra lessons and holidays).
+// Weekly schedule plus exceptions (extra lessons and holidays) and private lessons.
 export default function RoosterBeherenScreen() {
-  const { data, today, removeClosure, removeExtraSession } = useSchedule();
+  const { data, today, removeClosure, removeExtraSession, upcomingPrivates, removePrivateLesson } = useSchedule();
+  const { users } = useUsers();
+  const privates = upcomingPrivates();
+  const nameOf = (email: string) => users.find((u) => u.email === email)?.name ?? email;
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
 
   const weekOrder = (s: Session) => (WEEKDAYS.indexOf(s.day) + 6) % 7; // Monday first
@@ -45,8 +49,9 @@ export default function RoosterBeherenScreen() {
       />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.actions}>
-          <ActionButton icon="＋" label="Vaste les" onPress={() => router.push({ pathname: '/admin/les-form', params: { kind: 'vast' } })} />
+          <ActionButton icon="＋" label="Groepsles" onPress={() => router.push({ pathname: '/admin/les-form', params: { kind: 'vast' } })} />
           <ActionButton icon="＋" label="Extra les" onPress={() => router.push({ pathname: '/admin/les-form', params: { kind: 'extra' } })} />
+          <ActionButton icon="＋" label="Privéles" onPress={() => router.push('/admin/priveles')} />
           <ActionButton icon="🌴" label="Vakantie" onPress={() => router.push('/admin/vervallen')} />
         </View>
 
@@ -130,6 +135,35 @@ export default function RoosterBeherenScreen() {
         {closures.length === 0 && extras.length === 0 ? (
           <Text style={styles.note}>Geen vakanties of extra lessen gepland.</Text>
         ) : null}
+
+        <Text style={[styles.sectionLabel, styles.sectionSpaced, styles.sectionAfterNote]}>Privélessen</Text>
+        {privates.map((p) => (
+          <View key={p.id} style={[styles.row, p.cancelled && styles.rowCancelled]}>
+            <View style={[styles.dot, styles.privateDot]}>
+              <Text style={styles.dotLabel}>P</Text>
+            </View>
+            <View style={styles.info}>
+              <Text style={styles.name}>{nameOf(p.email)}</Text>
+              <Text style={styles.detail}>
+                {dateLabel(p.date)} · {p.time}
+              </Text>
+              <Tag label={p.cancelled ? 'Afgemeld door klant' : 'Privéles'} tone={p.cancelled ? 'muted' : 'rani'} />
+            </View>
+            <RemoveButton
+              onPress={() =>
+                setConfirm({
+                  title: 'Privéles verwijderen?',
+                  message: p.cancelled
+                    ? `${nameOf(p.email)} had zich al afgemeld.`
+                    : `${nameOf(p.email)}, ${shortDate(p.date)} ${p.time.split(' – ')[0]}. ${nameOf(p.email).split(' ')[0]} krijgt een pushmelding dat de les niet doorgaat.`,
+                  confirmLabel: 'Verwijderen',
+                  onConfirm: () => removePrivateLesson(p.id),
+                })
+              }
+            />
+          </View>
+        ))}
+        {privates.length === 0 ? <Text style={styles.note}>Geen privélessen gepland.</Text> : null}
       </ScrollView>
       <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} />
     </View>
@@ -220,6 +254,15 @@ const styles = StyleSheet.create({
     fontFamily: fonts.display,
     fontSize: 12,
     color: '#fff',
+  },
+  privateDot: {
+    backgroundColor: colors.ink,
+  },
+  rowCancelled: {
+    opacity: 0.6,
+  },
+  sectionAfterNote: {
+    marginTop: 18,
   },
   holidayDot: {
     backgroundColor: '#FCF1DE',

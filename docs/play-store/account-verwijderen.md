@@ -14,8 +14,8 @@ Stuur een mail naar **info@soulfulyoga.nl** met als onderwerp *Account verwijder
 
 ## Wat wordt er verwijderd?
 - je account en inloggegevens (naam, e-mailadres, telefoonnummer);
-- je vaste les, reserveringen, afmeldingen en aanwezigheid;
-- je strippenkaart (een eventueel tegoed vervalt niet: neem daarvoor contact met ons op vóór je je account verwijdert);
+- je groepsles, reserveringen, afmeldingen en aanwezigheid;
+- je strippenkaart (heb je nog strippen over? Neem dan contact met ons op vóór je je account verwijdert);
 - je chatberichten met Soulful Yoga en je pushmeldingssleutel.
 
 Gegevens die we wettelijk moeten bewaren, zoals onze financiële administratie, bewaren we zolang de wet dat vraagt (meestal 7 jaar).

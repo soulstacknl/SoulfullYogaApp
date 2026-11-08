@@ -141,7 +141,7 @@ export function ErrorText({ text }: { text: string | null }) {
   return text ? <Text style={s.err}>{text}</Text> : null;
 }
 
-// Segmented control, e.g. Vaste les / Extra les / Vakantie.
+// Segmented control, e.g. Groepsles / Extra les / Vakantie.
 export function Segmented<T extends string>({ options, value, onChange }: { options: [T, string][]; value: T; onChange: (v: T) => void }) {
   return (
     <View style={s.seg}>

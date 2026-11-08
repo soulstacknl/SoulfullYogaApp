@@ -162,8 +162,8 @@ const header = ({eyebrow, title, subtitle='', back, photo}) => `
       <h1>${title}</h1><p>${subtitle}</p>
     </div><img src="${photo || 'logo-mark.png'}" class="${photo ? 'hphoto' : ''}" alt=""></div>
   </div>`;
-// Video's staat verborgen tot er video's zijn; Berichten neemt die plek in. badge = rood getal op Berichten.
-const tabbar = (on, badge = 2) => `<div class="tabbar">${[['rooster','Rooster'],['lessen','Mijn lessen'],['berichten','Berichten'],['profiel','Profiel']]
+// badge = rood getal op Berichten.
+const tabbar = (on, badge = 2) => `<div class="tabbar">${[['rooster','Rooster'],['lessen','Mijn lessen'],['berichten','Berichten'],['videos',"Video's"],['profiel','Profiel']]
   .map(([k,l]) => `<div class="tab ${on===k?'on':''}">${k === 'berichten' && badge ? `<span class="tdot">${badge}</span>` : ''}${ICON[k]}${l}</div>`).join('')}</div>`;
 const dot = (s, sm) => `<div class="dot ${sm?'sm':''} ${s}">${STYLE[s].dot}</div>`;
 const classCard = (c) => `<div class="ccard">${dot(c.s)}<div class="meta"><div class="nm">${STYLE[c.s].label}</div><div class="tm">${c.t}</div></div>
@@ -216,25 +216,25 @@ const SCREENS = [
 { id:'les-ingepland', group:'student', name:'Les-detail — ingepland', src:'components/BookingSheet.tsx',
     html: () => phone(roosterScreen(), sheetBase(`<h2>Yin Yoga</h2><div class="s">Dinsdag · 19.00 – 20.00 · Berghem</div>
       <div class="sp">5 / 14 plekken beschikbaar</div><div class="desc">${DESC.yin}</div>
-      <div class="note">✓ Je staat ingepland (vaste les)</div><div class="cta outline">Afmelden voor deze les</div>
+      <div class="note">✓ Je staat ingepland (groepsles)</div><div class="cta outline">Afmelden voor deze les</div>
       <div class="cancelhint">Kosteloos afmelden tot 24 uur voor aanvang. Daarna gaat er 1 strip af.</div>`)) },
   { id:'les-binnen-24', group:'student', name:'Les-detail — binnen 24 uur', src:'components/BookingSheet.tsx',
     html: () => phone(roosterScreen(), sheetBase(`<h2>Yin Yoga</h2><div class="s">Dinsdag · 19.00 – 20.00 · Berghem</div>
       <div class="sp">5 / 14 plekken beschikbaar</div><div class="desc">${DESC.yin}</div>
-      <div class="note">✓ Je staat ingepland (vaste les)</div><div class="cta outline">Afmelden voor deze les</div>
+      <div class="note">✓ Je staat ingepland (groepsles)</div><div class="cta outline">Afmelden voor deze les</div>
       <div class="cancelhint late">Deze les begint binnen 24 uur: afmelden kost 1 strip.</div>`)) },
   { id:'afmelden-laat', group:'student', name:'Afmelden binnen 24 uur — bevestigen', src:'components/ConfirmDialog.tsx',
     html: () => phone(roosterScreen(), `<div class="backdrop center"><div class="wcard"><h3>Afmelden voor deze les?</h3>
       <p class="sub2" style="margin-bottom:16px">Yin Yoga di 3 nov 19.00. Deze les begint binnen 24 uur. Volgens de voorwaarden wordt er bij afmelden 1 strip afgeschreven.</p>
       <div class="cta">Afmelden (−1 strip)</div><div class="cancel">Annuleren</div></div></div>`) },
   { id:'mijn-lessen', group:'student', name:'Mijn lessen', src:'app/(tabs)/lessen.tsx',
-    html: () => phone(screen(header({title:'Mijn lessen', subtitle:'Vaste les: dinsdag 19.00'}) +
+    html: () => phone(screen(header({title:'Mijn lessen', subtitle:'Groepsles: dinsdag 19.00'}) +
       `<div class="ministrip"><span class="l">Strippenkaart</span><span class="c">12 <small>strippen</small></span></div>
        <div class="cancelrule">Kosteloos afmelden tot 24 uur voor aanvang. Daarna gaat er 1 strip af.</div>
        <div class="seg"><div class="on">Komend (7)</div><div>Afgenomen (3)</div></div>
        <div class="content" style="padding-top:8px">
        <div class="lcard ${''}dim"><div class="datebox yin"><b>3</b><span>di</span></div><div class="meta"><div class="nm">${STYLE.yin.label}</div><div class="tm">19.00 – 20.00</div><span class="tag open">Afgemeld binnen 24 uur · −1 strip</span></div></div>
-       <div class="lcard ${''}"><div class="datebox yin"><b>10</b><span>di</span></div><div class="meta"><div class="nm">${STYLE.yin.label}</div><div class="tm">19.00 – 20.00</div><span class="tag vast">Vaste les</span></div><div class="obtn">Afmelden</div></div>
+       <div class="lcard ${''}"><div class="datebox yin"><b>10</b><span>di</span></div><div class="meta"><div class="nm">${STYLE.yin.label}</div><div class="tm">19.00 – 20.00</div><span class="tag vast">Groepsles</span></div><div class="obtn">Afmelden</div></div>
        <div class="lcard ${''}dim"><div class="datebox yin"><b>17</b><span>di</span></div><div class="meta"><div class="nm">${STYLE.yin.label}</div><div class="tm">19.00 – 20.00</div><span class="tag off">Afgemeld · telt niet mee</span></div><div class="obtn teal">Aanmelden</div></div>
        <div class="lcard ${''}"><div class="datebox flow"><b>18</b><span>wo</span></div><div class="meta"><div class="nm">${STYLE.flow.label}</div><div class="tm">09.00 – 10.00</div><span class="tag los">Losse les</span></div><div class="obtn">Afmelden</div></div></div>`, 'lessen')) },
   { id:'pushbericht', group:'student', name:'Pushbericht 24 uur voor de les', src:'supabase/migrations/…_lesson_reminders.sql',
@@ -245,7 +245,7 @@ const SCREENS = [
     html: () => phone(screen(header({title:'Berichten', subtitle:'Je chat met Marjolijn en het laatste nieuws'}) +
       `<div class="pad"><div class="msect"><div class="sect">Chat</div></div>
        <div class="chatrow unread"><div class="av photo"><img src="marjolijn.jpg" alt="Marjolijn"></div><div class="meta"><div class="top"><span class="nm">Marjolijn</span><span class="tm">12.40</span></div><div class="last">Hoi Marieke, natuurlijk! Er is een plank bij de kapstok.</div></div><span class="cnt">1</span></div>
-       <div class="msect" style="margin-top:18px"><div class="sect">Nieuws</div><a>Alle nieuws ›</a></div><div class="ncard new"><div class="nt">Kerstvakantie</div><div class="nb">Van 21 december tot en met 3 januari is de studio dicht. Je vaste lessen in die periode vervallen en kosten geen strip.</div><div class="nd">31 okt</div></div><div class="ncard "><div class="nt">Nieuw: Gentle Yoga op vrijdagochtend</div><div class="nb">Vanaf deze maand is er op vrijdag om 9.00 een Gentle Yoga-les: rustig bewegen, diep ademen en souplesse.</div><div class="nd">24 okt</div></div></div>`, 'berichten')) },
+       <div class="msect" style="margin-top:18px"><div class="sect">Nieuws</div><a>Alle nieuws ›</a></div><div class="ncard new"><div class="nt">Kerstvakantie</div><div class="nb">Van 21 december tot en met 3 januari is de studio dicht. Je groepslessen in die periode vervallen en kosten geen strip.</div><div class="nd">31 okt</div></div><div class="ncard "><div class="nt">Nieuw: Gentle Yoga op vrijdagochtend</div><div class="nb">Vanaf deze maand is er op vrijdag om 9.00 een Gentle Yoga-les: rustig bewegen, diep ademen en souplesse.</div><div class="nd">24 okt</div></div></div>`, 'berichten')) },
   { id:'chat', group:'student', name:'Chat met Marjolijn', src:'app/chat.tsx',
     html: () => phone(screen(header({back:'Berichten', eyebrow:'Soulful Yoga', title:'Marjolijn', subtitle:'Reageert meestal binnen een dag', photo:'marjolijn.jpg'}) +
       `<div class="bubbles"><div class="daysep">Gisteren</div>
@@ -256,7 +256,7 @@ const SCREENS = [
       `<div class="chatbar"><div class="cin">Typ een bericht…</div><div class="send off">➤</div></div>`) },
   { id:'nieuws-item', group:'student', name:'Nieuwsbericht', src:'app/nieuws/[id].tsx',
     html: () => phone(screen(header({back:'Terug', eyebrow:'Nieuws', title:'Kerstvakantie'}) +
-      `<div class="article"><div class="nd">Zaterdag 31 oktober</div><p>Van 21 december tot en met 3 januari is de studio dicht. Je vaste lessen in die periode vervallen en kosten geen strip. Vanaf maandag 4 januari staan we weer voor je klaar.
+      `<div class="article"><div class="nd">Zaterdag 31 oktober</div><p>Van 21 december tot en met 3 januari is de studio dicht. Je groepslessen in die periode vervallen en kosten geen strip. Vanaf maandag 4 januari staan we weer voor je klaar.
 
 Fijne feestdagen! 🎄</p></div>`)) },
   { id:'push-chat', group:'student', name:'Pushmelding bij een chatbericht', src:'supabase (trigger op messages)',
@@ -269,9 +269,9 @@ Fijne feestdagen! 🎄</p></div>`)) },
   { id:'aangevraagd', group:'student', name:'Reservering aangevraagd', src:'components/Toast.tsx',
     html: () => phone(roosterScreen(), `<div class="toast">Reservering aangevraagd ✓</div>`) },
   { id:'videos', group:'student', name:"Video's", src:'app/(tabs)/videos.tsx',
-    flag:"Tijdelijk verborgen: de tab Berichten neemt de plek in tot er video's zijn.",
+    flag:"Voorbereiding: hier komen later video's en mediabestanden.",
     html: () => phone(screen(header({title:"Video's", subtitle:'Oefen op jouw moment, in jouw tempo'}) +
-      `<div class="soon"><div class="soon-ic"></div><h3>Video's volgen binnenkort</h3><p>Straks kun je hier thuis oefenen met video's van Yin, Flow en Gentle Yoga, op jouw moment en in jouw tempo.</p></div>`, 'videos')) },
+      `<div class="soon"><div class="soon-ic"></div><h3>Video's en media volgen binnenkort</h3><p>Hier deelt Soulful Yoga straks video's en mediabestanden, zoals lessen om thuis mee te oefenen, op jouw moment en in jouw tempo.</p></div>`, 'videos')) },
   { id:'inloggen', group:'student', name:'Inloggen', src:'components/LoginScreen.tsx',
     html: () => phone(screen(header({title:'Inloggen', subtitle:'Log in om je strippenkaart te bekijken'}) +
       `<div style="padding:24px 20px 20px"><div class="field"><label>E-mailadres</label><div class="in">naam@voorbeeld.nl</div></div>
@@ -330,7 +330,7 @@ Fijne feestdagen! 🎄</p></div>`)) },
       `<div class="pad"><div class="msect"><div class="sect">Gesprekken</div><a>＋ Nieuw gesprek</a></div>
        <div class="chatrow unread"><div class="ini">MJ</div><div class="meta"><div class="top"><span class="nm">Marieke Jansen</span><span class="tm">09.03</span></div><div class="last">Top, dank je wel! Tot dinsdag 🙏</div></div><span class="cnt">1</span></div>
        <div class="chatrow unread"><div class="ini">SV</div><div class="meta"><div class="top"><span class="nm">Sanne Verhoeven</span><span class="tm">08.15</span></div><div class="last">Is er volgende week ook gewoon les op Hemelvaartsdag?</div></div><span class="cnt">1</span></div>
-       <div class="chatrow "><div class="ini">MN</div><div class="meta"><div class="top"><span class="nm">Marjolijn N.</span><span class="tm">gisteren</span></div><div class="last">Jij: Hoi Marjolijn, je hebt nog 5 strippen.</div></div></div>       <div class="msect" style="margin-top:18px"><div class="sect">Nieuws</div><a>＋ Schrijven</a></div><div class="ncard"><div class="nt">Kerstvakantie</div><div class="nb">Van 21 december tot en met 3 januari is de studio dicht. Je vaste lessen in die periode vervallen en kosten geen strip.</div><div class="nd">31 okt</div></div></div>`, 'berichten')) },
+       <div class="chatrow "><div class="ini">MN</div><div class="meta"><div class="top"><span class="nm">Marjolijn N.</span><span class="tm">gisteren</span></div><div class="last">Jij: Hoi Marjolijn, je hebt nog 5 strippen.</div></div></div>       <div class="msect" style="margin-top:18px"><div class="sect">Nieuws</div><a>＋ Schrijven</a></div><div class="ncard"><div class="nt">Kerstvakantie</div><div class="nb">Van 21 december tot en met 3 januari is de studio dicht. Je groepslessen in die periode vervallen en kosten geen strip.</div><div class="nd">31 okt</div></div></div>`, 'berichten')) },
   { id:'nieuws-schrijven', group:'admin', name:'Nieuwsbericht schrijven', src:'app/admin/nieuws.tsx',
     flag:'In het beheerportaal (laptop) staan hiervoor de pagina\'s Berichten en Nieuws.',
     html: () => phone(screen(header({back:'Berichten', eyebrow:'Docentmodus', title:'Nieuwsbericht', subtitle:'Iedereen met de app kan het lezen'}) +
@@ -395,7 +395,7 @@ Fijne feestdagen! 🎄</p></div>`)) },
   { id:'klantkaart', group:'admin', name:'Klant (gegevens, chat, verwijderen)', src:'app/admin/klanten.tsx',
     html: () => phone(screen(header({back:'Terug', eyebrow:'Docentmodus', title:'Klanten', subtitle:'5 klanten · strippen, toevoegen en verwijderen'})),
       sheetBase(`<h2>Els van Dijk</h2><span class="tag org-beheer">Handmatig toegevoegd</span>
-       <div class="facts"><div>E-mailadres<b>geen e-mailadres</b></div><div>Telefoon<b>06 41234567</b></div><div>Strippen<b>8</b></div><div>Vaste les<b>maandag 19.00</b></div><div>Voorwaarden<b>nog niet akkoord</b></div></div>
+       <div class="facts"><div>E-mailadres<b>geen e-mailadres</b></div><div>Telefoon<b>06 41234567</b></div><div>Strippen<b>8</b></div><div>Groepsles<b>maandag 19.00</b></div><div>Voorwaarden<b>nog niet akkoord</b></div></div>
        <div class="cta outline">Klant verwijderen</div>`)) },
   { id:'vandaag', group:'admin', name:'Vandaag (Docentmodus)', src:'app/admin/index.tsx',
     flag:'Dit scherm bestaat al, maar er is nog geen knop naartoe in de app.',

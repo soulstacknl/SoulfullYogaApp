@@ -35,9 +35,9 @@ export default function VideosScreen() {
           <View style={styles.soonIcon}>
             <View style={[styles.playTriangle, styles.soonTriangle]} />
           </View>
-          <Text style={styles.soonTitle}>Video's volgen binnenkort</Text>
+          <Text style={styles.soonTitle}>Video's en media volgen binnenkort</Text>
           <Text style={styles.soonText}>
-            Straks kun je hier thuis oefenen met video's van Yin, Flow en Gentle Yoga, op jouw moment en in jouw tempo.
+            Hier deelt Soulful Yoga straks video's en mediabestanden, zoals lessen om thuis mee te oefenen, op jouw moment en in jouw tempo.
           </Text>
         </View>
       </View>

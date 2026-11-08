@@ -174,8 +174,8 @@ export default function DeelnemersScreen() {
         }
         hint={
           pending?.kind === 'add'
-            ? `Kies ${ONGOING_WEEKS} voor een doorlopende vaste les.`
-            : `Kies ${ONGOING_WEEKS} om de vaste les helemaal te stoppen.`
+            ? `Kies ${ONGOING_WEEKS} voor een doorlopende groepsles.`
+            : `Kies ${ONGOING_WEEKS} om de groepsles helemaal te stoppen.`
         }
         confirmLabel={pending?.kind === 'add' ? 'Inplannen' : 'Afmelden'}
         onCancel={() => setPending(null)}

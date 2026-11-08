@@ -141,7 +141,7 @@ export default function BookingSheet({
       return (
         <>
           {header}
-          <Text style={styles.note}>✓ Je staat ingepland ({status.source === 'vast' ? 'vaste les' : 'losse les'})</Text>
+          <Text style={styles.note}>✓ Je staat ingepland ({status.source === 'vast' ? 'groepsles' : 'losse les'})</Text>
           {started ? (
             <SheetButton label="Les is al begonnen" disabled />
           ) : (

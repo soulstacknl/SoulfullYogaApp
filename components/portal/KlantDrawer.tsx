@@ -64,7 +64,7 @@ export default function KlantDrawer({ email }: { email: string }) {
     setFrom(today);
     setWeeks(String(ONGOING_WEEKS));
     setError(null);
-    portal.toast('Vaste les ingepland ✓');
+    portal.toast('Groepsles ingepland ✓');
   };
 
   // Everything still to come of this standing lesson disappears from the schedule.
@@ -74,14 +74,14 @@ export default function KlantDrawer({ email }: { email: string }) {
     const vanishing = schedule.upcomingStandingDates(enrollment);
     const n = vanishing.length;
     portal.confirm({
-      title: 'Vaste les stoppen?',
+      title: 'Groepsles stoppen?',
       message: `${user.name} stopt met ${weekLabel(session)}${n ? ` vanaf ${dateLabel(vanishing[0])}` : ''}. ${
         n ? `${n} komende ${n === 1 ? 'les verdwijnt' : 'lessen verdwijnen'} uit de planning en het rooster` : 'Er staan geen komende lessen meer'
       }. Eerdere lessen blijven staan.`,
       confirmLabel: 'Stoppen',
       onConfirm: () => {
         schedule.stopStanding(enrollmentId);
-        portal.toast(`Vaste les gestopt · ${n} ${n === 1 ? 'les' : 'lessen'} uit de planning`);
+        portal.toast(`Groepsles gestopt · ${n} ${n === 1 ? 'les' : 'lessen'} uit de planning`);
       },
     });
   };
@@ -96,7 +96,7 @@ export default function KlantDrawer({ email }: { email: string }) {
       const c = schedule.chargeFor(email, l.session.id, l.date);
       tag = c === undefined ? ['Te bevestigen', 'pending'] : c === 'afwezig' ? ['Afwezig', 'muted'] : c === 'open' ? ['Openstaand', 'rani'] : c === 'los' ? ['Losse les', 'ink'] : ['−1 strip', 'teal'];
     } else {
-      tag = l.status.source === 'aanvraag' ? ['Aanvraag', 'pending'] : l.status.source === 'vast' ? ['Vaste les', 'teal'] : ['Losse les', 'ink'];
+      tag = l.status.source === 'aanvraag' ? ['Aanvraag', 'pending'] : l.status.source === 'vast' ? ['Groepsles', 'teal'] : ['Losse les', 'ink'];
     }
     return (
       <Row key={`${l.session.id}@${l.date}`}>
@@ -118,7 +118,7 @@ export default function KlantDrawer({ email }: { email: string }) {
             <Btn label="+10 nieuwe kaart" tone="teal" small onPress={askCard} />
           </View>
         </KV>
-        <KV label="Vaste les">{standing ? `${standing.day} ${startTimeOf(standing)}` : '—'}</KV>
+        <KV label="Groepsles">{standing ? `${standing.day} ${startTimeOf(standing)}` : '—'}</KV>
         <KV label="Algemene voorwaarden">
           {user.termsAcceptedAt ? <Pill label={`✓ ${user.termsAcceptedAt}`} tone="teal" /> : <Pill label="Nog niet akkoord" tone="rani" />}
         </KV>
@@ -156,7 +156,7 @@ export default function KlantDrawer({ email }: { email: string }) {
         </View>
       </Card>
 
-      <Card title="Vaste les" note={current.length ? `${current.length} actief` : 'geen'}>
+      <Card title="Groepsles" note={current.length ? `${current.length} actief` : 'geen'}>
         {current.map((e) => {
           const session = schedule.sessionById(e.sessionId)!;
           return (

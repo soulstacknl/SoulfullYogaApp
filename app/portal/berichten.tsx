@@ -70,7 +70,7 @@ export default function PortalBerichten() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.paneName}>{selected.name}</Text>
                 <Text style={styles.paneSub}>
-                  {selected.email} · {standing ? `vaste les ${standing.day.toLowerCase()} ${startTimeOf(standing)}` : 'geen vaste les'} ·{' '}
+                  {selected.email} · {standing ? `groepsles ${standing.day.toLowerCase()} ${startTimeOf(standing)}` : 'geen groepsles'} ·{' '}
                   {selected.strippen === null ? 'geen kaart' : `${selected.strippen} strippen`}
                 </Text>
               </View>

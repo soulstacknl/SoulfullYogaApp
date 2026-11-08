@@ -180,7 +180,7 @@ export default function ProfielScreen() {
               setConfirm({
                 title: 'Account verwijderen?',
                 message:
-                  'Je account en al je gegevens worden definitief verwijderd: je vaste lessen, aanvragen en resterende strippen. Dit kan niet ongedaan worden gemaakt.',
+                  'Je account en al je gegevens worden definitief verwijderd: je groepslessen, aanvragen en resterende strippen. Dit kan niet ongedaan worden gemaakt.',
                 confirmLabel: 'Definitief verwijderen',
                 onConfirm: async () => {
                   if (await deleteOwnAccount()) await logout();

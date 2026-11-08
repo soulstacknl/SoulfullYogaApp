@@ -8,6 +8,6 @@ export type Video = {
   level: string;
 };
 
-// Empty in the first versions: the Video's tab shows a "coming soon" message
+// Empty in the first versions: the Video's tab says videos and media files will be shared there
 // until real videos are added here (later from Supabase).
 export const videos: Video[] = [];

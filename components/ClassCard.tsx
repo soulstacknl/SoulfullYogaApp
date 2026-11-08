@@ -48,6 +48,25 @@ export default function ClassCard({ session, spotsText, spotsTone, closedReason,
   );
 }
 
+// A private lesson in the admin's timetable: only the admin sees these.
+export function PrivateClassCard({ name, time, onPress }: { name: string; time: string; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
+      <View style={[styles.dot, { backgroundColor: colors.ink }]}>
+        <Text style={styles.dotLabel}>P</Text>
+      </View>
+      <View style={styles.meta}>
+        <View style={styles.nameRow}>
+          <Text style={styles.name}>Privéles</Text>
+          <Tag label={name} tone="rani" style={styles.extraTag} />
+        </View>
+        <Text style={styles.time}>{time}</Text>
+      </View>
+      <Text style={styles.chevron}>›</Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',

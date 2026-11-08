@@ -46,7 +46,7 @@ export default function LesFormScreen() {
         backLabel="Terug"
         onBack={() => router.back()}
         eyebrow="Rooster beheren"
-        title={extra ? 'Extra les' : 'Vaste les toevoegen'}
+        title={extra ? 'Extra les' : 'Groepsles toevoegen'}
         subtitle={extra ? 'Eenmalig, op één datum' : 'Komt elke week terug'}
       />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">

@@ -145,7 +145,7 @@ export default function KlantenScreen() {
                 <Fact label="E-mailadres" value={shownEmail(openUser.email)} />
                 <Fact label="Telefoon" value={openUser.phone || '—'} />
                 <Fact label="Strippen" value={openUser.strippen === null ? 'geen kaart' : String(openUser.strippen)} />
-                <Fact label="Vaste les" value={standingLabel(openUser.email)?.replace('vast: ', '') ?? '—'} />
+                <Fact label="Groepsles" value={standingLabel(openUser.email)?.replace('vast: ', '') ?? '—'} />
                 <Fact label="Voorwaarden" value={openUser.termsAcceptedAt ? `akkoord ${openUser.termsAcceptedAt}` : 'nog niet akkoord'} />
               </View>
               {hasEmail(openUser.email) && openUser.origin === 'aanvraag' ? (

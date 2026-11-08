@@ -156,7 +156,7 @@ export default function PortalKlanten() {
           value={filters.les}
           onChange={setFilter('les')}
           highlight={!!filters.les}
-          options={[['', 'Alle vaste lessen'], ...weekly.map((x): [string, string] => [x.id, weekLabel(x)]), ['geen', 'Geen vaste les']]}
+          options={[['', 'Alle groepslessen'], ...weekly.map((x): [string, string] => [x.id, weekLabel(x)]), ['geen', 'Geen groepsles']]}
         />
         <Select value={filters.strippen} onChange={setFilter('strippen')} highlight={!!filters.strippen} options={FILTER_OPTIONS.strippen} />
         <Select value={filters.voorwaarden} onChange={setFilter('voorwaarden')} highlight={!!filters.voorwaarden} options={FILTER_OPTIONS.voorwaarden} />
@@ -178,7 +178,7 @@ export default function PortalKlanten() {
         {list.length ? (
           <>
             <View style={styles.head}>
-              {['Klant', 'Telefoon', 'Strippen', 'Vaste les', 'Voorwaarden', 'Openstaand'].map((h, i) => (
+              {['Klant', 'Telefoon', 'Strippen', 'Groepsles', 'Voorwaarden', 'Openstaand'].map((h, i) => (
                 <Text key={h} style={[styles.th, COLS[i]]}>
                   {h}
                 </Text>

@@ -32,10 +32,10 @@ async function rows(table: string): Promise<Row[]> {
 }
 
 export async function loadSnapshot(): Promise<Snapshot> {
-  const [profiles, sessions, enrollments, bookings, requests, cancels, closures, caps, roster, drafts, confirmations, records, accountRequests] =
+  const [profiles, sessions, enrollments, bookings, requests, cancels, closures, caps, roster, drafts, confirmations, records, accountRequests, privates] =
     await Promise.all(
       ['profiles', 'sessions', 'enrollments', 'bookings', 'requests', 'cancellations', 'closures', 'capacity_overrides',
-        'roster_entries', 'attendance_drafts', 'confirmations', 'attendance_records', 'account_requests'].map(rows)
+        'roster_entries', 'attendance_drafts', 'confirmations', 'attendance_records', 'account_requests', 'private_lessons'].map(rows)
     );
 
   // Sorted by name: the database returns rows in a different order after each change.
@@ -80,6 +80,9 @@ export async function loadSnapshot(): Promise<Snapshot> {
     checkins: {},
     extras: {},
     confirmed: {},
+    privates: privates.map((p) => ({
+      id: p.id, email: key(p.user_id), date: p.date, time: `${dotTime(p.start_time)} – ${dotTime(p.end_time)}`, cancelled: !!p.cancelled_at,
+    })),
   };
 
   for (const e of roster) (data.roster[e.session_id] ??= []).push({ id: e.id, name: e.name, strips: e.strips });
@@ -199,6 +202,14 @@ export const remote = {
       })
     ),
   undoConfirmation: (sessionId: string, date: string) => check(supabase.rpc('undo_confirmation', { p_session: sessionId, p_date: date })),
+
+  // Private lessons (time like "14.00 – 15.00")
+  addPrivateLesson: (userId: string, date: string, time: string) => {
+    const [start, end] = time.split(' – ').map(colonTime);
+    return check(supabase.from('private_lessons').insert({ user_id: userId, date, start_time: start, end_time: end }));
+  },
+  removePrivateLesson: (id: string) => check(supabase.from('private_lessons').delete().eq('id', id)),
+  cancelPrivateLesson: (id: string) => check(supabase.rpc('cancel_private_lesson', { p_id: id })),
 
   // Customers
   setStrips: (userId: string, strippen: number | null, total?: number) =>
