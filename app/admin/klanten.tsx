@@ -168,9 +168,6 @@ export default function KlantenScreen() {
                 <Fact label="Strippen" value={openUser.strippen === null ? 'geen kaart' : String(openUser.strippen)} />
                 <Fact label="Strippenkaart" value={validityText(openUser.strippen, openUser.stripsValidUntil)} />
                 <Fact label="Privéstrippen" value={openUser.privateStrips === null ? 'geen kaart' : String(openUser.privateStrips)} />
-                {openUser.privateStrips !== null ? (
-                  <Fact label="Privékaart" value={validityText(openUser.privateStrips, openUser.privateValidUntil)} />
-                ) : null}
                 <Fact label="Groepsles" value={standingLabel(openUser.email)?.replace('vast: ', '') ?? '—'} />
                 <Fact label="Voorwaarden" value={openUser.termsAcceptedAt ? `akkoord ${openUser.termsAcceptedAt}` : 'nog niet akkoord'} />
               </View>

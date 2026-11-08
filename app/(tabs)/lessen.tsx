@@ -229,7 +229,6 @@ export default function MijnLessenScreen() {
           <View style={[styles.stripBar, styles.stripBarPrivate]}>
             <View>
               <Text style={styles.stripLabel}>Privélessen</Text>
-              <CardValidity validUntil={user.privateValidUntil} today={schedule.today} dark />
             </View>
             <Text style={styles.stripCount}>
               {user.privateStrips} <Text style={styles.stripTotal}>{user.privateStrips === 1 ? 'strip' : 'strippen'}</Text>

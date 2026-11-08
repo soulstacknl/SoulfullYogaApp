@@ -123,7 +123,6 @@ export default function KlantDrawer({ email }: { email: string }) {
           <KV label="Privéstrippen">
             <View style={s.row}>
               <Stepper value={user.privateStrips} onChange={(d) => adjustPrivateStrips(email, d)} />
-              <ValidityPill validUntil={user.privateValidUntil} today={schedule.today} />
             </View>
           </KV>
         ) : null}

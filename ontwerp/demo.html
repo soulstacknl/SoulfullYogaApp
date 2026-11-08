@@ -234,7 +234,7 @@ function lessenTab(){
   }
   return header({title:'Mijn lessen', subtitle: vast ? `Groepsles: ${vast}` : 'Geen groepsles'}) +
     `<div class="ministrip"><span><span class="l">${u.privateStrips != null ? 'Groepslessen' : 'Strippenkaart'}</span><br>${u.strippen !== null ? validTag(u.validUntil) : ''}</span><span class="c">${strip}</span></div>
-     ${u.privateStrips != null ? `<div class="ministrip" style="margin-top:8px;background:#2E3B2A"><span><span class="l">Privélessen</span><br>${validTag(u.privateValidUntil)}</span><span class="c">${u.privateStrips} <small>${u.privateStrips === 1 ? 'strip' : 'strippen'}</small></span></div>` : ''}
+     ${u.privateStrips != null ? `<div class="ministrip" style="margin-top:8px;background:#2E3B2A"><span class="l">Privélessen</span><span class="c">${u.privateStrips} <small>${u.privateStrips === 1 ? 'strip' : 'strippen'}</small></span></div>` : ''}
      <div class="cancelrule">Kosteloos afmelden tot ${LATE_CANCEL_HOURS} uur voor aanvang. Daarna gaat er 1 strip af.</div>
      <div class="seg"><div class="${UI.myTab === 'komend' ? 'on' : ''}" data-act="myTab" data-v="komend">Komend (${upcoming.filter(l => !l.st.cancelled && !l.closed).length + upPriv.filter(p => !p.cancelled).length})</div>
        <div class="${UI.myTab === 'afgenomen' ? 'on' : ''}" data-act="myTab" data-v="afgenomen">Afgenomen (${past.filter(l => ['strip', 'open', 'los'].includes(chargeFor(u.email, l.sid, l.d))).length + pastPriv.filter(p => !p.cancelled).length})</div></div>
@@ -314,7 +314,7 @@ function profielTab(){
     : `<div class="c e">Nog geen kaart</div><div class="su">koop een strippenkaart hieronder om te starten</div>`;
   const terms = u.termsAcceptedAt ? `<div class="dt ok">✓ Akkoord op ${u.termsAcceptedAt}</div>` : `<div class="dt todo">Nog niet akkoord</div>`;
   // Aparte kaart voor privélessen (de docent schrijft die zelf af).
-  const priv = u.privateStrips != null ? `<div class="strip" style="margin-top:-8px;background:#2E3B2A"><div class="l">Strippenkaart · privélessen</div><div class="c">${u.privateStrips} ${u.privateStrips === 1 ? 'strip' : 'strippen'}</div><div class="su">1 strip per privéles · 4 maanden geldig</div>${validTag(u.privateValidUntil)}</div>` : '';
+  const priv = u.privateStrips != null ? `<div class="strip" style="margin-top:-8px;background:#2E3B2A"><div class="l">Strippenkaart · privélessen</div><div class="c">${u.privateStrips} ${u.privateStrips === 1 ? 'strip' : 'strippen'}</div><div class="su">1 strip per privéles</div></div>` : '';
   return top + `<div class="strip"><div class="l">${u.privateStrips != null ? 'Strippenkaart · groepslessen' : 'Strippenkaart'}</div>${card}</div>${priv}
     <div class="sect">Tarieven</div>${[['Gratis proefles','€0'],['Losse les','€15'],['10-strippenkaart','€110']].map(([l,p]) => `<div class="price"><span>${l}</span><b>${p}</b></div>`).join('')}
     <div class="linkrow" data-act="push" data-v="voorwaarden"><span class="ic">📄</span><div class="meta"><div class="nm">Algemene voorwaarden</div>${terms}</div><div class="chev">›</div></div>${profileFooter}`;
@@ -527,9 +527,9 @@ const STACK = {
             ${students().filter(u => u.privateStrips == null && (!pq || u.name.toLowerCase().includes(pq))).slice(0, 20).map(u => `<div class="row tight" data-act="fSet" data-k="pEmail" data-v="${u.email}"><div class="meta"><div class="nm">${esc(u.name)}</div><div class="dt">${esc(u.email)}</div></div><div class="chev">›</div></div>`).join('')}
             <div class="logout" data-act="pCancel">Annuleren</div></div>`;
       return head + `<div class="pad">${seg}
-        <div class="small-note" style="margin-bottom:12px">Een aparte strippenkaart voor privélessen, 4 maanden geldig. Heeft een klant een privéles gehad? Tik dan hier op −. Met + begint de geldigheid opnieuw. De presentielijst schrijft deze strippen niet af.</div>
+        <div class="small-note" style="margin-bottom:12px">Een aparte strippenkaart voor privélessen, zonder einddatum. Heeft een klant een privéles gehad? Tik dan hier op −. De presentielijst schrijft deze strippen niet af.</div>
         ${create}
-        ${withCard.map(u => `<div class="row"><div class="meta"><div class="nm">${esc(u.name)}</div><div class="st" style="color:${u.privateStrips ? 'var(--teal)' : 'var(--rani)'};font-weight:600">${u.privateStrips} ${u.privateStrips === 1 ? 'privéstrip' : 'privéstrippen'}</div>${validTag(u.privateValidUntil)}
+        ${withCard.map(u => `<div class="row"><div class="meta"><div class="nm">${esc(u.name)}</div><div class="st" style="color:${u.privateStrips ? 'var(--teal)' : 'var(--rani)'};font-weight:600">${u.privateStrips} ${u.privateStrips === 1 ? 'privéstrip' : 'privéstrippen'}</div>
           <div class="dt" style="text-decoration:underline;color:#9DAFA2;margin-top:4px" data-act="askRemovePrivCard" data-email="${u.email}">Kaart verwijderen</div></div>
           <div class="adj"><div class="circ" data-act="privStrip" data-email="${u.email}" data-d="-1">–</div><div class="circ" data-act="privStrip" data-email="${u.email}" data-d="1">+</div></div></div>`).join('') || (UI.pCreating ? '' : '<div class="empty">Nog geen privé-strippenkaarten.</div>')}</div>`;
     }
@@ -681,7 +681,7 @@ function klantSheet({email}){
     <div class="facts"><div>E-mailadres<b>${esc(shownEmail(u.email))}</b></div><div>Telefoon<b>${esc(u.phone || '—')}</b></div>
       <div>Strippen<b>${u.strippen === null ? 'geen kaart' : u.strippen}</b></div>
       ${u.strippen !== null ? `<div>Strippenkaart<b>${validity(u.validUntil)?.expired ? `vervallen (was t/m ${validity(u.validUntil).date})` : `geldig t/m ${validity(u.validUntil)?.date ?? '—'}`}</b></div>` : ''}
-      <div>Privéstrippen<b>${u.privateStrips == null ? 'geen kaart' : `${u.privateStrips} · ${validity(u.privateValidUntil)?.expired ? 'vervallen' : `geldig t/m ${validity(u.privateValidUntil)?.date}`}`}</b></div><div>Groepsles<b>${v || '—'}</b></div>
+      <div>Privéstrippen<b>${u.privateStrips == null ? 'geen kaart' : u.privateStrips}</b></div><div>Groepsles<b>${v || '—'}</b></div>
       <div>Voorwaarden<b>${u.termsAcceptedAt ? `akkoord ${u.termsAcceptedAt}` : 'nog niet akkoord'}</b></div></div>
     ${u.origin === 'aanvraag' && hasEmail(u.email) ? `<div class="cta outline" style="border-color:var(--ink);color:var(--ink);margin-bottom:10px" data-act="openChat" data-email="${u.email}">💬 Chat met ${esc(u.name.split(' ')[0])}</div>` : ''}
     <div class="cta outline" data-act="askDeleteKlant" data-email="${u.email}">Klant verwijderen</div>`);

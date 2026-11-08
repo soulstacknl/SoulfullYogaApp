@@ -1,11 +1,9 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import CardValidity from '@/components/CardValidity';
 import type { ConfirmRequest } from '@/components/ConfirmDialog';
 import Stepper from '@/components/Stepper';
 import { colors, fonts } from '@/constants/theme';
-import { useSchedule } from '@/contexts/ScheduleContext';
 import { CARD_SIZE, useUsers } from '@/contexts/UsersContext';
 import type { AppUser } from '@/data/users';
 
@@ -19,7 +17,6 @@ type Props = {
 // attendance list never touches these strips.
 export default function PrivateStripsSection({ onToast, onConfirm }: Props) {
   const { students, adjustPrivateStrips, removePrivateCard } = useUsers();
-  const { today } = useSchedule();
   const [creating, setCreating] = useState(false);
   const [search, setSearch] = useState('');
   const [chosen, setChosen] = useState<AppUser | null>(null);
@@ -55,8 +52,8 @@ export default function PrivateStripsSection({ onToast, onConfirm }: Props) {
   return (
     <View>
       <Text style={styles.note}>
-        Een aparte strippenkaart voor privélessen, 4 maanden geldig. Heeft een klant een privéles gehad? Tik dan
-        hier op −. Met + begint de geldigheid opnieuw. De presentielijst schrijft deze strippen niet af.
+        Een aparte strippenkaart voor privélessen, zonder einddatum. Heeft een klant een privéles gehad? Tik dan
+        hier op −. De presentielijst schrijft deze strippen niet af.
       </Text>
 
       {creating ? (
@@ -121,7 +118,6 @@ export default function PrivateStripsSection({ onToast, onConfirm }: Props) {
             <Text style={[styles.count, u.privateStrips === 0 && styles.countEmpty]}>
               {u.privateStrips} {u.privateStrips === 1 ? 'privéstrip' : 'privéstrippen'}
             </Text>
-            <CardValidity validUntil={u.privateValidUntil} today={today} />
             <Pressable
               hitSlop={6}
               onPress={() =>

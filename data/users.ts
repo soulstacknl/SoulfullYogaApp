@@ -12,9 +12,9 @@ export type AppUser = {
   phone: string;
   strippen: number | null; // null = no strippenkaart purchased yet
   privateStrips: number | null; // separate card for private lessons; null = none
-  // ISO dates: a card is valid through this day, 4 months after the admin last added strips.
+  // ISO date: the group card is valid through this day, 4 months after the admin last added
+  // strips. The private-lesson card has no end date.
   stripsValidUntil: string | null;
-  privateValidUntil: string | null;
   total: number;
   role: UserRole;
   termsAcceptedAt: string | null; // DD-MM-YYYY when the customer agreed to the algemene voorwaarden

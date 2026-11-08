@@ -47,7 +47,6 @@ export async function loadSnapshot(): Promise<Snapshot> {
     strippen: p.strippen,
     privateStrips: p.private_strips ?? null,
     stripsValidUntil: p.strips_valid_until ?? null,
-    privateValidUntil: p.private_valid_until ?? null,
     total: p.total,
     role: p.role as UserRole,
     termsAcceptedAt: toDutchDate(p.terms_accepted_at),

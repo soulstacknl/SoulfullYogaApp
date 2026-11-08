@@ -403,9 +403,9 @@ const validity = (iso) => { if (!iso) return null; const d = toDate(iso); return
 const validTag = (iso, extra = '') => { const v = validity(iso); return !v ? '' : v.expired ? `<span class="vtag exp" ${extra}>Vervallen · was geldig t/m ${v.date}</span>` : `<span class="vtag" ${extra}>Geldig t/m ${v.date}</span>`; };
 function activateCard(email){ const u = userBy(email); u.strippen = (u.strippen ?? 0) + CARD_SIZE; u.total = Math.max(CARD_SIZE, u.strippen); u.validUntil = cardValidUntil(); return u.strippen; }
 function adjustUserStrip(email, delta){ const u = userBy(email); u.strippen = Math.max(0, (u.strippen ?? 0) + delta); if (delta > 0) u.validUntil = cardValidUntil(); return u.strippen; }
-// Aparte strippenkaart voor privélessen: de beheerder schrijft zelf af (−), niet via de presentielijst.
-function adjustPrivateStrip(email, delta){ const u = userBy(email); u.privateStrips = Math.max(0, (u.privateStrips ?? 0) + delta); if (delta > 0) u.privateValidUntil = cardValidUntil(); return u.privateStrips; }
-function removePrivateCard(email){ const u = userBy(email); u.privateStrips = null; u.privateValidUntil = null; }
+// Aparte strippenkaart voor privélessen, zonder einddatum: de beheerder schrijft zelf af (−), niet via de presentielijst.
+function adjustPrivateStrip(email, delta){ const u = userBy(email); u.privateStrips = Math.max(0, (u.privateStrips ?? 0) + delta); return u.privateStrips; }
+function removePrivateCard(email){ const u = userBy(email); u.privateStrips = null; }
 function adjustSeedStrip(sid, id, delta){ const e = (S.roster[sid] || []).find(x => x.id === id); e.strips = Math.max(0, e.strips + delta); }
 
 // Nieuwe demo: de afgelopen weken alvast als bevestigd vastleggen.
@@ -536,7 +536,7 @@ function acknowledgeCancellation(key){
 if (!S.validitySeeded) {
   S.users.forEach(u => { if (u.strippen !== null && !u.validUntil) u.validUntil = cardValidUntil(); if (u.privateStrips === undefined) u.privateStrips = null; });
   const mn = userBy('marjolijn_n@hotmail.com'); if (mn) mn.validUntil = plusDays(isoOf(now()), -9);   // voorbeeld: vervallen kaart
-  const mk = userBy('marieke@soulfulyoga.nl'); if (mk) { mk.privateStrips = 5; mk.privateValidUntil = cardValidUntil(); }
+  const mk = userBy('marieke@soulfulyoga.nl'); if (mk) { mk.privateStrips = 5; }
   S.validitySeeded = true; save();
 }
 

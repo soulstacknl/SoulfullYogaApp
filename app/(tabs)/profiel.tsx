@@ -145,8 +145,7 @@ export default function ProfielScreen() {
                 <Text style={styles.stripCount}>
                   {user.privateStrips} {user.privateStrips === 1 ? 'strip' : 'strippen'}
                 </Text>
-                <Text style={styles.stripSub}>1 strip per privéles · 4 maanden geldig</Text>
-                <CardValidity validUntil={user.privateValidUntil} today={today} dark />
+                <Text style={styles.stripSub}>1 strip per privéles</Text>
               </View>
             ) : null}
 
