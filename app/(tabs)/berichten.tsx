@@ -10,7 +10,7 @@ import Toast, { useToast } from '@/components/Toast';
 import { colors, fonts } from '@/constants/theme';
 import { useInbox } from '@/contexts/InboxContext';
 import { useCurrentUser, useUsers } from '@/contexts/UsersContext';
-import { msgTime } from '@/lib/inbox';
+import { messagePreview, msgTime } from '@/lib/inbox';
 
 // Chat with Marjolijn on top, news below. The admin sees all conversations instead.
 export default function BerichtenScreen() {
@@ -73,7 +73,7 @@ export default function BerichtenScreen() {
                 <ChatRow
                   key={c.customerId}
                   name={customer?.name ?? 'Klant'}
-                  last={`${c.last.fromStudio ? 'Jij: ' : ''}${c.last.body}`}
+                  last={`${c.last.fromStudio ? 'Jij: ' : ''}${messagePreview(c.last)}`}
                   time={msgTime(c.last.at)}
                   unread={c.unread}
                   onPress={() => router.push({ pathname: '/chat', params: { klant: c.customerId } })}
@@ -101,7 +101,7 @@ export default function BerichtenScreen() {
           <ChatRow
             photo
             name={TEACHER_NAME}
-            last={last ? `${last.fromStudio ? '' : 'Jij: '}${last.body}` : `Stel je vraag aan ${TEACHER_NAME}`}
+            last={last ? `${last.fromStudio ? '' : 'Jij: '}${messagePreview(last)}` : `Stel je vraag aan ${TEACHER_NAME}`}
             time={last ? msgTime(last.at) : undefined}
             unread={inbox.unreadChat}
             onPress={() => router.push('/chat')}

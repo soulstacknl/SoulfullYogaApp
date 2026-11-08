@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import type { AppUser, CustomerOrigin } from '@/data/users';
 import type { AccountRequest } from '@/lib/remote';
+import { inboxRemote } from '@/lib/inbox';
 import { remote } from '@/lib/remote';
 
 type UsersContextValue = {
@@ -34,7 +35,7 @@ const UsersContext = createContext<UsersContextValue | null>(null);
 // Customer profiles from Supabase: a customer sees only themselves, the admin everyone.
 export function UsersProvider({ children }: { children: ReactNode }) {
   const { users, run, accountRequests } = useData();
-  const { sendPasswordReset } = useAuth();
+  const { sendPasswordReset, userId } = useAuth();
   const byEmail = (email: string) => users.find((u) => u.email === email);
 
   const adjustStrip = (email: string, delta: number) => {
@@ -90,9 +91,19 @@ export function UsersProvider({ children }: { children: ReactNode }) {
         rejectAccountRequest: (id) => run(() => remote.rejectAccountRequest(id)),
         deleteCustomer: async (email) => {
           const user = byEmail(email);
-          return !!user && run(() => remote.deleteCustomer(user.id));
+          return (
+            !!user &&
+            run(async () => {
+              await inboxRemote.removeFilesOf(user.id);
+              await remote.deleteCustomer(user.id);
+            })
+          );
         },
-        deleteOwnAccount: () => run(() => remote.deleteOwnAccount()),
+        deleteOwnAccount: () =>
+          run(async () => {
+            if (userId) await inboxRemote.removeFilesOf(userId);
+            await remote.deleteOwnAccount();
+          }),
       }}>
       {children}
     </UsersContext.Provider>

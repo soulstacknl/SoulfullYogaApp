@@ -4,7 +4,7 @@ import { Alert, Platform } from 'react-native';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrentUser } from '@/contexts/UsersContext';
-import type { Inbox, Message, NewsItem } from '@/lib/inbox';
+import type { ChosenFile, Inbox, Message, NewsItem } from '@/lib/inbox';
 import { emptyInbox, inboxRemote, loadInbox } from '@/lib/inbox';
 import { supabase } from '@/lib/supabase';
 
@@ -22,6 +22,11 @@ type InboxContextValue = {
   // "Gelezen" under your own message: has the other side opened the conversation since?
   seenByOther: (m: Message) => boolean;
   send: (customerId: string, body: string) => Promise<boolean>;
+  // Studio only: a payment request with a payment link, or a file (photo, video, pdf…).
+  sendPayment: (customerId: string, description: string, amountCents: number, payUrl: string) => Promise<boolean>;
+  sendFile: (customerId: string, file: ChosenFile) => Promise<boolean>;
+  setPaid: (messageId: string, paid: boolean) => Promise<boolean>;
+  fileUrl: (path: string) => Promise<string>;
   markChatRead: (customerId: string) => void;
   markNewsRead: () => void;
   postNews: (title: string, body: string, push: boolean) => Promise<boolean>;
@@ -114,6 +119,11 @@ export function InboxProvider({ children }: { children: ReactNode }) {
         return m.at <= ((m.fromStudio ? r?.customer : r?.studio) ?? '');
       },
       send: (customerId, body) => run(() => inboxRemote.sendMessage(customerId, isAdmin, body)),
+      sendPayment: (customerId, description, amountCents, payUrl) =>
+        run(() => inboxRemote.sendPayment(customerId, description, amountCents, payUrl)),
+      sendFile: (customerId, file) => run(() => inboxRemote.sendFile(customerId, file)),
+      setPaid: (messageId, paid) => run(() => inboxRemote.setPaid(messageId, paid)),
+      fileUrl: (path) => inboxRemote.fileUrl(path),
       markChatRead: (customerId) => {
         if (unreadFor(customerId, isAdmin)) run(() => inboxRemote.markChatRead(customerId));
       },

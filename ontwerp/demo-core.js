@@ -445,6 +445,31 @@ function deleteNews(id){ S.news = S.news.filter(n => n.id !== id); }
 
 const chatOf = (email) => S.messages.filter(m => m.email === email).sort((a, b) => a.at.localeCompare(b.at));
 function sendMessage(email, from, text){ const m = {id:`m-${Date.now()}`, email, from, text, at:nowIso()}; S.messages.push(m); return m; }
+// Alleen de studio: een betaalverzoek (bedrag, omschrijving, betaallink van bank of Tikkie) of een bestand.
+function sendPayment(email, text, cents, url){ const m = sendMessage(email, 'studio', text); Object.assign(m, {kind:'betaalverzoek', cents, url, paidAt:null}); return m; }
+function sendFile(email, name, type, size, dataUrl){ const m = sendMessage(email, 'studio', name); Object.assign(m, {kind:'bestand', type, size, dataUrl}); return m; }
+function setPaid(id, paid){ const m = S.messages.find(x => x.id === id); if (m) m.paidAt = paid ? nowIso() : null; }
+const euro = (c) => `€ ${(c / 100).toFixed(2).replace('.', ',')}`;
+const fileIcon = (t) => t?.startsWith('image/') ? '🖼️' : t?.startsWith('video/') ? '🎬' : '📄';
+const sizeLabel = (b) => !b ? '' : b < 1048576 ? `${Math.max(1, Math.round(b / 1024))} kB` : `${(b / 1048576).toFixed(1).replace('.', ',')} MB`;
+const msgPreview = (m) => m.kind === 'betaalverzoek' ? `💶 Betaalverzoek ${euro(m.cents)}` : m.kind === 'bestand' ? `${fileIcon(m.type)} ${m.text}` : m.text;
+// Eén bericht in de chat (telefoon-demo en portaal): tekst, betaalverzoek of bestand.
+function bubbleHtml(m, me, admin){
+  const time = `<small>${msgTime(m.at).split(' ').at(-1)}</small>`;
+  if (m.kind === 'betaalverzoek') return `<div class="att ${me ? 'me' : 'them'}"><div class="paycard"><div class="pl">Betaalverzoek</div><div class="pa">${euro(m.cents)}</div><div class="pd">${esc(m.text)}</div>
+    <span class="tag ${m.paidAt ? 'paid' : 'pend'}">${m.paidAt ? `✓ Betaald · ${new Date(m.paidAt).toLocaleDateString('nl-NL', {day:'numeric', month:'short'})}` : 'Nog niet betaald'}</span>
+    ${m.paidAt ? '' : `<a class="paybtn" href="${esc(m.url)}" target="_blank" rel="noopener">${admin ? 'Betaallink openen' : 'Betalen'}</a>`}
+    ${admin ? `<div class="paymark" data-act="togglePaid" data-id="${m.id}">${m.paidAt ? 'Toch nog niet betaald' : '✓ Markeer als betaald'}</div>` : ''}</div>${time}</div>`;
+  if (m.kind === 'bestand') return `<div class="att ${me ? 'me' : 'them'}">${m.dataUrl && m.type.startsWith('image/') ? `<img class="attimg" src="${m.dataUrl}" alt="${esc(m.text)}">`
+    : `<div class="paycard filecard"><span class="fi">${fileIcon(m.type)}</span><div><div class="fn">${esc(m.text)}</div><div class="fm">${sizeLabel(m.size)} · tik om te openen</div></div></div>`}${time}</div>`;
+  return `<div class="bub ${me ? 'me' : 'them'}">${esc(m.text)}${time}</div>`;
+}
+// Een gekozen bestand: foto's tot 1 MB worden als voorbeeld bewaard (de echte app gebruikt beveiligde opslag).
+function readDemoFile(file, done){
+  if (file.size > 50 * 1048576) { alert(`Dit bestand is ${sizeLabel(file.size)}. Het maximum is 50 MB.`); return; }
+  if (!file.type.startsWith('image/') || file.size > 1048576) return done(null);
+  const r = new FileReader(); r.onload = () => done(r.result); r.readAsDataURL(file);
+}
 // Ongelezen voor de klant (van de studio) of voor de studio (van deze klant).
 const unreadChat = (email) => chatOf(email).filter(m => m.from === 'studio' && m.at > (S.read[email]?.chat || '')).length;
 const unreadForStudio = (email) => chatOf(email).filter(m => m.from === 'klant' && m.at > (S.studioRead[email] || '')).length;

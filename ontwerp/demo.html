@@ -269,7 +269,7 @@ function berichtenTab(){
       ${convs.length ? convs.map(c => { const k = userBy(c.email);
         return `<div class="chatrow ${c.unread ? 'unread' : ''}" data-act="openChat" data-email="${c.email}"><div class="ini">${initials(k.name)}</div>
           <div class="meta"><div class="top"><span class="nm">${esc(k.name)}</span><span class="tm">${msgTime(c.last.at)}</span></div>
-          <div class="last">${c.last.from === 'studio' ? 'Jij: ' : ''}${esc(c.last.text)}</div></div>${c.unread ? `<span class="cnt">${c.unread}</span>` : ''}</div>`; }).join('')
+          <div class="last">${c.last.from === 'studio' ? 'Jij: ' : ''}${esc(msgPreview(c.last))}</div></div>${c.unread ? `<span class="cnt">${c.unread}</span>` : ''}</div>`; }).join('')
         : '<div class="empty">Nog geen gesprekken.</div>'}
       ${newsBlock}</div>`;
   }
@@ -278,7 +278,7 @@ function berichtenTab(){
     <div class="msect"><div class="sect">Chat</div></div>
     ${u ? `<div class="chatrow ${unread ? 'unread' : ''}" data-act="openChat" data-email="${u.email}">${logoAv}
         <div class="meta"><div class="top"><span class="nm">Marjolijn</span>${last ? `<span class="tm">${msgTime(last.at)}</span>` : ''}</div>
-        <div class="last">${last ? `${last.from === 'klant' ? 'Jij: ' : ''}${esc(last.text)}` : 'Stel je vraag aan Marjolijn'}</div></div>${unread ? `<span class="cnt">${unread}</span>` : ''}</div>`
+        <div class="last">${last ? `${last.from === 'klant' ? 'Jij: ' : ''}${esc(msgPreview(last))}` : 'Stel je vraag aan Marjolijn'}</div></div>${unread ? `<span class="cnt">${unread}</span>` : ''}</div>`
       : `<div class="chatrow" data-act="tab" data-v="profiel">${logoAv}<div class="meta"><div class="nm">Marjolijn</div><div class="last">Log in om met Marjolijn te chatten</div></div></div>`}
     ${newsBlock}</div>`;
 }
@@ -346,7 +346,7 @@ const STACK = {
     const lastMine = [...msgs].reverse().find(m => m.from === side);
     const body = msgs.map(m => { const day = isoOf(new Date(m.at));
       const sep = day !== lastDay ? `<div class="daysep">${day === isoOf(now()) ? 'Vandaag' : cap1(dateLabel(day).toLowerCase())}</div>` : ''; lastDay = day;
-      return sep + `<div class="bub ${m.from === side ? 'me' : 'them'}">${esc(m.text)}<small>${msgTime(m.at).split(' ').at(-1)}</small></div>` +
+      return sep + bubbleHtml(m, m.from === side, admin) +
         (m === lastMine && m === msgs.at(-1) && seenByOther(m) ? '<div class="seen">Gelezen</div>' : ''); }).join('');
     return (admin ? header({back:'Berichten', eyebrow:'Chat', title:k.name, subtitle:k.email})
       : header({back:'Berichten', eyebrow:'Soulful Yoga', title:'Marjolijn', subtitle:'Reageert meestal binnen een dag', photo:TEACHER_PHOTO})) +
@@ -722,13 +722,20 @@ function render(){
   if (UI.sheet?.type === 'booking') overlay = bookingSheet(UI.sheet);
   if (UI.sheet?.type === 'request') overlay = requestSheet(UI.sheet);
   if (UI.sheet?.type === 'klant') overlay = klantSheet(UI.sheet);
+  if (UI.sheet?.type === 'pay') overlay = sheetWrap(`<h2>Betaalverzoek</h2><div class="s" style="margin-bottom:12px">Aan ${esc(userBy(UI.sheet.email).name)}</div>
+    <div class="form"><div class="field"><label>Bedrag</label><input type="text" data-f="pa" value="${esc(UI.form.pa || '')}" placeholder="€ 110,00"></div>
+    <div class="field"><label>Waarvoor</label><input type="text" data-f="pd" value="${esc(UI.form.pd || '')}" placeholder="Bijvoorbeeld: 10-strippenkaart"></div>
+    <div class="field"><label>Betaallink</label><input type="text" data-f="pu" value="${esc(UI.form.pu || '')}" placeholder="https://… (van je bank of Tikkie)"></div>
+    <div class="small-note">Maak in je bank-app of Tikkie een betaalverzoek aan en kopieer de link. De klant ziet in de chat een knop Betalen. Is er betaald? Tik dan in de chat op Markeer als betaald.</div>
+    ${UI.formError ? `<div class="err">${UI.formError}</div>` : ''}<div class="cta" data-act="sendPay">Versturen</div></div>`);
   if (UI.prompt) overlay += weeksPrompt();
   if (UI.confirm) overlay += confirmBox();
   if (UI.toast) overlay += `<div class="toast">${UI.toast}</div>`;
   if (UI.push) overlay += `<div class="pushbanner" data-act="openPush"><div class="pi"><img src="logo-mark.png" alt=""></div><div style="flex:1"><div class="pt"><b>Soulful Yoga</b><span>nu</span></div><div class="px">${esc(UI.push.text)}</div></div></div>`;
   const inChat = top?.screen === 'chat';
   const focused = document.activeElement?.id === 'chatInput';
-  if (inChat) overlay += `<div class="chatbar"><textarea class="cin" id="chatInput" rows="1" placeholder="Typ een bericht…">${esc(UI.chatDraft)}</textarea><div class="send ${UI.chatDraft.trim() ? '' : 'off'}" data-act="sendChat">➤</div></div>`;
+  if (inChat && isAdmin() && UI.chatMenu) overlay += `<div class="chatmenu"><div data-act="payForm">💶 Betaalverzoek</div><div data-act="pickFile">📎 Foto, video of bestand</div></div>`;
+  if (inChat) overlay += `<div class="chatbar">${isAdmin() ? `<div class="plus ${UI.chatMenu ? 'on' : ''}" data-act="chatPlus">${UI.chatMenu ? '✕' : '＋'}</div>` : ''}<textarea class="cin" id="chatInput" rows="1" placeholder="Typ een bericht…">${esc(UI.chatDraft)}</textarea><div class="send ${UI.chatDraft.trim() ? '' : 'off'}" data-act="sendChat">➤</div></div>`;
   phoneEl.innerHTML = `<div class="island"></div><div class="scroll" data-key="${esc(k)}">${body}</div>${top ? '' : tabbar()}${overlay}`;
   const sc = phoneEl.querySelector('.scroll');
   sc.scrollTop = inChat ? sc.scrollHeight : scrollMemory[k] || 0;
@@ -1039,6 +1046,27 @@ const ACTIONS = {
     UI.chatDraft = ''; save();
     setTimeout(() => document.getElementById('chatInput')?.focus(), 0);
   },
+  chatPlus(){ UI.chatMenu = !UI.chatMenu; },
+  payForm(){ UI.chatMenu = false; UI.form = {}; UI.formError = null; UI.sheet = {type:'pay', email:UI.stack.at(-1).email}; },
+  sendPay(){
+    const f = UI.form; const clean = (f.pa || '').trim().replace(/^€\s*/, '').replace(',', '.');
+    const cents = /^\d+(\.\d{1,2})?$/.test(clean) ? Math.round(Number(clean) * 100) : 0;
+    UI.formError = !cents ? 'Vul een bedrag in, bijvoorbeeld 110 of 15,50.' : !(f.pd || '').trim() ? 'Vul in waarvoor het betaalverzoek is.' : !/^https:\/\/\S+$/.test((f.pu || '').trim()) ? 'Plak de betaallink van je bank of Tikkie (begint met https://).' : null;
+    if (UI.formError) return;
+    const email = UI.sheet.email; sendPayment(email, f.pd.trim(), cents, f.pu.trim()); markChatRead(email, 'studio');
+    S.pushQueue.push({to:email, text:`💶 Betaalverzoek ${euro(cents)} · ${f.pd.trim()}`, open:{tab:'berichten'}});
+    log(`Betaalverzoek ${euro(cents)} aan ${userBy(email).name}`); UI.sheet = null; UI.form = {}; save(); showToast('Betaalverzoek verstuurd ✓'); return 'rendered';
+  },
+  togglePaid(el){ const m = S.messages.find(x => x.id === el.dataset.id); setPaid(m.id, !m.paidAt); log(`Betaalverzoek ${m.paidAt ? 'betaald' : 'weer open'}: ${userBy(m.email).name}`); save(); },
+  pickFile(){
+    UI.chatMenu = false; const email = UI.stack.at(-1).email;
+    const input = document.createElement('input'); input.type = 'file';
+    input.onchange = () => { const file = input.files[0]; if (!file) return;
+      readDemoFile(file, (dataUrl) => { sendFile(email, file.name, file.type || 'application/octet-stream', file.size, dataUrl); markChatRead(email, 'studio');
+        S.pushQueue.push({to:email, text:`${fileIcon(file.type)} ${file.name}`, open:{tab:'berichten'}});
+        log(`Bestand "${file.name}" aan ${userBy(email).name}`); save(); render(); }); };
+    input.click();
+  },
   togglePushNews(){ UI.form.push = UI.form.push === false; },
   publishNews(){
     const title = (UI.form.title || '').trim(), body = (UI.form.body || '').trim();
@@ -1070,11 +1098,11 @@ const ACTIONS = {
     else if (u?.role === 'student') {
       const msg = chatOf(u.email).filter(m => m.from === 'studio' && m.at > (S.read[u.email]?.chat || '')).at(-1);
       const news = newsList().find(n => n.push && n.at > (S.read[u.email]?.news || ''));
-      if (msg) { setTimeout(() => showPush(`💬 ${msg.text}`, {chat:u.email}), 300); }
+      if (msg) { setTimeout(() => showPush(msg.kind ? msgPreview(msg) : `💬 ${msg.text}`, {chat:u.email}), 300); }
       else if (news) { setTimeout(() => showPush(`📣 ${news.title}`, {news:news.id}), 300); }
     } else if (u?.role === 'admin' && studioUnread()) {
       const c = conversations().find(x => x.unread);
-      setTimeout(() => showPush(`💬 ${userBy(c.email).name}: ${c.last.text}`, {chat:c.email}), 300);
+      setTimeout(() => showPush(`💬 ${userBy(c.email).name}: ${msgPreview(c.last)}`, {chat:c.email}), 300);
     }
   },
   timeTravel(el){

@@ -9,7 +9,7 @@ import { colors, fonts } from '@/constants/theme';
 import { useInbox } from '@/contexts/InboxContext';
 import { useSchedule } from '@/contexts/ScheduleContext';
 import { useUsers } from '@/contexts/UsersContext';
-import { msgTime } from '@/lib/inbox';
+import { messagePreview, msgTime } from '@/lib/inbox';
 import { currentStandingSession, startTimeOf } from '@/lib/schedule';
 
 const initials = (name: string) =>
@@ -50,7 +50,7 @@ export default function PortalBerichten() {
               <Conv
                 key={c.customerId}
                 name={u?.name ?? 'Klant'}
-                last={`${c.last.fromStudio ? 'Jij: ' : ''}${c.last.body}`}
+                last={`${c.last.fromStudio ? 'Jij: ' : ''}${messagePreview(c.last)}`}
                 time={msgTime(c.last.at)}
                 unread={c.unread}
                 active={c.customerId === selectedId}

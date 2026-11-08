@@ -582,7 +582,7 @@ function berichten(){
   let lastDay = '';
   const bubbles = msgs.map(m => { const day = isoOf(new Date(m.at));
     const sep = day !== lastDay ? `<div class="daysep">${day === today() ? 'Vandaag' : dateLabel(day)}</div>` : ''; lastDay = day;
-    return sep + `<div class="bub ${m.from === 'studio' ? 'me' : 'them'}">${esc(m.text)}<small>${msgTime(m.at).split(' ').at(-1)}</small></div>` +
+    return sep + bubbleHtml(m, m.from === 'studio', true) +
       (m === lastMine && m === msgs.at(-1) && seenByOther(m) ? '<div class="seen">Gelezen</div>' : ''); }).join('');
   const v = k && standingOf(k.email);
   return `<div class="ph"><div><h1>Berichten</h1><p>Chat 1-op-1 met klanten. Ze krijgen een pushmelding bij elk bericht.</p></div></div>
@@ -590,13 +590,19 @@ function berichten(){
       <div class="card convs"><input id="chatSearch" placeholder="Zoek of start een gesprek…" value="${esc(P.chatSearch)}">
         ${shown.map(c => { const u = userBy(c.email);
           return `<div class="conv ${c.email === sel ? 'on' : ''} ${c.unread ? 'unread' : ''}" data-act="selChat" data-email="${c.email}"><div class="ini">${initials(u.name)}</div>
-            <div class="meta"><div class="top"><span class="nm">${esc(u.name)}</span><span class="tm">${msgTime(c.last.at)}</span></div><div class="last">${c.last.from === 'studio' ? 'Jij: ' : ''}${esc(c.last.text)}</div></div>
+            <div class="meta"><div class="top"><span class="nm">${esc(u.name)}</span><span class="tm">${msgTime(c.last.at)}</span></div><div class="last">${c.last.from === 'studio' ? 'Jij: ' : ''}${esc(msgPreview(c.last))}</div></div>
             ${c.unread ? `<span class="cnt">${c.unread}</span>` : ''}</div>`; }).join('')}
         ${extra.length ? `<div class="note" style="margin:10px 4px 4px">Nieuw gesprek met</div>${extra.map(u => `<div class="conv" data-act="selChat" data-email="${u.email}"><div class="ini">${initials(u.name)}</div><div class="meta"><div class="nm">${esc(u.name)}</div><div class="last">${esc(u.email)}</div></div></div>`).join('')}` : ''}
         ${!shown.length && !extra.length ? '<div class="empty">Geen gesprekken gevonden.</div>' : ''}</div>
       ${k ? `<div class="card chatpane"><div class="chathead"><div class="meta"><div class="nm">${esc(k.name)}</div><div class="dt">${esc(k.email)} · ${v ? `groepsles ${v.day.toLowerCase()} ${startTime(v)}` : 'geen groepsles'} · ${k.strippen === null ? 'geen kaart' : `${k.strippen} strippen`}</div></div>
           <button class="btn sm" data-act="gotoKlant" data-email="${k.email}">Klantkaart ›</button></div>
         <div class="bubbles" id="chatScroll">${bubbles || `<div class="empty">Nog geen berichten. Stuur ${esc(k.name.split(' ')[0])} een bericht.</div>`}</div>
+        ${P.payOpen ? `<div class="form-grid" style="padding:12px 0;border-top:1px solid var(--sand)">
+          <label class="f">Bedrag<input id="payAmount" placeholder="€ 110,00"></label><label class="f">Waarvoor<input id="payDesc" placeholder="Bijvoorbeeld: 10-strippenkaart"></label>
+          <label class="f full">Betaallink<input id="payUrl" placeholder="https://… (van je bank of Tikkie)"></label>
+          ${P.formError ? `<div class="err full">${P.formError}</div>` : ''}
+          <div class="full" style="display:flex;gap:8px"><button class="btn primary" data-act="sendPay" data-email="${k.email}">Betaalverzoek versturen</button><button class="btn" data-act="payClose">Annuleren</button></div></div>` : ''}
+        <div style="display:flex;gap:8px;padding-top:8px"><button class="btn sm" data-act="payOpen">💶 Betaalverzoek</button><button class="btn sm" data-act="pickFile" data-email="${k.email}">📎 Foto, video of bestand</button></div>
         <div class="chatinput"><textarea id="chatText" rows="1" placeholder="Typ een bericht… (Enter = versturen, Shift+Enter = nieuwe regel)">${esc(P.chatDraft)}</textarea><button class="btn primary" data-act="sendChat" data-email="${k.email}">Versturen</button></div></div>`
       : '<div class="card"><div class="empty">Kies links een gesprek, of zoek een klant om een nieuw gesprek te starten.</div></div>'}
     </div>`;
@@ -686,6 +692,26 @@ const ACTIONS = {
     if (!text) return 'rendered';
     sendMessage(email, 'studio', text); markChatRead(email, 'studio');
     P.chat = email; P.chatDraft = ''; P.chatFocus = true; act(`bericht aan ${userBy(email).name}`);
+  },
+  payOpen(){ P.payOpen = true; P.formError = null; },
+  payClose(){ P.payOpen = false; },
+  sendPay(el){
+    const email = el.dataset.email; const v = (id) => document.getElementById(id).value.trim();
+    const clean = v('payAmount').replace(/^€\s*/, '').replace(',', '.'); const cents = /^\d+(\.\d{1,2})?$/.test(clean) ? Math.round(Number(clean) * 100) : 0;
+    P.formError = !cents ? 'Vul een bedrag in, bijvoorbeeld 110 of 15,50.' : !v('payDesc') ? 'Vul in waarvoor het betaalverzoek is.' : !/^https:\/\/\S+$/.test(v('payUrl')) ? 'Plak de betaallink van je bank of Tikkie (begint met https://).' : null;
+    if (P.formError) return;
+    sendPayment(email, v('payDesc'), cents, v('payUrl')); markChatRead(email, 'studio');
+    S.pushQueue.push({to:email, text:`💶 Betaalverzoek ${euro(cents)} · ${v('payDesc')}`, open:{tab:'berichten'}});
+    P.payOpen = false; P.chat = email; act(`betaalverzoek ${euro(cents)} aan ${userBy(email).name}`); toast('Betaalverzoek verstuurd ✓'); return 'rendered';
+  },
+  togglePaid(el){ const m = S.messages.find(x => x.id === el.dataset.id); setPaid(m.id, !m.paidAt); act(`betaalverzoek ${m.paidAt ? 'betaald' : 'weer open'}: ${userBy(m.email).name}`); },
+  pickFile(el){
+    const email = el.dataset.email; const input = document.createElement('input'); input.type = 'file';
+    input.onchange = () => { const file = input.files[0]; if (!file) return;
+      readDemoFile(file, (dataUrl) => { sendFile(email, file.name, file.type || 'application/octet-stream', file.size, dataUrl); markChatRead(email, 'studio');
+        S.pushQueue.push({to:email, text:`${fileIcon(file.type)} ${file.name}`, open:{tab:'berichten'}});
+        P.chat = email; act(`bestand "${file.name}" aan ${userBy(email).name}`); render(); }); };
+    input.click();
   },
   saveNews(){
     const title = P.news.title.trim(), body = P.news.body.trim();
