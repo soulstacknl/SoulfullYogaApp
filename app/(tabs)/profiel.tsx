@@ -336,6 +336,8 @@ const styles = StyleSheet.create({
   },
   adminActions: {
     marginHorizontal: 20,
+    // The admin has no photo block above the buttons, so they need their own space below the header.
+    marginTop: 18,
     marginBottom: 18,
     gap: 10,
   },
