@@ -342,7 +342,7 @@ function cancelLesson(email, sid, d, by){
   const u = userBy(email);
   const charged = late && (u?.strippen ?? 0) > 0;
   if (charged) u.strippen--;
-  S.cancels.push({sessionId:sid, date:d, email, by, late, charged});
+  S.cancels.push({sessionId:sid, date:d, email, by, late, charged, at:nowIso(), seen: by === 'klant' ? false : true});
 }
 // Weer aanmelden: een strip die voor te laat afmelden afging, komt terug.
 const undoCancel = (email, sid, d) => {
@@ -397,8 +397,15 @@ function addClosure(closure){ S.closures.push({...closure, id:`c-${Date.now()}`}
 function removeClosure(id){ S.closures = S.closures.filter(c => c.id !== id); }
 // Nieuwe 10-strippenkaart: 10 strippen erbij (een restant blijft staan).
 const CARD_SIZE = 10;
-function activateCard(email){ const u = userBy(email); u.strippen = (u.strippen ?? 0) + CARD_SIZE; u.total = Math.max(CARD_SIZE, u.strippen); return u.strippen; }
-function adjustUserStrip(email, delta){ const u = userBy(email); u.strippen = Math.max(0, (u.strippen ?? 0) + delta); return u.strippen; }
+// Een strippenkaart is 4 maanden geldig; bij elke + of +10 begint die periode opnieuw.
+const cardValidUntil = () => { const n = now(); return isoOf(new Date(n.getFullYear(), n.getMonth() + 4, n.getDate())); };
+const validity = (iso) => { if (!iso) return null; const d = toDate(iso); return {expired: iso < isoOf(now()), date:`${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`}; };
+const validTag = (iso, extra = '') => { const v = validity(iso); return !v ? '' : v.expired ? `<span class="vtag exp" ${extra}>Vervallen · was geldig t/m ${v.date}</span>` : `<span class="vtag" ${extra}>Geldig t/m ${v.date}</span>`; };
+function activateCard(email){ const u = userBy(email); u.strippen = (u.strippen ?? 0) + CARD_SIZE; u.total = Math.max(CARD_SIZE, u.strippen); u.validUntil = cardValidUntil(); return u.strippen; }
+function adjustUserStrip(email, delta){ const u = userBy(email); u.strippen = Math.max(0, (u.strippen ?? 0) + delta); if (delta > 0) u.validUntil = cardValidUntil(); return u.strippen; }
+// Aparte strippenkaart voor privélessen: de beheerder schrijft zelf af (−), niet via de presentielijst.
+function adjustPrivateStrip(email, delta){ const u = userBy(email); u.privateStrips = Math.max(0, (u.privateStrips ?? 0) + delta); if (delta > 0) u.privateValidUntil = cardValidUntil(); return u.privateStrips; }
+function removePrivateCard(email){ const u = userBy(email); u.privateStrips = null; u.privateValidUntil = null; }
 function adjustSeedStrip(sid, id, delta){ const e = (S.roster[sid] || []).find(x => x.id === id); e.strips = Math.max(0, e.strips + delta); }
 
 // Nieuwe demo: de afgelopen weken alvast als bevestigd vastleggen.
@@ -508,12 +515,29 @@ function addPrivate(email, date, time){
   S.pushQueue.push({to:email, text:`🧘 Privéles gepland: ${privLabel(p)} met Marjolijn. Namasté!`, open:{tab:'lessen'}});
 }
 function cancelPrivate(id){
-  const p = S.privates.find(x => x.id === id); p.cancelled = true;
+  const p = S.privates.find(x => x.id === id); p.cancelled = true; p.cancelledAt = nowIso(); p.cancelSeen = false;
   S.pushQueue.push({to:'admin', text:`✕ ${userBy(p.email).name} meldt zich af · privéles ${privLabel(p)}`, open:{screen:'rooster-beheer'}});
 }
 function removePrivate(id){
   const p = S.privates.find(x => x.id === id); S.privates = S.privates.filter(x => x !== p);
   if (!p.cancelled) S.pushQueue.push({to:p.email, text:`✕ Privéles ${privLabel(p)} gaat niet door.`, open:{tab:'lessen'}});
+}
+
+// Afmeldingen van klanten die de beheerder nog niet met Akkoord als gezien heeft gemarkeerd (nieuwste eerst).
+const openCancellations = () => [
+  ...S.cancels.filter(c => c.by === 'klant' && c.seen === false).map(c => ({kind:'groep', key:`${c.sessionId}@${c.date}#${c.email}`, email:c.email, date:c.date, at:c.at, sid:c.sessionId, charged:c.charged})),
+  ...S.privates.filter(p => p.cancelled && p.cancelSeen === false).map(p => ({kind:'prive', key:p.id, email:p.email, date:p.date, at:p.cancelledAt, id:p.id, time:p.time})),
+].sort((a, b) => b.at.localeCompare(a.at));
+function acknowledgeCancellation(key){
+  const c = S.cancels.find(x => `${x.sessionId}@${x.date}#${x.email}` === key); if (c) c.seen = true;
+  const p = S.privates.find(x => x.id === key); if (p) p.cancelSeen = true;
+}
+// Geldigheid en privéstrippen voor demo’s die al bewaard waren.
+if (!S.validitySeeded) {
+  S.users.forEach(u => { if (u.strippen !== null && !u.validUntil) u.validUntil = cardValidUntil(); if (u.privateStrips === undefined) u.privateStrips = null; });
+  const mn = userBy('marjolijn_n@hotmail.com'); if (mn) mn.validUntil = plusDays(isoOf(now()), -9);   // voorbeeld: vervallen kaart
+  const mk = userBy('marieke@soulfulyoga.nl'); if (mk) { mk.privateStrips = 5; mk.privateValidUntil = cardValidUntil(); }
+  S.validitySeeded = true; save();
 }
 
 if (!S.accountRequests) { S.accountRequests = [{id:'a-seed', name:'Joke Peters', email:'joke.peters@gmail.com', phone:'06 18273645', at:agoIso(0, 3)}]; save(); }

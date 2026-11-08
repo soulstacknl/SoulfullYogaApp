@@ -1,3 +1,5 @@
+import { MONTHS, toDate } from '@/lib/dutchDate';
+
 // A signed-in person: the auth account plus their profile row in Supabase.
 export type UserRole = 'student' | 'admin';
 // How a customer came in: via an account request (uses the app) or added by hand by the admin.
@@ -9,11 +11,22 @@ export type AppUser = {
   name: string;
   phone: string;
   strippen: number | null; // null = no strippenkaart purchased yet
+  privateStrips: number | null; // separate card for private lessons; null = none
+  // ISO dates: a card is valid through this day, 4 months after the admin last added strips.
+  stripsValidUntil: string | null;
+  privateValidUntil: string | null;
   total: number;
   role: UserRole;
   termsAcceptedAt: string | null; // DD-MM-YYYY when the customer agreed to the algemene voorwaarden
   origin: CustomerOrigin;
 };
+
+// Strip cards are valid for 4 months after the admin last added strips (+, +10, new card).
+export function cardValidity(validUntil: string | null, today: string) {
+  if (!validUntil) return null;
+  const d = toDate(validUntil);
+  return { expired: validUntil < today, date: `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}` };
+}
 
 // Customers added without an e-mail address get a placeholder on this (never delivered) domain.
 const NO_EMAIL_DOMAIN = '@soulfulyoga.invalid';

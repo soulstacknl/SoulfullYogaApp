@@ -20,6 +20,8 @@ export type Cancellation = {
   by: 'klant' | 'beheer';
   late?: boolean;
   charged?: boolean;
+  at?: string; // when the customer cancelled (ISO timestamp)
+  seen?: boolean; // the admin tapped Akkoord under Afmeldingen
 };
 // Lessons that don't take place (holiday); sessionId null = every lesson in the period.
 export type Closure = { id: string; from: string; to: string; sessionId: string | null; reason: string };
@@ -31,7 +33,20 @@ export type AttendanceEntry = Attendee & { planned: boolean; present: boolean };
 export type Confirmation = { at: string; people: (AttendanceEntry & { charge: Charge | null })[] };
 // One-to-one lesson the admin planned with a customer: outside the timetable, no strips.
 // time like "14.00 – 15.00"; cancelled = the customer cancelled it.
-export type PrivateLesson = { id: string; email: string; date: string; time: string; cancelled: boolean };
+export type PrivateLesson = {
+  id: string;
+  email: string;
+  date: string;
+  time: string;
+  cancelled: boolean;
+  cancelledAt?: string;
+  cancelSeen?: boolean; // the admin tapped Akkoord under Afmeldingen
+};
+// A customer's cancellation the admin hasn't marked as seen yet (Reserveringen → Afmeldingen).
+export type OpenCancellation = { key: string; email: string; date: string; at: string } & (
+  | { kind: 'groep'; sessionId: string; charged: boolean }
+  | { kind: 'prive'; privateId: string; time: string }
+);
 
 export type ScheduleData = {
   sessions: Session[];
@@ -85,6 +100,19 @@ export const privatesOf = (data: ScheduleData, email: string) =>
 // Upcoming private lessons of every customer (admin), first one first.
 export const upcomingPrivates = (data: ScheduleData, now: Date) =>
   data.privates.filter((p) => privateEnd(p) > now).sort((a, b) => privateStart(a).getTime() - privateStart(b).getTime());
+// Newest first. Only the customer's own cancellations; the admin knows about their own.
+export function openCancellations(data: ScheduleData): OpenCancellation[] {
+  const group: OpenCancellation[] = data.cancels
+    .filter((c) => c.by === 'klant' && !c.seen)
+    .map((c) => ({
+      kind: 'groep', key: `${lessonKey(c.sessionId, c.date)}#${c.email}`, email: c.email, date: c.date, at: c.at ?? '',
+      sessionId: c.sessionId, charged: !!c.charged,
+    }));
+  const privates: OpenCancellation[] = data.privates
+    .filter((p) => p.cancelled && !p.cancelSeen)
+    .map((p) => ({ kind: 'prive', key: p.id, email: p.email, date: p.date, at: p.cancelledAt ?? '', privateId: p.id, time: p.time }));
+  return [...group, ...privates].sort((a, b) => b.at.localeCompare(a.at));
+}
 export const isExtra = (session: Session) => session.from !== null && session.from === session.until;
 
 export const activeOn = (session: Session, date: string) =>

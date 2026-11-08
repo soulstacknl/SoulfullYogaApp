@@ -18,6 +18,7 @@ import type {
   Lesson,
   LessonStatus,
   Occupancy,
+  OpenCancellation,
   Person,
   PrivateLesson,
   ReservationRequest,
@@ -33,6 +34,7 @@ export type {
   Lesson,
   LessonStatus,
   Occupancy,
+  OpenCancellation,
   PrivateLesson,
   ReservationRequest,
 } from '@/lib/schedule';
@@ -88,6 +90,9 @@ type ScheduleContextValue = {
   addPrivateLesson: (email: string, date: string, time: string) => void;
   removePrivateLesson: (id: string) => void;
   cancelPrivateLesson: (id: string) => void;
+  // Afmeldingen: customers' cancellations until the admin taps Akkoord (changes nothing else)
+  openCancellations: () => OpenCancellation[];
+  acknowledgeCancellation: (item: OpenCancellation) => void;
 };
 
 const ScheduleContext = createContext<ScheduleContextValue | null>(null);
@@ -268,6 +273,13 @@ export function ScheduleProvider({ children }: { children: ReactNode }) {
         addPrivateLesson: (email, date, time) => run(() => remote.addPrivateLesson(idOf(email), date, time)),
         removePrivateLesson: (id) => run(() => remote.removePrivateLesson(id)),
         cancelPrivateLesson: (id) => run(() => remote.cancelPrivateLesson(id)),
+        openCancellations: () => rules.openCancellations(data),
+        acknowledgeCancellation: (item) =>
+          run(() =>
+            item.kind === 'prive'
+              ? remote.acknowledgePrivateCancel(item.privateId)
+              : remote.acknowledgeCancellation(item.sessionId, item.date, idOf(item.email))
+          ),
       }}>
       {children}
     </ScheduleContext.Provider>

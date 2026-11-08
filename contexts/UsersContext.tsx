@@ -13,6 +13,9 @@ type UsersContextValue = {
   userIdOf: (email: string) => string | undefined;
   adjustStrip: (email: string, delta: number) => void;
   activateCard: (email: string) => void;
+  // Private-lesson strips: a separate card the admin keeps up by hand.
+  adjustPrivateStrips: (email: string, delta: number) => void;
+  removePrivateCard: (email: string) => void;
   setTermsAccepted: (email: string, acceptedAt: string | null) => void;
   // origin 'aanvraag': the customer also gets a mail to set a password for the app.
   createCustomer: (name: string, email: string, phone: string, origin: CustomerOrigin) => Promise<boolean>;
@@ -39,12 +42,11 @@ export function UsersProvider({ children }: { children: ReactNode }) {
     if (user) run(() => remote.adjustStrips(user.id, delta));
   };
 
-  // A new 10-strip card on top of what's left; total follows so the card never shows e.g. 12 / 10.
+  // A new 10-strip card on top of what's left (the database keeps total in step and
+  // starts the 4 months of validity again, as + does).
   const activateCard = (email: string) => {
     const user = byEmail(email);
-    if (!user) return;
-    const strippen = (user.strippen ?? 0) + CARD_SIZE;
-    run(() => remote.setStrips(user.id, strippen, Math.max(CARD_SIZE, strippen)));
+    if (user) run(() => remote.activateCard(user.id));
   };
 
   const setTermsAccepted = (email: string, acceptedAt: string | null) => {
@@ -62,6 +64,14 @@ export function UsersProvider({ children }: { children: ReactNode }) {
         userIdOf: (email) => byEmail(email)?.id,
         adjustStrip,
         activateCard,
+        adjustPrivateStrips: (email, delta) => {
+          const user = byEmail(email);
+          if (user) run(() => remote.adjustPrivateStrips(user.id, delta));
+        },
+        removePrivateCard: (email) => {
+          const user = byEmail(email);
+          if (user) run(() => remote.removePrivateCard(user.id));
+        },
         setTermsAccepted,
         createCustomer: async (name, email, phone, origin) => {
           const ok = await run(() => remote.createCustomer(name, email, phone, origin));

@@ -241,7 +241,7 @@ const sourceTag = (st, d) => {
 function act(msg){ log(`Portaal: ${msg}`); save(); }
 
 // Teller naast een menu-item (open aanvragen, presentie nog te bevestigen).
-const badge = (k) => { const c = k === 'reserveringen' ? S.requests.length : k === 'presentie' ? unconfirmedLessons(14).length : k === 'berichten' ? studioUnread() : k === 'klanten' ? (S.accountRequests || []).length : 0; return c ? `<span class="bdg">${c}</span>` : ''; };
+const badge = (k) => { const c = k === 'reserveringen' ? S.requests.length + openCancellations().length : k === 'presentie' ? unconfirmedLessons(14).length : k === 'berichten' ? studioUnread() : k === 'klanten' ? (S.accountRequests || []).length : 0; return c ? `<span class="bdg">${c}</span>` : ''; };
 
 /* ── Pagina's ──────────────────────────────────────────────────────── */
 const NAV = [
@@ -268,12 +268,20 @@ function rooster(){
 }
 
 function reserveringen(){
-  return `<div class="ph"><div><h1>Reserveringen</h1><p>Aanvragen voor losse lessen. Een aanvraag houdt de plek al vast.</p></div></div>
-    <div class="card">${S.requests.length ? `<table><thead><tr><th>Klant</th><th>Les</th><th>Datum</th><th>Bezetting</th><th></th></tr></thead><tbody>
+  const open = openCancellations();
+  return `<div class="ph"><div><h1>Reserveringen</h1><p>Aanvragen voor losse lessen en afmeldingen van klanten.</p></div></div>
+    <div class="card"><h2>Aanvragen <small>een aanvraag houdt de plek al vast</small></h2>${S.requests.length ? `<table><thead><tr><th>Klant</th><th>Les</th><th>Datum</th><th>Bezetting</th><th></th></tr></thead><tbody>
       ${S.requests.map(r => { const s = SES[r.sessionId];
         return `<tr><td><div class="nm">${esc(r.name)}</div><div class="dt">${esc(r.email)}</div></td><td>${STYLE[s.style].label} · ${s.time}</td><td>${dateLabel(r.date)}</td><td style="width:180px">${meter(occ(r.sessionId, r.date))}</td>
           <td class="num-col"><button class="btn sm teal" data-act="resolve" data-id="${r.id}" data-v="1">✓ Goedkeuren</button> <button class="btn sm ghost-r" data-act="resolve" data-id="${r.id}" data-v="0">✕ Weigeren</button></td></tr>`; }).join('')}
-      </tbody></table>` : '<div class="empty">Geen open aanvragen. Nieuwe aanvragen uit de app verschijnen hier direct.</div>'}</div>`;
+      </tbody></table>` : '<div class="empty">Geen open aanvragen. Nieuwe aanvragen uit de app verschijnen hier direct.</div>'}</div>
+    <div class="card"><h2>Afmeldingen <small>de klant is al afgemeld · Akkoord betekent: gezien</small></h2>${open.length ? `<table><thead><tr><th>Klant</th><th>Les</th><th>Datum</th><th></th><th></th></tr></thead><tbody>
+      ${open.map(c => { const s = c.kind === 'groep' ? SES[c.sid] : null;
+        return `<tr><td><div class="nm">${esc(userBy(c.email)?.name || c.email)}</div><div class="dt">afgemeld ${new Date(c.at).toLocaleString('nl-NL', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})}</div></td>
+          <td>${s ? `${STYLE[s.style].label} · ${s.time}` : `Privéles · ${c.time}`}</td><td>${dateLabel(c.date)}</td>
+          <td>${c.kind === 'groep' && c.charged ? '<span class="tag rani">Binnen 24 uur · −1 strip</span>' : `<span class="tag muted">${c.kind === 'prive' ? 'Privéles' : 'Kosteloos'}</span>`}</td>
+          <td class="num-col"><button class="btn sm teal" data-act="ackCancel" data-key="${c.key}">✓ Akkoord</button></td></tr>`; }).join('')}
+      </tbody></table>` : '<div class="empty">Geen nieuwe afmeldingen.</div>'}</div>`;
 }
 
 // Huidige groepslessen (sessie-id's) van een klant.
@@ -354,7 +362,7 @@ function klanten(){
     <div class="card">${list.length ? `<table><thead><tr><th>Klant</th><th>Telefoon</th><th>Strippen</th><th>Groepsles</th><th>Voorwaarden</th><th>Openstaand</th></tr></thead><tbody>
       ${list.map(u => { const ids = standingIds(u.email); const open = openCharges(u.email);
         return `<tr data-act="openKlant" data-email="${u.email}"><td><div class="nm">${esc(u.name)}</div><div class="dt">${esc(shownEmail(u.email))}</div><span class="tag org-${u.origin}">${ORIGIN_LABEL[u.origin]}</span></td><td>${esc(u.phone)}</td>
-          <td data-act="noop"><span style="display:inline-flex;gap:8px;align-items:center">${stepper('strip', u.strippen ?? 0, `data-email="${u.email}"`)}<button class="btn sm teal" data-act="askCard" data-email="${u.email}" title="Nieuwe 10-strippenkaart">+10</button>${u.strippen === null ? '<span class="tag muted">geen kaart</span>' : ''}</span></td>
+          <td data-act="noop"><span style="display:inline-flex;gap:8px;align-items:center">${stepper('strip', u.strippen ?? 0, `data-email="${u.email}"`)}<button class="btn sm teal" data-act="askCard" data-email="${u.email}" title="Nieuwe 10-strippenkaart">+10</button>${u.strippen === null ? '<span class="tag muted">geen kaart</span>' : validTag(u.validUntil, 'style="margin:0"')}</span></td>
           <td>${ids.length ? ids.map(id => `${SES[id].day} ${startTime(SES[id])}`).join(', ') : '<span class="muted">—</span>'}</td>
           <td>${u.termsAcceptedAt ? `<span class="tag teal">✓ ${u.termsAcceptedAt}</span>` : '<span class="tag rani">Nog niet</span>'}</td>
           <td>${open ? `<span class="tag rani">${open} ${open === 1 ? 'les' : 'lessen'}</span>` : '<span class="muted">—</span>'}</td></tr>`; }).join('')}
@@ -776,6 +784,7 @@ const ACTIONS = {
   reopen(el){ const c = S.closures.find(x => x.id === el.dataset.id); removeClosure(c.id); act(`${lessonName(c.sessionId, c.from)} gaat toch door`); },
   askRemoveClosure(el){ const c = S.closures.find(x => x.id === el.dataset.id); P.confirm = {title: 'Uitzondering verwijderen?', text: `${esc(c.reason)}. De lessen in deze periode gaan dan gewoon door.`, ok: 'Verwijderen', run: () => { removeClosure(c.id); act(`uitzondering verwijderd: ${c.reason}`); }}; },
   askRemovePrivate(el){ const p = S.privates.find(x => x.id === el.dataset.id); const nm = userBy(p.email).name; P.confirm = {title: 'Privéles verwijderen?', text: p.cancelled ? `${esc(nm)} had zich al afgemeld.` : `${esc(nm)} · ${dateLabel(p.date)} · ${p.time}. De klant krijgt een pushmelding dat de les niet doorgaat.`, ok: 'Verwijderen', run: () => { removePrivate(p.id); act(`privéles ${nm} ${privLabel(p)} verwijderd`); }}; },
+  ackCancel(el){ acknowledgeCancellation(el.dataset.key); act('afmelding gezien (Akkoord)'); toast('Gezien ✓'); return 'rendered'; },
   askRemoveExtra(el){ const s = SES[el.dataset.sid]; P.confirm = {title: 'Extra les verwijderen?', text: `${lessonName(s.id, s.from)}. Aanvragen en boekingen voor deze les vervallen ook.`, ok: 'Verwijderen', run: () => { const name = lessonName(s.id, s.from); removeExtraSession(s.id); act(`extra les verwijderd: ${name}`); }}; },
   askRemove(el){
     const {sid, date, email} = el.dataset; const u = userBy(email); const st = statusFor(email, sid, date);

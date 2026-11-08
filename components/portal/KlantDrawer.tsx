@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 
 import { usePortal } from '@/components/portal/PortalContext';
-import { Btn, Card, Drawer, ErrorText, Field, Input, KV, Meta, Note, Pill, portalStyles, Preview, Row, s, Select, StyleDot } from '@/components/portal/ui';
+import { Btn, Card, Drawer, ErrorText, Field, Input, KV, Meta, Note, Pill, portalStyles, Preview, Row, s, Select, StyleDot, ValidityPill } from '@/components/portal/ui';
 import type { TagTone } from '@/components/portal/ui';
 import Stepper from '@/components/Stepper';
 import { styleMeta } from '@/constants/theme';
@@ -28,7 +28,7 @@ export function weeklySessions(sessions: Session[], today: string) {
 // One customer: strips, standing lessons (add / stop) and their lessons.
 export default function KlantDrawer({ email }: { email: string }) {
   const schedule = useSchedule();
-  const { users, adjustStrip, activateCard, deleteCustomer } = useUsers();
+  const { users, adjustStrip, activateCard, deleteCustomer, adjustPrivateStrips } = useUsers();
   const portal = usePortal();
   const [sessionId, setSessionId] = useState('');
   const [from, setFrom] = useState(schedule.today);
@@ -116,8 +116,17 @@ export default function KlantDrawer({ email }: { email: string }) {
           <View style={s.row}>
             <Stepper value={user.strippen ?? 0} onChange={(d) => adjustStrip(email, d)} />
             <Btn label="+10 nieuwe kaart" tone="teal" small onPress={askCard} />
+            {user.strippen !== null ? <ValidityPill validUntil={user.stripsValidUntil} today={schedule.today} /> : null}
           </View>
         </KV>
+        {user.privateStrips !== null ? (
+          <KV label="Privéstrippen">
+            <View style={s.row}>
+              <Stepper value={user.privateStrips} onChange={(d) => adjustPrivateStrips(email, d)} />
+              <ValidityPill validUntil={user.privateValidUntil} today={schedule.today} />
+            </View>
+          </KV>
+        ) : null}
         <KV label="Groepsles">{standing ? `${standing.day} ${startTimeOf(standing)}` : '—'}</KV>
         <KV label="Algemene voorwaarden">
           {user.termsAcceptedAt ? <Pill label={`✓ ${user.termsAcceptedAt}`} tone="teal" /> : <Pill label="Nog niet akkoord" tone="rani" />}

@@ -45,6 +45,9 @@ export async function loadSnapshot(): Promise<Snapshot> {
     name: p.name,
     phone: p.phone,
     strippen: p.strippen,
+    privateStrips: p.private_strips ?? null,
+    stripsValidUntil: p.strips_valid_until ?? null,
+    privateValidUntil: p.private_valid_until ?? null,
     total: p.total,
     role: p.role as UserRole,
     termsAcceptedAt: toDutchDate(p.terms_accepted_at),
@@ -74,6 +77,7 @@ export async function loadSnapshot(): Promise<Snapshot> {
       .map((r) => ({ id: r.id, sessionId: r.session_id, date: r.date, email: key(r.user_id), name: nameById.get(r.user_id) ?? '' })),
     cancels: cancels.map((c) => ({
       sessionId: c.session_id, date: c.date, email: key(c.user_id), by: c.cancelled_by, late: c.late, charged: c.charged,
+      at: c.created_at, seen: !!c.seen_at,
     })),
     closures: closures.map((c): Closure => ({ id: c.id, from: c.from_date, to: c.to_date, sessionId: c.session_id, reason: c.reason })),
     capOverride: Object.fromEntries(caps.map((c) => [lessonKey(c.session_id, c.date), c.capacity])),
@@ -82,6 +86,7 @@ export async function loadSnapshot(): Promise<Snapshot> {
     confirmed: {},
     privates: privates.map((p) => ({
       id: p.id, email: key(p.user_id), date: p.date, time: `${dotTime(p.start_time)} – ${dotTime(p.end_time)}`, cancelled: !!p.cancelled_at,
+      cancelledAt: p.cancelled_at ?? undefined, cancelSeen: !!p.cancel_seen_at,
     })),
   };
 
@@ -211,12 +216,23 @@ export const remote = {
   removePrivateLesson: (id: string) => check(supabase.from('private_lessons').delete().eq('id', id)),
   cancelPrivateLesson: (id: string) => check(supabase.rpc('cancel_private_lesson', { p_id: id })),
 
+  // Akkoord on a cancellation: only marks it as seen by the admin.
+  acknowledgeCancellation: (sessionId: string, date: string, userId: string) =>
+    check(supabase.rpc('acknowledge_cancellation', { p_session: sessionId, p_date: date, p_user: userId })),
+  acknowledgePrivateCancel: (id: string) => check(supabase.rpc('acknowledge_private_cancel', { p_id: id })),
+
   // Customers
   setStrips: (userId: string, strippen: number | null, total?: number) =>
     check(supabase.from('profiles').update({ strippen, ...(total !== undefined && { total }) }).eq('id', userId)),
   setTermsAccepted: (userId: string, acceptedAt: string | null) =>
     check(supabase.from('profiles').update({ terms_accepted_at: toIsoDate(acceptedAt) }).eq('id', userId)),
+  // A new card: +10 on top of what's left, valid for 4 months from today.
+  activateCard: (userId: string) => check(supabase.rpc('admin_activate_card', { p_id: userId })),
   adjustStrips: (userId: string, delta: number) => check(supabase.rpc('admin_adjust_strips', { p_id: userId, p_delta: delta })),
+  // Private-lesson card: only the admin changes it, by hand (not via the attendance list).
+  adjustPrivateStrips: (userId: string, delta: number) =>
+    check(supabase.rpc('admin_adjust_private_strips', { p_id: userId, p_delta: delta })),
+  removePrivateCard: (userId: string) => check(supabase.rpc('admin_remove_private_card', { p_id: userId })),
   // Returns the new customer's e-mail, for the password mail.
   approveAccountRequest: async (requestId: string) => {
     const { data, error } = await supabase.rpc('admin_approve_request', { p_id: requestId });

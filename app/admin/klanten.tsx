@@ -9,18 +9,19 @@ import ScreenHeader from '@/components/ScreenHeader';
 import Tag from '@/components/Tag';
 import TextField from '@/components/TextField';
 import Toast, { useToast } from '@/components/Toast';
+import PrivateStripsSection from '@/components/PrivateStripsSection';
 import UserStripRow from '@/components/UserStripRow';
 import { colors, fonts } from '@/constants/theme';
 import { useSchedule } from '@/contexts/ScheduleContext';
 import { CARD_SIZE, useUsers } from '@/contexts/UsersContext';
 import type { AppUser, CustomerOrigin } from '@/data/users';
-import { hasEmail, ORIGIN_LABEL, ORIGIN_TONE, shownEmail } from '@/data/users';
+import { cardValidity, hasEmail, ORIGIN_LABEL, ORIGIN_TONE, shownEmail } from '@/data/users';
 import { currentStandingSession, startTimeOf } from '@/lib/schedule';
 
 const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
-// The admin's full customer file: strips (−/+/+10), add customers by hand or after an
-// account request, and remove customers. Green initials = account request, yellow = by hand.
+// The admin's full customer file: strips (−/+/+10), private-lesson strips, add customers by
+// hand or after an account request, and remove customers. Green initials = account request, yellow = by hand.
 export default function KlantenScreen() {
   const { students, adjustStrip, activateCard, createCustomer, deleteCustomer, accountRequests, approveAccountRequest, rejectAccountRequest } = useUsers();
   const { data, today } = useSchedule();
@@ -30,6 +31,8 @@ export default function KlantenScreen() {
   const [query, setQuery] = useState('');
   const [adding, setAdding] = useState(false);
   const [open, setOpen] = useState<AppUser | null>(null);
+  // Strippenkaart = group lessons; Privélessen = the separate private-lesson cards.
+  const [section, setSection] = useState<'groep' | 'prive'>('groep');
 
   const standingLabel = (email: string) => {
     const session = currentStandingSession(data, email, today);
@@ -47,6 +50,10 @@ export default function KlantenScreen() {
         toast.show('Strippenkaart geactiveerd ✓');
       },
     });
+  const validityText = (strips: number | null, validUntil: string | null) => {
+    const v = strips === null ? null : cardValidity(validUntil, today);
+    return !v ? '—' : v.expired ? `vervallen (was t/m ${v.date})` : `geldig t/m ${v.date}`;
+  };
   // The sheet shows the latest data (strips change while it is open).
   const openUser = open && students.find((u) => u.email === open.email);
 
@@ -60,78 +67,92 @@ export default function KlantenScreen() {
         subtitle={`${students.length} klanten · strippen, toevoegen en verwijderen`}
       />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        {adding ? (
-          <NewCustomerForm
-            onCancel={() => setAdding(false)}
-            onCreate={async (name, email, phone, origin) => {
-              if (!(await createCustomer(name, email, phone, origin))) return;
-              setAdding(false);
-              toast.show(origin === 'aanvraag' ? `${name} toegevoegd · mail verstuurd ✓` : `${name} toegevoegd ✓`);
-            }}
-          />
-        ) : (
-          <Pressable style={styles.addBtn} onPress={() => setAdding(true)}>
-            <Text style={styles.addText}>＋ Klant toevoegen</Text>
-          </Pressable>
-        )}
-        {accountRequests.length ? (
-          <View style={styles.requests}>
-            <Text style={styles.formTitle}>Accountaanvragen · {accountRequests.length}</Text>
-            {accountRequests.map((r) => (
-              <View key={r.id} style={styles.request}>
-                <Text style={styles.requestName}>{r.name}</Text>
-                <Text style={styles.requestDetail}>
-                  {r.email} · {r.phone}
-                </Text>
-                <View style={styles.requestBtns}>
-                  <Pressable
-                    style={[styles.requestBtn, { backgroundColor: colors.teal }]}
-                    onPress={async () => {
-                      if (await approveAccountRequest(r.id)) toast.show(`${r.name} aangemaakt · mail verstuurd ✓`);
-                    }}>
-                    <Text style={styles.requestBtnText}>✓ Account aanmaken</Text>
-                  </Pressable>
-                  <Pressable
-                    style={[styles.requestBtn, styles.requestBtnGhost]}
-                    onPress={() =>
-                      setConfirm({
-                        title: 'Aanvraag weigeren?',
-                        message: `De aanvraag van ${r.name} wordt verwijderd. Er gaat geen mail naar de klant.`,
-                        confirmLabel: 'Weigeren',
-                        onConfirm: async () => {
-                          if (await rejectAccountRequest(r.id)) toast.show('Aanvraag geweigerd');
-                        },
-                      })
-                    }>
-                    <Text style={[styles.requestBtnText, { color: colors.rani }]}>Weigeren</Text>
-                  </Pressable>
-                </View>
-              </View>
-            ))}
-          </View>
-        ) : null}
-        <TextInput style={styles.search} value={query} onChangeText={setQuery} placeholder="Zoek op naam of e-mail" placeholderTextColor="#9DAFA2" autoCorrect={false} autoCapitalize="none" />
-        <View style={styles.legend}>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#CFE7DA' }]} />
-            <Text style={styles.legendText}>{ORIGIN_LABEL.aanvraag}</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#F6DDAF' }]} />
-            <Text style={styles.legendText}>{ORIGIN_LABEL.beheer}</Text>
-          </View>
+        <View style={styles.segment}>
+          {([['groep', 'Strippenkaart'], ['prive', 'Privélessen']] as const).map(([k, label]) => (
+            <Pressable key={k} style={[styles.segmentBtn, section === k && styles.segmentOn]} onPress={() => setSection(k)}>
+              <Text style={[styles.segmentText, section === k && styles.segmentTextOn]}>{label}</Text>
+            </Pressable>
+          ))}
         </View>
-        {list.map((u) => (
-          <UserStripRow
-            key={u.email}
-            user={u}
-            detail={standingLabel(u.email)}
-            onOpen={() => setOpen(u)}
-            onAdjust={(delta) => adjustStrip(u.email, delta)}
-            onActivateCard={() => askCard(u)}
-          />
-        ))}
-        {list.length === 0 ? <Text style={styles.empty}>Geen klant gevonden.</Text> : null}
+        {section === 'prive' ? (
+          <PrivateStripsSection onToast={toast.show} onConfirm={setConfirm} />
+        ) : (
+          <>
+            {adding ? (
+              <NewCustomerForm
+                onCancel={() => setAdding(false)}
+                onCreate={async (name, email, phone, origin) => {
+                  if (!(await createCustomer(name, email, phone, origin))) return;
+                  setAdding(false);
+                  toast.show(origin === 'aanvraag' ? `${name} toegevoegd · mail verstuurd ✓` : `${name} toegevoegd ✓`);
+                }}
+              />
+            ) : (
+              <Pressable style={styles.addBtn} onPress={() => setAdding(true)}>
+                <Text style={styles.addText}>＋ Klant toevoegen</Text>
+              </Pressable>
+            )}
+            {accountRequests.length ? (
+              <View style={styles.requests}>
+                <Text style={styles.formTitle}>Accountaanvragen · {accountRequests.length}</Text>
+                {accountRequests.map((r) => (
+                  <View key={r.id} style={styles.request}>
+                    <Text style={styles.requestName}>{r.name}</Text>
+                    <Text style={styles.requestDetail}>
+                      {r.email} · {r.phone}
+                    </Text>
+                    <View style={styles.requestBtns}>
+                      <Pressable
+                        style={[styles.requestBtn, { backgroundColor: colors.teal }]}
+                        onPress={async () => {
+                          if (await approveAccountRequest(r.id)) toast.show(`${r.name} aangemaakt · mail verstuurd ✓`);
+                        }}>
+                        <Text style={styles.requestBtnText}>✓ Account aanmaken</Text>
+                      </Pressable>
+                      <Pressable
+                        style={[styles.requestBtn, styles.requestBtnGhost]}
+                        onPress={() =>
+                          setConfirm({
+                            title: 'Aanvraag weigeren?',
+                            message: `De aanvraag van ${r.name} wordt verwijderd. Er gaat geen mail naar de klant.`,
+                            confirmLabel: 'Weigeren',
+                            onConfirm: async () => {
+                              if (await rejectAccountRequest(r.id)) toast.show('Aanvraag geweigerd');
+                            },
+                          })
+                        }>
+                        <Text style={[styles.requestBtnText, { color: colors.rani }]}>Weigeren</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+            <TextInput style={styles.search} value={query} onChangeText={setQuery} placeholder="Zoek op naam of e-mail" placeholderTextColor="#9DAFA2" autoCorrect={false} autoCapitalize="none" />
+            <View style={styles.legend}>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: '#CFE7DA' }]} />
+                <Text style={styles.legendText}>{ORIGIN_LABEL.aanvraag}</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: '#F6DDAF' }]} />
+                <Text style={styles.legendText}>{ORIGIN_LABEL.beheer}</Text>
+              </View>
+            </View>
+            {list.map((u) => (
+              <UserStripRow
+                key={u.email}
+                user={u}
+                detail={standingLabel(u.email)}
+            today={today}
+                onOpen={() => setOpen(u)}
+                onAdjust={(delta) => adjustStrip(u.email, delta)}
+                onActivateCard={() => askCard(u)}
+              />
+            ))}
+            {list.length === 0 ? <Text style={styles.empty}>Geen klant gevonden.</Text> : null}
+          </>
+        )}
       </ScrollView>
 
       {/* One customer: details, chat and remove. */}
@@ -145,6 +166,11 @@ export default function KlantenScreen() {
                 <Fact label="E-mailadres" value={shownEmail(openUser.email)} />
                 <Fact label="Telefoon" value={openUser.phone || '—'} />
                 <Fact label="Strippen" value={openUser.strippen === null ? 'geen kaart' : String(openUser.strippen)} />
+                <Fact label="Strippenkaart" value={validityText(openUser.strippen, openUser.stripsValidUntil)} />
+                <Fact label="Privéstrippen" value={openUser.privateStrips === null ? 'geen kaart' : String(openUser.privateStrips)} />
+                {openUser.privateStrips !== null ? (
+                  <Fact label="Privékaart" value={validityText(openUser.privateStrips, openUser.privateValidUntil)} />
+                ) : null}
                 <Fact label="Groepsles" value={standingLabel(openUser.email)?.replace('vast: ', '') ?? '—'} />
                 <Fact label="Voorwaarden" value={openUser.termsAcceptedAt ? `akkoord ${openUser.termsAcceptedAt}` : 'nog niet akkoord'} />
               </View>
@@ -274,6 +300,7 @@ const styles = StyleSheet.create({
   segmentBtn: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 10 },
   segmentOn: { backgroundColor: colors.card },
   segmentText: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: colors.mutedText },
+  segmentTextOn: { color: colors.ink },
   error: { fontFamily: fonts.bodyMedium, fontSize: 12.5, color: colors.rani, marginBottom: 10 },
   cancelText: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.mutedText, textDecorationLine: 'underline' },
   backdrop: { flex: 1, backgroundColor: 'rgba(18,38,26,0.55)', justifyContent: 'flex-end' },

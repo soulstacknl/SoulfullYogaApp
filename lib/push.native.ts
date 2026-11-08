@@ -6,7 +6,7 @@
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import * as Notifications from 'expo-notifications';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
@@ -67,11 +67,18 @@ export async function unregisterPush() {
 }
 
 // Tapping a notification opens what it is about (data.url, e.g. /chat or /nieuws/<id>),
-// only when it is meant for the account that is logged in.
+// only when it is meant for the account that is logged in. The last response is kept by
+// the system across app starts, so it is cleared once handled: otherwise every launch
+// would open the same news item again.
 export function useNotificationLinks() {
   const response = Notifications.useLastNotificationResponse();
+  const handled = useRef<string | null>(null);
   useEffect(() => {
     if (!response) return;
+    const id = response.notification.request.identifier;
+    if (handled.current === id) return;
+    handled.current = id;
+    Notifications.clearLastNotificationResponse();
     const url = response.notification.request.content.data?.url;
     if (typeof url !== 'string') return;
     isForMe(response.notification).then((mine) => {

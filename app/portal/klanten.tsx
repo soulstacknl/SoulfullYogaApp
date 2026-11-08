@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { weekLabel, weeklySessions } from '@/components/portal/KlantDrawer';
 import { usePortal } from '@/components/portal/PortalContext';
-import { Btn, Card, Empty, ErrorText, Field, Input, Meta, Meter, Note, PageHeader, Pill, portalStyles, s, Segmented, Select, StyleDot } from '@/components/portal/ui';
+import { Btn, Card, Empty, ErrorText, Field, Input, Meta, Meter, Note, PageHeader, Pill, portalStyles, s, Segmented, Select, StyleDot, ValidityPill } from '@/components/portal/ui';
 import Stepper from '@/components/Stepper';
 import { colors, fonts, styleMeta } from '@/constants/theme';
 import { useSchedule } from '@/contexts/ScheduleContext';
@@ -201,7 +201,7 @@ export default function PortalKlanten() {
                   <View style={[s.row, COLS[2]]}>
                     <Stepper value={u.strippen ?? 0} onChange={(d) => adjustStrip(u.email, d)} />
                     <Btn label="+10" tone="teal" small onPress={() => askCard(u)} />
-                    {u.strippen === null ? <Pill label="geen kaart" tone="muted" /> : null}
+                    {u.strippen === null ? <Pill label="geen kaart" tone="muted" /> : <ValidityPill validUntil={u.stripsValidUntil} today={today} />}
                   </View>
                   <Text style={[s.body, COLS[3], !ids.length && { color: colors.mutedText }]}>
                     {ids.length

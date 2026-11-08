@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import CardValidity from '@/components/CardValidity';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import type { ConfirmRequest } from '@/components/ConfirmDialog';
 import LoginScreen from '@/components/LoginScreen';
@@ -25,8 +26,9 @@ export default function ProfielScreen() {
   const user = useCurrentUser();
   const { students, deleteOwnAccount, accountRequests } = useUsers();
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
-  const { data, unconfirmedLessons } = useSchedule();
-  const { requests } = data;
+  const { data, today, unconfirmedLessons, openCancellations } = useSchedule();
+  // Badge: open requests plus cancellations the admin hasn't marked as seen.
+  const toReview = data.requests.length + (user?.role === 'admin' ? openCancellations().length : 0);
   const toConfirm = user?.role === 'admin' ? unconfirmedLessons().length : 0;
 
   if (userId && (loading || !user)) {
@@ -97,10 +99,10 @@ export default function ProfielScreen() {
               </Pressable>
               <Pressable style={styles.adminActionBtn} onPress={() => router.push('/admin/reserveringen')}>
                 <Text style={styles.adminActionIcon}>📨</Text>
-                <Text style={styles.adminActionText}>Reservering aanvragen</Text>
-                {requests.length > 0 ? (
+                <Text style={styles.adminActionText}>Aanvragen en afmeldingen</Text>
+                {toReview > 0 ? (
                   <View style={styles.adminActionBadge}>
-                    <Text style={styles.adminActionBadgeText}>{requests.length}</Text>
+                    <Text style={styles.adminActionBadgeText}>{toReview}</Text>
                   </View>
                 ) : null}
                 <Text style={styles.adminActionChevron}>›</Text>
@@ -120,13 +122,14 @@ export default function ProfielScreen() {
         ) : (
           <>
             <View style={styles.stripCard}>
-              <Text style={styles.stripLabel}>Strippenkaart</Text>
+              <Text style={styles.stripLabel}>{user.privateStrips !== null ? 'Strippenkaart · groepslessen' : 'Strippenkaart'}</Text>
               {hasStrippenkaart ? (
                 <>
                   <Text style={styles.stripCount}>
                     {user.strippen} {user.strippen === 1 ? 'strip' : 'strippen'}
                   </Text>
-                  <Text style={styles.stripSub}>1 strip per les</Text>
+                  <Text style={styles.stripSub}>1 strip per les · 4 maanden geldig</Text>
+                  <CardValidity validUntil={user.stripsValidUntil} today={today} dark />
                 </>
               ) : (
                 <>
@@ -135,6 +138,17 @@ export default function ProfielScreen() {
                 </>
               )}
             </View>
+            {/* Separate card for private lessons; Marjolijn takes these strips off by hand. */}
+            {user.privateStrips !== null ? (
+              <View style={[styles.stripCard, styles.stripCardPrivate]}>
+                <Text style={styles.stripLabel}>Strippenkaart · privélessen</Text>
+                <Text style={styles.stripCount}>
+                  {user.privateStrips} {user.privateStrips === 1 ? 'strip' : 'strippen'}
+                </Text>
+                <Text style={styles.stripSub}>1 strip per privéles · 4 maanden geldig</Text>
+                <CardValidity validUntil={user.privateValidUntil} today={today} dark />
+              </View>
+            ) : null}
 
             <Text style={styles.sectionLabel}>Tarieven</Text>
             <View style={styles.priceList}>
@@ -241,6 +255,10 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     color: colors.marigold,
+  },
+  stripCardPrivate: {
+    marginTop: 0,
+    backgroundColor: '#2E3B2A',
   },
   stripCount: {
     fontFamily: fonts.display,

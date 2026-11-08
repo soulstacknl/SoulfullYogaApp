@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import CardValidity from '@/components/CardValidity';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import type { ConfirmRequest } from '@/components/ConfirmDialog';
 import LessonCard from '@/components/LessonCard';
@@ -212,7 +213,10 @@ export default function MijnLessenScreen() {
       />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.stripBar}>
-          <Text style={styles.stripLabel}>Strippenkaart</Text>
+          <View>
+            <Text style={styles.stripLabel}>{user.privateStrips !== null ? 'Groepslessen' : 'Strippenkaart'}</Text>
+            {user.strippen !== null ? <CardValidity validUntil={user.stripsValidUntil} today={schedule.today} dark /> : null}
+          </View>
           {user.strippen === null ? (
             <Text style={styles.stripCount}>Geen kaart</Text>
           ) : (
@@ -221,6 +225,17 @@ export default function MijnLessenScreen() {
             </Text>
           )}
         </View>
+        {user.privateStrips !== null ? (
+          <View style={[styles.stripBar, styles.stripBarPrivate]}>
+            <View>
+              <Text style={styles.stripLabel}>Privélessen</Text>
+              <CardValidity validUntil={user.privateValidUntil} today={schedule.today} dark />
+            </View>
+            <Text style={styles.stripCount}>
+              {user.privateStrips} <Text style={styles.stripTotal}>{user.privateStrips === 1 ? 'strip' : 'strippen'}</Text>
+            </Text>
+          </View>
+        ) : null}
         <Text style={styles.cancelRule}>Kosteloos afmelden tot {LATE_CANCEL_HOURS} uur voor aanvang. Daarna gaat er 1 strip af.</Text>
 
         <View style={styles.segment}>
@@ -265,6 +280,10 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 12,
     paddingHorizontal: 16,
+  },
+  stripBarPrivate: {
+    marginTop: 8,
+    backgroundColor: '#2E3B2A',
   },
   stripLabel: {
     fontFamily: fonts.bodySemiBold,

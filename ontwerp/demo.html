@@ -233,7 +233,8 @@ function lessenTab(){
     list = pastItems.length ? pastItems.map(it => card(it, true)).join('') : '<div class="empty">Nog geen lessen afgenomen.</div>';
   }
   return header({title:'Mijn lessen', subtitle: vast ? `Groepsles: ${vast}` : 'Geen groepsles'}) +
-    `<div class="ministrip"><span class="l">Strippenkaart</span><span class="c">${strip}</span></div>
+    `<div class="ministrip"><span><span class="l">${u.privateStrips != null ? 'Groepslessen' : 'Strippenkaart'}</span><br>${u.strippen !== null ? validTag(u.validUntil) : ''}</span><span class="c">${strip}</span></div>
+     ${u.privateStrips != null ? `<div class="ministrip" style="margin-top:8px;background:#2E3B2A"><span><span class="l">Privélessen</span><br>${validTag(u.privateValidUntil)}</span><span class="c">${u.privateStrips} <small>${u.privateStrips === 1 ? 'strip' : 'strippen'}</small></span></div>` : ''}
      <div class="cancelrule">Kosteloos afmelden tot ${LATE_CANCEL_HOURS} uur voor aanvang. Daarna gaat er 1 strip af.</div>
      <div class="seg"><div class="${UI.myTab === 'komend' ? 'on' : ''}" data-act="myTab" data-v="komend">Komend (${upcoming.filter(l => !l.st.cancelled && !l.closed).length + upPriv.filter(p => !p.cancelled).length})</div>
        <div class="${UI.myTab === 'afgenomen' ? 'on' : ''}" data-act="myTab" data-v="afgenomen">Afgenomen (${past.filter(l => ['strip', 'open', 'los'].includes(chargeFor(u.email, l.sid, l.d))).length + pastPriv.filter(p => !p.cancelled).length})</div></div>
@@ -305,14 +306,16 @@ function profielTab(){
       <div class="abtn" data-act="push" data-v="vandaag"><span class="ic">✅</span><span class="t">Vandaag · presentielijst</span>${unconfirmedLessons().length ? `<span class="bdg">${unconfirmedLessons().length}</span>` : ''}<span class="chev">›</span></div>
       <div class="abtn" data-act="push" data-v="rooster-beheer"><span class="ic">🗓️</span><span class="t">Rooster beheren</span><span class="chev">›</span></div>
       <div class="abtn" data-act="push" data-v="klanten"><span class="ic">👥</span><span class="t">Klanten beheren</span>${(S.accountRequests || []).length ? `<span class="bdg">${S.accountRequests.length}</span>` : ''}<span class="chev">›</span></div>
-      <div class="abtn" data-act="push" data-v="reserveringen"><span class="ic">📨</span><span class="t">Reservering aanvragen</span>${S.requests.length ? `<span class="bdg">${S.requests.length}</span>` : ''}<span class="chev">›</span></div>
+      <div class="abtn" data-act="push" data-v="reserveringen"><span class="ic">📨</span><span class="t">Aanvragen en afmeldingen</span>${S.requests.length + openCancellations().length ? `<span class="bdg">${S.requests.length + openCancellations().length}</span>` : ''}<span class="chev">›</span></div>
       <div class="abtn" data-act="push" data-v="voorwaarden-overzicht"><span class="ic">📄</span><span class="t">Algemene voorwaarden<small class="abtn-sub">${termsCount()}</small></span><span class="chev">›</span></div>
     </div>${profileFooter}`;
   const card = u.strippen !== null
-    ? `<div class="c">${u.strippen} ${u.strippen === 1 ? 'strip' : 'strippen'}</div><div class="su">1 strip per les</div>`
+    ? `<div class="c">${u.strippen} ${u.strippen === 1 ? 'strip' : 'strippen'}</div><div class="su">1 strip per les · 4 maanden geldig</div>${validTag(u.validUntil)}`
     : `<div class="c e">Nog geen kaart</div><div class="su">koop een strippenkaart hieronder om te starten</div>`;
   const terms = u.termsAcceptedAt ? `<div class="dt ok">✓ Akkoord op ${u.termsAcceptedAt}</div>` : `<div class="dt todo">Nog niet akkoord</div>`;
-  return top + `<div class="strip"><div class="l">Strippenkaart</div>${card}</div>
+  // Aparte kaart voor privélessen (de docent schrijft die zelf af).
+  const priv = u.privateStrips != null ? `<div class="strip" style="margin-top:-8px;background:#2E3B2A"><div class="l">Strippenkaart · privélessen</div><div class="c">${u.privateStrips} ${u.privateStrips === 1 ? 'strip' : 'strippen'}</div><div class="su">1 strip per privéles · 4 maanden geldig</div>${validTag(u.privateValidUntil)}</div>` : '';
+  return top + `<div class="strip"><div class="l">${u.privateStrips != null ? 'Strippenkaart · groepslessen' : 'Strippenkaart'}</div>${card}</div>${priv}
     <div class="sect">Tarieven</div>${[['Gratis proefles','€0'],['Losse les','€15'],['10-strippenkaart','€110']].map(([l,p]) => `<div class="price"><span>${l}</span><b>${p}</b></div>`).join('')}
     <div class="linkrow" data-act="push" data-v="voorwaarden"><span class="ic">📄</span><div class="meta"><div class="nm">Algemene voorwaarden</div>${terms}</div><div class="chev">›</div></div>${profileFooter}`;
 }
@@ -508,22 +511,52 @@ const STACK = {
       ${UI.formError ? `<div class="err">${UI.formError}</div>` : ''}
       <div class="cta" data-act="addCustomer">Toevoegen</div><div class="logout" data-act="cancelAdd">Annuleren</div></div>`
       : '<div class="cta" style="margin-bottom:12px" data-act="startAdd">＋ Klant toevoegen</div>';
-    return header({back:'Terug', eyebrow:'Docentmodus', title:'Klanten', subtitle:`${students().length} klanten · strippen, toevoegen en verwijderen`}) +
-      `<div class="pad">${form}
+    const seg = `<div class="seg" style="margin:0 0 14px">${[['groep', 'Strippenkaart'], ['prive', 'Privélessen']].map(([k, l]) => `<div class="${(UI.klantTab || 'groep') === k ? 'on' : ''}" data-act="klantTab" data-v="${k}">${l}</div>`).join('')}</div>`;
+    const head = header({back:'Terug', eyebrow:'Docentmodus', title:'Klanten', subtitle:`${students().length} klanten · strippen, toevoegen en verwijderen`});
+    if (UI.klantTab === 'prive') {
+      const withCard = students().filter(u => u.privateStrips != null);
+      const pq = (f.pq || '').toLowerCase();
+      const chosen = f.pEmail && userBy(f.pEmail);
+      const create = !UI.pCreating ? '<div class="cta outline" style="border-color:var(--ink);color:var(--ink);border-style:dashed;margin-bottom:14px" data-act="pCreate">＋ Privé-strippenkaart aanmaken</div>'
+        : chosen ? `<div class="row" style="display:block"><div class="sect" style="padding:0;margin-bottom:10px">Privé-strippenkaart aanmaken</div>
+            <div class="row" style="border:1.5px solid var(--ink)"><div class="meta"><div class="nm">${esc(chosen.name)}</div><div class="dt">${esc(chosen.email)}</div></div><span class="obtn" data-act="fSet" data-k="pEmail" data-v="">Wijzig</span></div>
+            <div class="srow"><span>Aantal strippen</span>${stepper('pAmount', f.pAmount || CARD_SIZE)}</div>
+            <div class="cta" data-act="pSave">Kaart aanmaken</div><div class="logout" data-act="pCancel">Annuleren</div></div>`
+        : `<div class="row" style="display:block"><div class="sect" style="padding:0;margin-bottom:10px">Privé-strippenkaart aanmaken</div>
+            <div class="field"><input type="text" data-f="pq" value="${esc(f.pq || '')}" placeholder="Kies een klant: zoek op naam"></div>
+            ${students().filter(u => u.privateStrips == null && (!pq || u.name.toLowerCase().includes(pq))).slice(0, 20).map(u => `<div class="row tight" data-act="fSet" data-k="pEmail" data-v="${u.email}"><div class="meta"><div class="nm">${esc(u.name)}</div><div class="dt">${esc(u.email)}</div></div><div class="chev">›</div></div>`).join('')}
+            <div class="logout" data-act="pCancel">Annuleren</div></div>`;
+      return head + `<div class="pad">${seg}
+        <div class="small-note" style="margin-bottom:12px">Een aparte strippenkaart voor privélessen, 4 maanden geldig. Heeft een klant een privéles gehad? Tik dan hier op −. Met + begint de geldigheid opnieuw. De presentielijst schrijft deze strippen niet af.</div>
+        ${create}
+        ${withCard.map(u => `<div class="row"><div class="meta"><div class="nm">${esc(u.name)}</div><div class="st" style="color:${u.privateStrips ? 'var(--teal)' : 'var(--rani)'};font-weight:600">${u.privateStrips} ${u.privateStrips === 1 ? 'privéstrip' : 'privéstrippen'}</div>${validTag(u.privateValidUntil)}
+          <div class="dt" style="text-decoration:underline;color:#9DAFA2;margin-top:4px" data-act="askRemovePrivCard" data-email="${u.email}">Kaart verwijderen</div></div>
+          <div class="adj"><div class="circ" data-act="privStrip" data-email="${u.email}" data-d="-1">–</div><div class="circ" data-act="privStrip" data-email="${u.email}" data-d="1">+</div></div></div>`).join('') || (UI.pCreating ? '' : '<div class="empty">Nog geen privé-strippenkaarten.</div>')}</div>`;
+    }
+    return head +
+      `<div class="pad">${seg}${form}
         ${(S.accountRequests || []).length ? `<div class="reqbox"><div class="sect" style="padding:0;margin-bottom:4px">Accountaanvragen · ${S.accountRequests.length}</div>
           ${S.accountRequests.map(r => `<div class="req"><div class="nm">${esc(r.name)}</div><div class="dt">${esc(r.email)} · ${esc(r.phone)}</div>
             <div class="twobtn" style="margin-top:10px"><div class="cta" style="background:var(--teal);padding:10px 0;font-size:13px" data-act="approveRequest" data-id="${r.id}">✓ Account aanmaken</div><div class="cta outline" style="padding:8.5px 0;font-size:13px" data-act="askRejectRequest" data-id="${r.id}">Weigeren</div></div></div>`).join('')}</div>` : ''}
         <div class="field" style="margin-bottom:10px"><input type="text" data-f="kq" value="${esc(f.kq || '')}" placeholder="Zoek op naam of e-mail"></div>
         <div class="orglegend"><span><i style="background:#CFE7DA"></i>${ORIGIN_LABEL.aanvraag}</span><span><i style="background:#F6DDAF"></i>${ORIGIN_LABEL.beheer}</span></div>
         ${list.map(u => { const v = vastLabel(u); return `<div class="row tight"><div class="ini org-${u.origin}" data-act="openKlant" data-email="${u.email}">${initials(u.name)}</div>
-          <div class="meta" data-act="openKlant" data-email="${u.email}"><div class="nm">${esc(u.name)}</div><div class="st">${u.strippen === null ? 'geen kaart' : `${u.strippen} ${u.strippen === 1 ? 'strip' : 'strippen'}`}${v ? ` · vast: ${v}` : ''}</div></div>
+          <div class="meta" data-act="openKlant" data-email="${u.email}"><div class="nm">${esc(u.name)}</div><div class="st">${u.strippen === null ? 'geen kaart' : `${u.strippen} ${u.strippen === 1 ? 'strip' : 'strippen'}`}${v ? ` · vast: ${v}` : ''}</div>${u.strippen !== null ? validTag(u.validUntil) : ''}</div>
           <div class="adj"><div class="circ" data-act="userStrip" data-email="${u.email}" data-d="-1">–</div><div class="circ" data-act="userStrip" data-email="${u.email}" data-d="1">+</div><div class="obtn teal" data-act="askCard" data-email="${u.email}">+10</div></div></div>`; }).join('') || '<div class="empty">Geen klant gevonden.</div>'}</div>`;
   },
 
-  reserveringen: () => header({back:'Terug', eyebrow:'Docentmodus', title:'Reserveringen', subtitle:'Tik op een aanvraag om te beoordelen'}) +
-    `<div class="pad">${S.requests.length ? S.requests.map(r => { const s = SES[r.sessionId]; return `<div class="row" style="gap:14px" data-act="openRequest" data-id="${r.id}">${dot(s.style, true)}
+  reserveringen: () => { const open = openCancellations(); const tab = UI.resTab || 'aanvragen';
+    const seg = `<div class="seg">${[['aanvragen', 'Aanvragen', S.requests.length], ['afmeldingen', 'Afmeldingen', open.length]].map(([k, l, n]) => `<div class="${tab === k ? 'on' : ''}" data-act="resTab" data-v="${k}">${l}${n ? ` (${n})` : ''}</div>`).join('')}</div>`;
+    const head = header({back:'Terug', eyebrow:'Docentmodus', title:'Reserveringen', subtitle: tab === 'aanvragen' ? 'Tik op een aanvraag om te beoordelen' : 'De klant is al afgemeld; Akkoord betekent: gezien'}) + seg;
+    if (tab === 'afmeldingen') return head + `<div class="pad" style="padding-top:8px">${open.length ? open.map(c => { const s = c.kind === 'groep' ? SES[c.sid] : null;
+      return `<div class="row" style="gap:14px">${s ? dot(s.style, true) : '<div class="ini prive">P</div>'}
+        <div class="meta"><div class="nm">${esc(userBy(c.email)?.name || c.email)}</div><div class="dt">${s ? STYLE[s.style].label : 'Privéles'} · ${dateLabel(c.date)} · ${s ? s.time : c.time}</div>
+          ${c.kind === 'groep' && c.charged ? '<span class="tag open">Binnen 24 uur · −1 strip</span>' : `<span class="tag off">${c.kind === 'prive' ? 'Privéles afgemeld' : 'Kosteloos afgemeld'}</span>`}
+          <div class="em">Afgemeld ${new Date(c.at).toLocaleString('nl-NL', {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})}</div></div>
+        <div class="obtn teal" data-act="ackCancel" data-key="${c.key}">Akkoord</div></div>`; }).join('') : '<div class="empty" style="margin-top:40px">Geen nieuwe afmeldingen</div>'}</div>`;
+    return head + `<div class="pad" style="padding-top:8px">${S.requests.length ? S.requests.map(r => { const s = SES[r.sessionId]; return `<div class="row" style="gap:14px" data-act="openRequest" data-id="${r.id}">${dot(s.style, true)}
       <div class="meta"><div class="nm">${esc(r.name)}</div><div class="dt">${STYLE[s.style].label} · ${dateLabel(r.date)} · ${s.time}</div><div class="em">${esc(r.email)}</div></div><div class="chev">›</div></div>`; }).join('')
-      : '<div class="empty" style="margin-top:40px">Nog geen aanvragen</div>'}</div>`,
+      : '<div class="empty" style="margin-top:40px">Nog geen aanvragen</div>'}</div>`; },
 
   // Docentmodus: lessen van vandaag + eerdere lessen waarvan de presentie nog bevestigd moet worden.
   vandaag: () => {
@@ -646,7 +679,9 @@ function klantSheet({email}){
   const v = vastLabel(u);
   return sheetWrap(`<h2>${esc(u.name)}</h2><span class="tag org-${u.origin}">${ORIGIN_LABEL[u.origin]}</span>
     <div class="facts"><div>E-mailadres<b>${esc(shownEmail(u.email))}</b></div><div>Telefoon<b>${esc(u.phone || '—')}</b></div>
-      <div>Strippen<b>${u.strippen === null ? 'geen kaart' : u.strippen}</b></div><div>Groepsles<b>${v || '—'}</b></div>
+      <div>Strippen<b>${u.strippen === null ? 'geen kaart' : u.strippen}</b></div>
+      ${u.strippen !== null ? `<div>Strippenkaart<b>${validity(u.validUntil)?.expired ? `vervallen (was t/m ${validity(u.validUntil).date})` : `geldig t/m ${validity(u.validUntil)?.date ?? '—'}`}</b></div>` : ''}
+      <div>Privéstrippen<b>${u.privateStrips == null ? 'geen kaart' : `${u.privateStrips} · ${validity(u.privateValidUntil)?.expired ? 'vervallen' : `geldig t/m ${validity(u.privateValidUntil)?.date}`}`}</b></div><div>Groepsles<b>${v || '—'}</b></div>
       <div>Voorwaarden<b>${u.termsAcceptedAt ? `akkoord ${u.termsAcceptedAt}` : 'nog niet akkoord'}</b></div></div>
     ${u.origin === 'aanvraag' && hasEmail(u.email) ? `<div class="cta outline" style="border-color:var(--ink);color:var(--ink);margin-bottom:10px" data-act="openChat" data-email="${u.email}">💬 Chat met ${esc(u.name.split(' ')[0])}</div>` : ''}
     <div class="cta outline" data-act="askDeleteKlant" data-email="${u.email}">Klant verwijderen</div>`);
@@ -908,7 +943,22 @@ const ACTIONS = {
   openKlant(el){ UI.sheet = {type:'klant', email:el.dataset.email}; },
   askDeleteKlant(el){ const u = userBy(el.dataset.email); UI.confirm = {title:`${u.name} verwijderen?`, text:'De klant, de strippenkaart, lessen en chatberichten worden definitief verwijderd. Dit kan niet ongedaan worden gemaakt.', ok:'Verwijderen', act:'doDeleteKlant', email:u.email}; },
   doDeleteKlant(){ const u = userBy(UI.confirm.email); deleteCustomer(u.email); log(`Klant ${u.name} verwijderd`); UI.confirm = null; UI.sheet = null; save(); showToast(`${u.name} verwijderd`); return 'rendered'; },
-  userStrip(el){ const u = userBy(el.dataset.email); u.strippen = Math.max(0, (u.strippen ?? 0) + num(el.dataset.d)); log(`Strippen ${u.name}: ${u.strippen}`); save(); },
+  userStrip(el){ const u = userBy(el.dataset.email); adjustUserStrip(u.email, num(el.dataset.d)); log(`Strippen ${u.name}: ${u.strippen}${num(el.dataset.d) > 0 ? ' · weer 4 maanden geldig' : ''}`); save(); },
+  klantTab(el){ UI.klantTab = el.dataset.v; },
+  resTab(el){ UI.resTab = el.dataset.v; },
+  ackCancel(el){ acknowledgeCancellation(el.dataset.key); log('Afmelding gezien (Akkoord)'); save(); showToast('Gezien ✓'); return 'rendered'; },
+  privStrip(el){
+    const u = userBy(el.dataset.email); const d = num(el.dataset.d);
+    if (d < 0 && !u.privateStrips) { showToast(`${u.name.split(' ')[0]} heeft geen privéstrippen meer`); return 'rendered'; }
+    adjustPrivateStrip(u.email, d); log(`Privéstrippen ${u.name}: ${u.privateStrips}`); save();
+    if (d < 0) { showToast(`Privéles afgeschreven · nog ${u.privateStrips}`); return 'rendered'; }
+  },
+  pCreate(){ UI.pCreating = true; UI.form.pEmail = ''; UI.form.pq = ''; UI.form.pAmount = CARD_SIZE; },
+  pCancel(){ UI.pCreating = false; },
+  pAmount(el){ UI.form.pAmount = Math.max(1, (UI.form.pAmount || CARD_SIZE) + num(el.dataset.d)); },
+  pSave(){ const u = userBy(UI.form.pEmail); adjustPrivateStrip(u.email, UI.form.pAmount || CARD_SIZE); log(`Privé-strippenkaart voor ${u.name}: ${u.privateStrips} strippen`); UI.pCreating = false; save(); showToast('Privé-strippenkaart aangemaakt ✓'); return 'rendered'; },
+  askRemovePrivCard(el){ const u = userBy(el.dataset.email); UI.confirm = {title:'Privé-strippenkaart verwijderen?', text:`${esc(u.name)} heeft nog ${u.privateStrips} privéstrippen. De kaart verdwijnt uit deze lijst.`, ok:'Verwijderen', act:'doRemovePrivCard', email:u.email}; },
+  doRemovePrivCard(){ removePrivateCard(UI.confirm.email); UI.confirm = null; save(); },
 
   openRequest(el){ UI.sheet = {type:'request', id:el.dataset.id}; },
   resolve(el){

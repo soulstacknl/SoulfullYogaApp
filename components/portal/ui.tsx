@@ -8,6 +8,7 @@ import type { StyleProp, ViewStyle } from 'react-native';
 import { colors, fonts, styleMeta } from '@/constants/theme';
 import type { ClassStyle } from '@/constants/theme';
 import type { Occupancy } from '@/lib/schedule';
+import { cardValidity } from '@/data/users';
 
 export function PageHeader({ title, subtitle, children }: { title: string; subtitle?: string; children?: ReactNode }) {
   return (
@@ -71,6 +72,13 @@ const tagTones: Record<TagTone, { backgroundColor: string; color: string }> = {
 };
 export function Pill({ label, tone }: { label: string; tone: TagTone }) {
   return <Text style={[s.tag, tagTones[tone]]}>{label}</Text>;
+}
+
+// "geldig t/m 8 maart 2027" or "Vervallen": strip cards last 4 months after the last +.
+export function ValidityPill({ validUntil, today }: { validUntil: string | null; today: string }) {
+  const v = cardValidity(validUntil, today);
+  if (!v) return null;
+  return v.expired ? <Pill label={`Vervallen · t/m ${v.date}`} tone="rani" /> : <Pill label={`geldig t/m ${v.date}`} tone="teal" />;
 }
 
 export function StyleDot({ style }: { style: ClassStyle }) {

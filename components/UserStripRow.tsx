@@ -1,11 +1,13 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import CardValidity from '@/components/CardValidity';
 import { colors, fonts } from '@/constants/theme';
 import type { AppUser } from '@/data/users';
 
 type UserStripRowProps = {
   user: AppUser;
   detail?: string;
+  today: string; // for the card's validity
   onActivateCard?: () => void;
   onAdjust: (delta: number) => void;
   // Tapping the name opens the customer's details.
@@ -27,7 +29,7 @@ function initialsFor(name: string) {
     .toUpperCase();
 }
 
-export default function UserStripRow({ user, detail, onActivateCard, onAdjust, onOpen }: UserStripRowProps) {
+export default function UserStripRow({ user, detail, today, onActivateCard, onAdjust, onOpen }: UserStripRowProps) {
   const tint = ORIGIN_COLORS[user.origin];
   const strips = user.strippen ?? 0;
 
@@ -43,6 +45,7 @@ export default function UserStripRow({ user, detail, onActivateCard, onAdjust, o
             {user.strippen === null ? 'geen kaart' : `${strips} ${strips === 1 ? 'strip' : 'strippen'}`}
             {detail ? ` · ${detail}` : ''}
           </Text>
+          {user.strippen !== null ? <CardValidity validUntil={user.stripsValidUntil} today={today} style={styles.validity} /> : null}
         </View>
       </Pressable>
 
@@ -64,6 +67,12 @@ export default function UserStripRow({ user, detail, onActivateCard, onAdjust, o
 }
 
 const styles = StyleSheet.create({
+  validity: {
+    marginTop: 3,
+    fontSize: 10.5,
+    paddingVertical: 1,
+    paddingHorizontal: 7,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

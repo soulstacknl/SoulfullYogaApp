@@ -236,6 +236,10 @@
 .actgrid{display:flex; gap:8px;}
 .actbtn{flex:1; text-align:center; background:var(--card); border:1.5px solid var(--ink); border-radius:var(--r-row); padding:12px 4px; font:700 12.5px var(--body);}
 .datebox.prive,.dot.prive,.ini.prive{background:var(--ink); color:#fff;}
+.vtag{display:inline-block; font:600 11px var(--body); border-radius:20px; padding:3px 9px; margin-top:6px; background:#EAF3EE; color:var(--teal);}
+.vtag.exp{background:#FBE7EE; color:var(--rani);}
+.strip .vtag:not(.exp),.ministrip .vtag:not(.exp){background:rgba(255,255,255,.12); color:#DCEBDF;}
+.row .vtag{font-size:10.5px; padding:1px 7px; margin-top:3px;}
 .actbtn b{display:block; font-size:18px; line-height:1.2; margin-bottom:2px;}
 .form .frow{display:flex; gap:10px;}
 .form .frow .field{flex:1; min-width:0;}
