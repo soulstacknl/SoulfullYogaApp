@@ -241,12 +241,13 @@ const sourceTag = (st, d) => {
 function act(msg){ log(`Portaal: ${msg}`); save(); }
 
 // Teller naast een menu-item (open aanvragen, presentie nog te bevestigen).
-const badge = (k) => { const c = k === 'reserveringen' ? S.requests.length + openCancellations().length : k === 'presentie' ? unconfirmedLessons(14).length : k === 'berichten' ? studioUnread() : k === 'klanten' ? (S.accountRequests || []).length : 0; return c ? `<span class="bdg">${c}</span>` : ''; };
+const badge = (k) => { const c = k === 'reserveringen' ? S.requests.length + openCancellations().length : k === 'presentie' ? unconfirmedLessons(14).length : k === 'berichten' ? studioUnread() : k === 'klanten' ? (S.accountRequests || []).length : k === 'betaalverzoeken' ? openPayments().length : 0; return c ? `<span class="bdg">${c}</span>` : ''; };
 
 /* ── Pagina's ──────────────────────────────────────────────────────── */
 const NAV = [
   ['rooster', '🗓️', 'Rooster'],
   ['reserveringen', '📨', 'Reserveringen'],
+  ['betaalverzoeken', '💶', 'Betaalverzoeken'],
   ['klanten', '👥', 'Klanten'],
   ['beheer', '🛠️', 'Rooster beheren'],
   ['presentie', '✅', 'Presentielijst'],
@@ -265,6 +266,17 @@ function rooster(){
         ${list.length ? list.map(s => { const cl = closureOf(s.id, d);
           return `<div class="lesson ${s.style} ${cl ? 'closed' : ''}" data-act="openLesson" ${at(s.id, d)}><div class="t">${s.time}</div><div class="s">${STYLE[s.style].label}${isExtra(s) ? ' · extra' : ''}${cl ? ` · ${esc(cl.reason)}` : ''}</div>${cl ? '<span class="tag muted">Vervalt</span>' : meter(occ(s.id, d))}</div>`; }).join('')
           : '<div class="note">Geen lessen</div>'}</div>`; }).join('')}</div>`;
+}
+
+function betaalverzoeken(){
+  const day = (iso) => new Date(iso).toLocaleDateString('nl-NL', {day:'numeric', month:'short', year:'numeric'});
+  const rows = (list) => list.length ? `<table><thead><tr><th>Klant</th><th>Waarvoor</th><th>Bedrag</th><th>Status</th><th></th></tr></thead><tbody>${list.map(m => `<tr><td><div class="nm">${esc(userBy(m.email)?.name || m.email)}</div><div class="dt">verstuurd ${day(m.at)}</div></td><td>${esc(m.text)}</td><td>${euro(m.cents)}</td>
+    <td>${m.paidAt ? `<span class="tag teal">✓ Betaald ${day(m.paidAt)}</span>` : '<span class="tag pend">Open</span>'}</td>
+    <td class="num-col"><button class="btn sm ${m.paidAt ? '' : 'teal'}" data-act="togglePaid" data-id="${m.id}">${m.paidAt ? 'Toch open' : '✓ Betaald'}</button> <button class="btn sm" data-act="selChat" data-email="${m.email}">💬 Chat</button></td></tr>`).join('')}</tbody></table>` : '';
+  const total = openPayments().reduce((s, m) => s + m.cents, 0);
+  return `<div class="ph"><div><h1>Betaalverzoeken</h1><p>${openPayments().length ? `${openPayments().length} open, samen ${euro(total)}.` : 'Alles is betaald.'} Een betaalverzoek stuur je via Berichten.</p></div></div>
+    <div class="card"><h2>Open</h2>${rows(openPayments()) || '<div class="empty">Geen openstaande betaalverzoeken.</div>'}</div>
+    <div class="card"><h2>Betaald</h2>${rows(paidPayments()) || '<div class="empty">Nog geen betaalde verzoeken.</div>'}</div>`;
 }
 
 function reserveringen(){
@@ -599,7 +611,7 @@ function berichten(){
         <div class="bubbles" id="chatScroll">${bubbles || `<div class="empty">Nog geen berichten. Stuur ${esc(k.name.split(' ')[0])} een bericht.</div>`}</div>
         ${P.payOpen ? `<div class="form-grid" style="padding:12px 0;border-top:1px solid var(--sand)">
           <label class="f">Bedrag<input id="payAmount" placeholder="€ 110,00"></label><label class="f">Waarvoor<input id="payDesc" placeholder="Bijvoorbeeld: 10-strippenkaart"></label>
-          <label class="f full">Betaallink<input id="payUrl" placeholder="https://… (van je bank of Tikkie)"></label>
+          <label class="f full">Betaalverzoek of betaallink<textarea id="payUrl" rows="3" placeholder="Plak hier wat je uit je bank-app of Tikkie kopieert"></textarea></label>
           ${P.formError ? `<div class="err full">${P.formError}</div>` : ''}
           <div class="full" style="display:flex;gap:8px"><button class="btn primary" data-act="sendPay" data-email="${k.email}">Betaalverzoek versturen</button><button class="btn" data-act="payClose">Annuleren</button></div></div>` : ''}
         <div style="display:flex;gap:8px;padding-top:8px"><button class="btn sm" data-act="payOpen">💶 Betaalverzoek</button><button class="btn sm" data-act="pickFile" data-email="${k.email}">📎 Foto, video of bestand</button></div>
@@ -642,7 +654,7 @@ function render(){
   if (!admin) { app.innerHTML = loginView(); return; }
   const scrollY = window.scrollY;
   const chatFocused = P.chatFocus || document.activeElement?.id === 'chatText';
-  const page = {rooster, reserveringen, klanten, beheer, presentie, berichten, nieuws}[P.page]();
+  const page = {rooster, reserveringen, betaalverzoeken, klanten, beheer, presentie, berichten, nieuws}[P.page]();
   let overlay = '';
   if (P.drawer) overlay += `<div class="scrim" data-act="closeDrawer"></div><aside class="drawer">${P.drawer.type === 'les' ? lessonDrawer(P.drawer) : klantDrawer(P.drawer)}</aside>`;
   if (P.prompt) overlay += `<div class="modal-bg" data-act="closePrompt"><div class="modal" data-act="noop"><h3>${esc(P.prompt.name)} afmelden voor hoeveel weken?</h3><p>Kies 99 om de groepsles helemaal te stoppen.</p>
@@ -698,9 +710,9 @@ const ACTIONS = {
   sendPay(el){
     const email = el.dataset.email; const v = (id) => document.getElementById(id).value.trim();
     const clean = v('payAmount').replace(/^€\s*/, '').replace(',', '.'); const cents = /^\d+(\.\d{1,2})?$/.test(clean) ? Math.round(Number(clean) * 100) : 0;
-    P.formError = !cents ? 'Vul een bedrag in, bijvoorbeeld 110 of 15,50.' : !v('payDesc') ? 'Vul in waarvoor het betaalverzoek is.' : !/^https:\/\/\S+$/.test(v('payUrl')) ? 'Plak de betaallink van je bank of Tikkie (begint met https://).' : null;
+    P.formError = !cents ? 'Vul een bedrag in, bijvoorbeeld 110 of 15,50.' : !v('payDesc') ? 'Vul in waarvoor het betaalverzoek is.' : !linkIn(v('payUrl')) ? 'Er staat geen betaallink in. Plak het betaalverzoek uit je bank-app of Tikkie (met de link die begint met https://).' : null;
     if (P.formError) return;
-    sendPayment(email, v('payDesc'), cents, v('payUrl')); markChatRead(email, 'studio');
+    sendPayment(email, v('payDesc'), cents, linkIn(v('payUrl'))); markChatRead(email, 'studio');
     S.pushQueue.push({to:email, text:`💶 Betaalverzoek ${euro(cents)} · ${v('payDesc')}`, open:{tab:'berichten'}});
     P.payOpen = false; P.chat = email; act(`betaalverzoek ${euro(cents)} aan ${userBy(email).name}`); toast('Betaalverzoek verstuurd ✓'); return 'rendered';
   },

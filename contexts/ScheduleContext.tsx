@@ -71,6 +71,7 @@ type ScheduleContextValue = {
   adjustDefaultCapacity: (sessionId: string, delta: number) => void;
   addSession: (session: Omit<Session, 'id'>) => void;
   removeExtraSession: (sessionId: string) => void;
+  removeWeeklySession: (sessionId: string) => void;
   setSessionUntil: (sessionId: string, until: string | null) => void;
   addClosure: (closure: Omit<Closure, 'id'>) => void;
   removeClosure: (closureId: string) => void;
@@ -256,6 +257,7 @@ export function ScheduleProvider({ children }: { children: ReactNode }) {
         adjustDefaultCapacity,
         addSession,
         removeExtraSession,
+        removeWeeklySession: (sessionId) => run(() => remote.removeWeeklySession(sessionId)),
         setSessionUntil,
         addClosure,
         removeClosure,

@@ -10,6 +10,9 @@ type Props = {
   onSend: (description: string, amountCents: number, payUrl: string) => Promise<boolean>;
 };
 
+// The link in what was pasted: bank apps share "Wil je … betalen? https://…".
+export const linkIn = (text: string) => text.match(/https:\/\/[^\s"'<>]+/)?.[0]?.replace(/[.,;)]+$/, '') ?? null;
+
 // "110" / "110,50" / "110.50" → cents; null when it isn't a positive amount.
 const toCents = (text: string) => {
   const clean = text.trim().replace(/^€\s*/, '').replace(',', '.');
@@ -36,10 +39,10 @@ export default function PaymentRequestSheet({ visible, customerName, onClose, on
 
   const send = async () => {
     const cents = toCents(amount);
-    const link = url.trim();
+    const link = linkIn(url);
     if (cents === null) return setError('Vul een bedrag in, bijvoorbeeld 110 of 15,50.');
     if (!description.trim()) return setError('Vul in waarvoor het betaalverzoek is.');
-    if (!/^https:\/\/\S+$/.test(link)) return setError('Plak de betaallink van je bank of Tikkie (begint met https://).');
+    if (!link) return setError('Er staat geen betaallink in. Plak het betaalverzoek uit je bank-app of Tikkie (met de link die begint met https://).');
     setSending(true);
     const ok = await onSend(description.trim(), cents, link);
     setSending(false);
@@ -72,19 +75,25 @@ export default function PaymentRequestSheet({ visible, customerName, onClose, on
               placeholderTextColor="#9DAFA2"
               maxLength={200}
             />
-            <Text style={styles.label}>Betaallink</Text>
+            <Text style={styles.label}>Betaalverzoek of betaallink</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, styles.inputMulti]}
               value={url}
               onChangeText={setUrl}
-              placeholder="https://… (van je bank of Tikkie)"
+              placeholder="Plak hier wat je uit je bank-app of Tikkie kopieert"
               placeholderTextColor="#9DAFA2"
               autoCapitalize="none"
               autoCorrect={false}
-              keyboardType="url"
+              multiline
             />
+            {url.trim() ? (
+              <Text style={[styles.found, !linkIn(url) && styles.notFound]} numberOfLines={1}>
+                {linkIn(url) ? `Link: ${linkIn(url)}` : 'Nog geen link (https://…) gevonden'}
+              </Text>
+            ) : null}
             <Text style={styles.hint}>
-              Maak in je bank-app of Tikkie een betaalverzoek aan en kopieer de link. {customerName.split(' ')[0]} ziet
+              Maak in je bank-app of Tikkie een betaalverzoek aan, kies Delen of Kopiëren en plak het hier: de app haalt de link
+              eruit. {customerName.split(' ')[0]} ziet
               in de chat een knop Betalen. Is er betaald? Tik dan in de chat op Markeer als betaald.
             </Text>
             {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -129,6 +138,9 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     paddingHorizontal: 13,
   },
+  inputMulti: { minHeight: 70, textAlignVertical: 'top' },
+  found: { fontFamily: fonts.body, fontSize: 11.5, color: colors.teal, marginTop: 4 },
+  notFound: { color: colors.rani },
   hint: { fontFamily: fonts.body, fontSize: 12, lineHeight: 17, color: colors.mutedText, marginTop: 10 },
   error: { fontFamily: fonts.bodyMedium, fontSize: 12.5, color: colors.rani, marginTop: 10 },
   sendBtn: { backgroundColor: colors.rani, borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: 14 },

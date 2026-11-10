@@ -71,6 +71,19 @@ export default function PortalBeheer() {
                       setScope(x.id);
                     }}
                   />
+                  <Btn
+                    label="Verwijderen"
+                    small
+                    tone="ghost"
+                    onPress={() =>
+                      portal.confirm({
+                        title: 'Groepsles verwijderen?',
+                        message: `${x.day} ${x.time}. De les verdwijnt uit het rooster; wie hier vast op staat, staat er niet meer op. Al gegeven lessen en afgeschreven strippen blijven bewaard.`,
+                        confirmLabel: 'Verwijderen',
+                        onConfirm: () => schedule.removeWeeklySession(x.id),
+                      })
+                    }
+                  />
                 </View>
               </Row>
             ))}

@@ -1,5 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
+
+import ConfirmDialog from '@/components/ConfirmDialog';
+import type { ConfirmRequest } from '@/components/ConfirmDialog';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { DateField } from '@/components/DateTimeField';
@@ -13,8 +16,9 @@ import { isActiveEnrollment, startTimeOf } from '@/lib/schedule';
 // One weekly lesson: default capacity, stopping it, or a holiday for just this lesson.
 export default function LesBewerkenScreen() {
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
-  const { data, today, sessionById, adjustDefaultCapacity, setSessionUntil } = useSchedule();
+  const { data, today, sessionById, adjustDefaultCapacity, setSessionUntil, removeWeeklySession } = useSchedule();
   const [until, setUntil] = useState(() => plusDays(today, 7));
+  const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
 
   const session = sessionById(sessionId ?? '');
   if (!session) {
@@ -72,7 +76,25 @@ export default function LesBewerkenScreen() {
           onPress={() => router.push({ pathname: '/admin/vervallen', params: { sessionId: session.id } })}>
           <Text style={styles.inkBtnText}>🌴 Vakantie voor alleen deze les</Text>
         </Pressable>
+
+        <Text style={[styles.sectionLabel, styles.sectionSpaced]}>Verwijderen</Text>
+        <Pressable
+          style={styles.outlineBtn}
+          onPress={() =>
+            setConfirm({
+              title: 'Groepsles verwijderen?',
+              message: `${session.day} ${session.time}. De les verdwijnt uit het rooster; wie hier vast op staat, staat er niet meer op. Al gegeven lessen en afgeschreven strippen blijven bewaard.`,
+              confirmLabel: 'Verwijderen',
+              onConfirm: () => {
+                removeWeeklySession(session.id);
+                router.back();
+              },
+            })
+          }>
+          <Text style={styles.outlineBtnText}>Groepsles verwijderen</Text>
+        </Pressable>
       </ScrollView>
+      <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} />
     </View>
   );
 }

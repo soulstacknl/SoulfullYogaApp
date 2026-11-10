@@ -110,7 +110,7 @@ export default function MijnLessenScreen() {
       date={p.date}
       title="Privéles"
       time={p.time}
-      color={colors.ink}
+      color={colors.plum}
       dimmed={p.cancelled}
       tag={p.cancelled ? { label: 'Privéles · afgemeld', tone: 'muted' } : { label: 'Privéles', tone: 'rani' }}
       action={

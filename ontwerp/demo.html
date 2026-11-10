@@ -142,15 +142,16 @@ function monthCalendar(m){
   const days = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
   const cells = [...Array(lead).fill(null), ...Array.from({length: days}, (_, i) => isoOf(new Date(first.getFullYear(), first.getMonth(), i + 1)))];
   while (cells.length % 7) cells.push(null);
-  const lessons = (d) => sessionsOn(d).filter(s => !closureOf(s.id, d)).map(s => s.style);
-  const used = ['yin', 'flow', 'gentle'].filter(st => cells.some(d => d && lessons(d).includes(st)));
+  const lessons = (d) => [...sessionsOn(d).filter(s => !closureOf(s.id, d)).map(s => s.style),
+    ...(isAdmin() ? S.privates.filter(p => p.date === d && !p.cancelled).map(() => 'prive') : [])];
+  const used = ['yin', 'flow', 'gentle', 'prive'].filter(st => cells.some(d => d && lessons(d).includes(st)));
   return `<div class="mcal"><div class="wk">${['ma','di','wo','do','vr','za','zo'].map(w => `<div class="wd">${w}</div>`).join('')}</div>
     ${Array.from({length: cells.length / 7}, (_, w) => `<div class="wk">${cells.slice(w * 7, w * 7 + 7).map(d => {
       if (!d) return '<div class="cell"></div>';
       const ls = lessons(d); const past = d < today;
       return `<div class="cell ${d === today ? 'today' : ''}" ${!past && ls.length ? `data-act="calDay" data-date="${d}"` : ''}>
-        <span class="num ${past ? 'past' : ls.length ? 'les' : ''}">${Number(d.slice(8))}</span><span class="dots ${past ? 'past' : ''}">${ls.slice(0, 3).map(st => `<i class="${st}"></i>`).join('')}</span></div>`; }).join('')}</div>`).join('')}
-    ${used.length ? `<div class="legend">${used.map(st => `<span><span class="dots"><i class="${st}"></i></span>${STYLE[st].label}</span>`).join('')}</div>` : ''}</div>`;
+        <span class="num ${past ? 'past' : ls.length ? 'les' : ''}">${Number(d.slice(8))}</span><span class="dots ${past ? 'past' : ''}">${ls.slice(0, 4).map(st => `<i class="${st}"></i>`).join('')}</span></div>`; }).join('')}</div>`).join('')}
+    ${used.length ? `<div class="legend">${used.map(st => `<span><span class="dots"><i class="${st}"></i></span>${st === 'prive' ? 'Privéles' : STYLE[st].label}</span>`).join('')}</div>` : ''}</div>`;
 }
 function roosterTab(){
   const m = UI.month;
@@ -307,6 +308,7 @@ function profielTab(){
       <div class="abtn" data-act="push" data-v="rooster-beheer"><span class="ic">🗓️</span><span class="t">Rooster beheren</span><span class="chev">›</span></div>
       <div class="abtn" data-act="push" data-v="klanten"><span class="ic">👥</span><span class="t">Klanten beheren</span>${(S.accountRequests || []).length ? `<span class="bdg">${S.accountRequests.length}</span>` : ''}<span class="chev">›</span></div>
       <div class="abtn" data-act="push" data-v="reserveringen"><span class="ic">📨</span><span class="t">Aanvragen en afmeldingen</span>${S.requests.length + openCancellations().length ? `<span class="bdg">${S.requests.length + openCancellations().length}</span>` : ''}<span class="chev">›</span></div>
+      <div class="abtn" data-act="push" data-v="betaalverzoeken"><span class="ic">💶</span><span class="t">Betaalverzoeken</span>${openPayments().length ? `<span class="bdg">${openPayments().length}</span>` : ''}<span class="chev">›</span></div>
       <div class="abtn" data-act="push" data-v="voorwaarden-overzicht"><span class="ic">📄</span><span class="t">Algemene voorwaarden<small class="abtn-sub">${termsCount()}</small></span><span class="chev">›</span></div>
     </div>${profileFooter}`;
   const card = u.strippen !== null
@@ -420,7 +422,7 @@ const STACK = {
         </div>
         <div class="sect" style="padding:0;margin:18px 0 10px">Weekrooster</div>
         ${weekly.map(s => `<div class="row" data-act="push" data-v="les-bewerken" data-sid="${s.id}">${dot(s.style, true)}
-          <div class="meta"><div class="nm">${s.day} · ${s.time.split(' – ')[0]}</div><div class="dt">${STYLE[s.style].label} · ${s.capacity} plekken</div>${period(s) ? `<span class="tag pend">${period(s)}</span>` : ''}</div><div class="chev">›</div></div>`).join('')}
+          <div class="meta"><div class="nm">${s.day} · ${s.time}</div><div class="dt">${STYLE[s.style].label} · ${s.capacity} plekken</div>${period(s) ? `<span class="tag pend">${period(s)}</span>` : ''}</div><div class="chev">›</div></div>`).join('')}
         <div class="sect" style="padding:0;margin:18px 0 10px">Uitzonderingen</div>
         ${closures.map(c => `<div class="row"><div class="ini" style="background:#FCF1DE">🌴</div>
           <div class="meta"><div class="nm">${esc(c.reason)}</div><div class="dt">${c.from === c.to ? dateLabel(c.from) : `${shortDate(c.from)} – ${shortDate(c.to)}`}</div>
@@ -494,6 +496,8 @@ const STACK = {
              ${UI.formError ? `<div class="err">${UI.formError}</div>` : ''}<div class="cta outline" data-act="stopVast" data-sid="${sid}">Stoppen na deze datum</div>`}
         <div class="sect" style="padding:0;margin:20px 0 8px">Tijdelijk niet</div>
         <div class="cta" style="background:var(--ink)" data-act="newForm" data-v="vervallen" data-sid="${sid}">🌴 Vakantie voor alleen deze les</div>
+        <div class="sect" style="padding:0;margin:20px 0 8px">Verwijderen</div>
+        <div class="cta outline" data-act="askDelVast" data-sid="${sid}">Groepsles verwijderen</div>
       </div>`;
   },
 
@@ -557,6 +561,16 @@ const STACK = {
     return head + `<div class="pad" style="padding-top:8px">${S.requests.length ? S.requests.map(r => { const s = SES[r.sessionId]; return `<div class="row" style="gap:14px" data-act="openRequest" data-id="${r.id}">${dot(s.style, true)}
       <div class="meta"><div class="nm">${esc(r.name)}</div><div class="dt">${STYLE[s.style].label} · ${dateLabel(r.date)} · ${s.time}</div><div class="em">${esc(r.email)}</div></div><div class="chev">›</div></div>`; }).join('')
       : '<div class="empty" style="margin-top:40px">Nog geen aanvragen</div>'}</div>`; },
+
+  // Alle betaalverzoeken uit de chats: open en betaald.
+  betaalverzoeken: () => { const tab = UI.payTab || 'open'; const list = tab === 'open' ? openPayments() : paidPayments();
+    const total = openPayments().reduce((s, m) => s + m.cents, 0); const day = (iso) => new Date(iso).toLocaleDateString('nl-NL', {day:'numeric', month:'short'});
+    return header({back:'Terug', eyebrow:'Docentmodus', title:'Betaalverzoeken', subtitle: openPayments().length ? `${openPayments().length} open · samen ${euro(total)}` : 'Alles is betaald'}) +
+      `<div class="seg">${[['open', `Open (${openPayments().length})`], ['betaald', `Betaald (${paidPayments().length})`]].map(([k, l]) => `<div class="${tab === k ? 'on' : ''}" data-act="payTab" data-v="${k}">${l}</div>`).join('')}</div>
+      <div class="pad" style="padding-top:8px">${list.map(m => `<div class="row" style="gap:12px"><div class="meta"><div class="nm">${esc(userBy(m.email)?.name || m.email)}</div><div class="nm" style="font:600 20px var(--display)">${euro(m.cents)}</div><div class="dt">${esc(m.text)}</div><div class="em">Verstuurd ${day(m.at)}${m.paidAt ? ` · betaald ${day(m.paidAt)}` : ''}</div></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><div class="obtn ${m.paidAt ? '' : 'teal'}" data-act="togglePaid" data-id="${m.id}">${m.paidAt ? 'Toch open' : '✓ Betaald'}</div><div class="obtn" style="border-color:var(--sand);color:var(--ink)" data-act="openChat" data-email="${m.email}">💬 Chat</div></div></div>`).join('')
+        || `<div class="empty" style="margin-top:30px">${tab === 'open' ? 'Geen openstaande betaalverzoeken.' : 'Nog geen betaalde verzoeken.'}</div>`}
+      <div class="small-note" style="text-align:center;margin-top:16px">Een betaalverzoek stuur je in de chat met een klant: tik daar op ＋ → Betaalverzoek.</div></div>`; },
 
   // Docentmodus: lessen van vandaag + eerdere lessen waarvan de presentie nog bevestigd moet worden.
   vandaag: () => {
@@ -674,8 +688,15 @@ function bookingSheetBody({sid, d}){
   }
   return sheetWrap(body);
 }
-function klantSheet({email}){
+function klantSheet({email, editing}){
   const u = userBy(email); if (!u) return '';
+  if (editing) { const f = UI.form;
+    return sheetWrap(`<h2>Gegevens aanpassen</h2><div class="form" style="margin-top:12px">
+      <div class="field"><label>Naam</label><input type="text" data-f="en" value="${esc(f.en ?? u.name)}"></div>
+      <div class="field"><label>E-mailadres${hasEmail(u.email) ? '' : ' (optioneel)'}</label><input type="text" data-f="ee" value="${esc(f.ee ?? (hasEmail(u.email) ? u.email : ''))}" placeholder="naam@voorbeeld.nl"></div>
+      <div class="field"><label>Telefoon</label><input type="text" data-f="ep" value="${esc(f.ep ?? u.phone ?? '')}" placeholder="06 12345678"></div>
+      <div class="small-note">Verander je het e-mailadres, dan logt de klant daarna daarmee in. Het wachtwoord blijft hetzelfde.</div>
+      ${UI.formError ? `<div class="err">${UI.formError}</div>` : ''}<div class="cta" data-act="saveKlant" data-email="${u.email}">Opslaan</div><div class="logout" data-act="openKlant" data-email="${u.email}">Annuleren</div></div>`); }
   const v = vastLabel(u);
   return sheetWrap(`<h2>${esc(u.name)}</h2><span class="tag org-${u.origin}">${ORIGIN_LABEL[u.origin]}</span>
     <div class="facts"><div>E-mailadres<b>${esc(shownEmail(u.email))}</b></div><div>Telefoon<b>${esc(u.phone || '—')}</b></div>
@@ -683,6 +704,7 @@ function klantSheet({email}){
       ${u.strippen !== null ? `<div>Strippenkaart<b>${validity(u.validUntil)?.expired ? `vervallen (was t/m ${validity(u.validUntil).date})` : `geldig t/m ${validity(u.validUntil)?.date ?? '—'}`}</b></div>` : ''}
       <div>Privéstrippen<b>${u.privateStrips == null ? 'geen kaart' : u.privateStrips}</b></div><div>Groepsles<b>${v || '—'}</b></div>
       <div>Voorwaarden<b>${u.termsAcceptedAt ? `akkoord ${u.termsAcceptedAt}` : 'nog niet akkoord'}</b></div></div>
+    <div class="cta outline" style="border-color:var(--ink);color:var(--ink);margin-bottom:10px" data-act="editKlant" data-email="${u.email}">✏️ Gegevens aanpassen</div>
     ${u.origin === 'aanvraag' && hasEmail(u.email) ? `<div class="cta outline" style="border-color:var(--ink);color:var(--ink);margin-bottom:10px" data-act="openChat" data-email="${u.email}">💬 Chat met ${esc(u.name.split(' ')[0])}</div>` : ''}
     <div class="cta outline" data-act="askDeleteKlant" data-email="${u.email}">Klant verwijderen</div>`);
 }
@@ -725,8 +747,8 @@ function render(){
   if (UI.sheet?.type === 'pay') overlay = sheetWrap(`<h2>Betaalverzoek</h2><div class="s" style="margin-bottom:12px">Aan ${esc(userBy(UI.sheet.email).name)}</div>
     <div class="form"><div class="field"><label>Bedrag</label><input type="text" data-f="pa" value="${esc(UI.form.pa || '')}" placeholder="€ 110,00"></div>
     <div class="field"><label>Waarvoor</label><input type="text" data-f="pd" value="${esc(UI.form.pd || '')}" placeholder="Bijvoorbeeld: 10-strippenkaart"></div>
-    <div class="field"><label>Betaallink</label><input type="text" data-f="pu" value="${esc(UI.form.pu || '')}" placeholder="https://… (van je bank of Tikkie)"></div>
-    <div class="small-note">Maak in je bank-app of Tikkie een betaalverzoek aan en kopieer de link. De klant ziet in de chat een knop Betalen. Is er betaald? Tik dan in de chat op Markeer als betaald.</div>
+    <div class="field"><label>Betaalverzoek of betaallink</label><textarea data-f="pu" rows="3" placeholder="Plak hier wat je uit je bank-app of Tikkie kopieert">${esc(UI.form.pu || '')}</textarea></div>
+    <div class="small-note">Maak in je bank-app of Tikkie een betaalverzoek aan, kies Delen of Kopiëren en plak het hier: de app haalt de link eruit. De klant ziet in de chat een knop Betalen. Is er betaald? Tik dan in de chat op Markeer als betaald.</div>
     ${UI.formError ? `<div class="err">${UI.formError}</div>` : ''}<div class="cta" data-act="sendPay">Versturen</div></div>`);
   if (UI.prompt) overlay += weeksPrompt();
   if (UI.confirm) overlay += confirmBox();
@@ -887,6 +909,8 @@ const ACTIONS = {
     for (const k of ['bookings', 'requests', 'cancels', 'enrollments']) S[k] = S[k].filter(x => x.sessionId !== sid);
     reindex(); log(`Extra les verwijderd: ${name}`); UI.confirm = null; save();
   },
+  askDelVast(el){ const s = SES[el.dataset.sid]; UI.confirm = {title:'Groepsles verwijderen?', text:`${s.day} ${s.time}. De les verdwijnt uit het rooster; wie hier vast op staat, staat er niet meer op. Al gegeven lessen en afgeschreven strippen blijven bewaard.`, ok:'Verwijderen', act:'doDelVast', sid:s.id}; },
+  doDelVast(){ const s = SES[UI.confirm.sid]; const label = `${s.day.toLowerCase()} ${s.time}`; const r = removeWeekly(s.id); log(`Groepsles ${label} ${r}`); UI.confirm = null; UI.stack.pop(); save(); showToast(r === 'verwijderd' ? 'Groepsles verwijderd' : 'Groepsles gestopt en uit het rooster'); return 'rendered'; },
   tplCap(el){ const s = SES[el.dataset.sid]; s.capacity = Math.max(1, s.capacity + num(el.dataset.d)); log(`Standaard plekken ${s.day.toLowerCase()} ${s.time.split(' – ')[0]}: ${s.capacity}`); save(); },
   stopVast(el){
     const s = SES[el.dataset.sid]; const until = UI.form.until;
@@ -947,7 +971,18 @@ const ACTIONS = {
     UI.adding = false; UI.form = {kq: f.kq}; UI.formError = null; save();
     showToast(origin === 'aanvraag' ? `${name} toegevoegd · mail verstuurd ✓` : `${name} toegevoegd ✓`); return 'rendered';
   },
-  openKlant(el){ UI.sheet = {type:'klant', email:el.dataset.email}; },
+  openKlant(el){ UI.sheet = {type:'klant', email:el.dataset.email}; UI.formError = null; },
+  editKlant(el){ UI.form = {}; UI.formError = null; UI.sheet = {type:'klant', email:el.dataset.email, editing:true}; },
+  saveKlant(el){
+    const u = userBy(el.dataset.email); const f = UI.form;
+    const name = (f.en ?? u.name).trim(); const mail = (f.ee ?? (hasEmail(u.email) ? u.email : '')).trim().toLowerCase(); const phone = (f.ep ?? u.phone ?? '').trim();
+    UI.formError = !name ? 'Vul een naam in.' : mail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail) ? 'Dit e-mailadres klopt niet.' : !mail && hasEmail(u.email) ? 'Vul een e-mailadres in.'
+      : mail && mail !== u.email && userBy(mail) ? 'Er bestaat al een klant met dit e-mailadres.' : null;
+    if (UI.formError) return;
+    const old = u.email; u.name = name; u.phone = phone;
+    if (mail && mail !== old) { u.email = mail; for (const k of ['enrollments', 'bookings', 'requests', 'cancels', 'messages', 'privates']) (S[k] || []).forEach(x => { if (x.email === old) x.email = mail; }); }
+    log(`Gegevens van ${name} aangepast`); UI.sheet = {type:'klant', email:u.email}; UI.form = {}; save(); showToast('Gegevens opgeslagen ✓'); return 'rendered';
+  },
   askDeleteKlant(el){ const u = userBy(el.dataset.email); UI.confirm = {title:`${u.name} verwijderen?`, text:'De klant, de strippenkaart, lessen en chatberichten worden definitief verwijderd. Dit kan niet ongedaan worden gemaakt.', ok:'Verwijderen', act:'doDeleteKlant', email:u.email}; },
   doDeleteKlant(){ const u = userBy(UI.confirm.email); deleteCustomer(u.email); log(`Klant ${u.name} verwijderd`); UI.confirm = null; UI.sheet = null; save(); showToast(`${u.name} verwijderd`); return 'rendered'; },
   userStrip(el){ const u = userBy(el.dataset.email); adjustUserStrip(u.email, num(el.dataset.d)); log(`Strippen ${u.name}: ${u.strippen}${num(el.dataset.d) > 0 ? ' · weer 4 maanden geldig' : ''}`); save(); },
@@ -1046,14 +1081,15 @@ const ACTIONS = {
     UI.chatDraft = ''; save();
     setTimeout(() => document.getElementById('chatInput')?.focus(), 0);
   },
+  payTab(el){ UI.payTab = el.dataset.v; },
   chatPlus(){ UI.chatMenu = !UI.chatMenu; },
   payForm(){ UI.chatMenu = false; UI.form = {}; UI.formError = null; UI.sheet = {type:'pay', email:UI.stack.at(-1).email}; },
   sendPay(){
     const f = UI.form; const clean = (f.pa || '').trim().replace(/^€\s*/, '').replace(',', '.');
     const cents = /^\d+(\.\d{1,2})?$/.test(clean) ? Math.round(Number(clean) * 100) : 0;
-    UI.formError = !cents ? 'Vul een bedrag in, bijvoorbeeld 110 of 15,50.' : !(f.pd || '').trim() ? 'Vul in waarvoor het betaalverzoek is.' : !/^https:\/\/\S+$/.test((f.pu || '').trim()) ? 'Plak de betaallink van je bank of Tikkie (begint met https://).' : null;
+    UI.formError = !cents ? 'Vul een bedrag in, bijvoorbeeld 110 of 15,50.' : !(f.pd || '').trim() ? 'Vul in waarvoor het betaalverzoek is.' : !linkIn(f.pu) ? 'Er staat geen betaallink in. Plak het betaalverzoek uit je bank-app of Tikkie (met de link die begint met https://).' : null;
     if (UI.formError) return;
-    const email = UI.sheet.email; sendPayment(email, f.pd.trim(), cents, f.pu.trim()); markChatRead(email, 'studio');
+    const email = UI.sheet.email; sendPayment(email, f.pd.trim(), cents, linkIn(f.pu)); markChatRead(email, 'studio');
     S.pushQueue.push({to:email, text:`💶 Betaalverzoek ${euro(cents)} · ${f.pd.trim()}`, open:{tab:'berichten'}});
     log(`Betaalverzoek ${euro(cents)} aan ${userBy(email).name}`); UI.sheet = null; UI.form = {}; save(); showToast('Betaalverzoek verstuurd ✓'); return 'rendered';
   },

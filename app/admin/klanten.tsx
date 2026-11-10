@@ -23,7 +23,7 @@ const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 // The admin's full customer file: strips (−/+/+10), private-lesson strips, add customers by
 // hand or after an account request, and remove customers. Green initials = account request, yellow = by hand.
 export default function KlantenScreen() {
-  const { students, adjustStrip, activateCard, createCustomer, deleteCustomer, accountRequests, approveAccountRequest, rejectAccountRequest } = useUsers();
+  const { students, adjustStrip, activateCard, createCustomer, deleteCustomer, updateCustomer, accountRequests, approveAccountRequest, rejectAccountRequest } = useUsers();
   const { data, today } = useSchedule();
   const insets = useSafeAreaInsets();
   const toast = useToast();
@@ -31,6 +31,7 @@ export default function KlantenScreen() {
   const [query, setQuery] = useState('');
   const [adding, setAdding] = useState(false);
   const [open, setOpen] = useState<AppUser | null>(null);
+  const [editing, setEditing] = useState(false);
   // Strippenkaart = group lessons; Privélessen = the separate private-lesson cards.
   const [section, setSection] = useState<'groep' | 'prive'>('groep');
 
@@ -145,7 +146,10 @@ export default function KlantenScreen() {
                 user={u}
                 detail={standingLabel(u.email)}
             today={today}
-                onOpen={() => setOpen(u)}
+                onOpen={() => {
+              setEditing(false);
+              setOpen(u);
+            }}
                 onAdjust={(delta) => adjustStrip(u.email, delta)}
                 onActivateCard={() => askCard(u)}
               />
@@ -158,7 +162,21 @@ export default function KlantenScreen() {
       {/* One customer: details, chat and remove. */}
       <Modal visible={!!openUser} transparent animationType="slide" onRequestClose={() => setOpen(null)}>
         <Pressable style={styles.backdrop} onPress={() => setOpen(null)}>
-          {openUser ? (
+          {openUser && editing ? (
+            <Pressable style={[styles.sheet, { paddingBottom: insets.bottom + 22 }]} onPress={(e) => e.stopPropagation()}>
+              <EditCustomerForm
+                user={openUser}
+                onCancel={() => setEditing(false)}
+                onSave={async (fields) => {
+                  if (!(await updateCustomer(openUser.email, fields))) return;
+                  setEditing(false);
+                  // The sheet follows the customer by e-mail, which may just have changed.
+                  setOpen({ ...openUser, email: fields.email.trim().toLowerCase() || openUser.email });
+                  toast.show('Gegevens opgeslagen ✓');
+                }}
+              />
+            </Pressable>
+          ) : openUser ? (
             <Pressable style={[styles.sheet, { paddingBottom: insets.bottom + 22 }]} onPress={(e) => e.stopPropagation()}>
               <Text style={styles.sheetName}>{openUser.name}</Text>
               <Tag label={ORIGIN_LABEL[openUser.origin]} tone={ORIGIN_TONE[openUser.origin]} />
@@ -171,6 +189,9 @@ export default function KlantenScreen() {
                 <Fact label="Groepsles" value={standingLabel(openUser.email)?.replace('vast: ', '') ?? '—'} />
                 <Fact label="Voorwaarden" value={openUser.termsAcceptedAt ? `akkoord ${openUser.termsAcceptedAt}` : 'nog niet akkoord'} />
               </View>
+              <Pressable style={styles.sheetBtn} onPress={() => setEditing(true)}>
+                <Text style={styles.sheetBtnText}>✏️ Gegevens aanpassen</Text>
+              </Pressable>
               {hasEmail(openUser.email) && openUser.origin === 'aanvraag' ? (
                 <Pressable
                   style={styles.sheetBtn}
@@ -212,6 +233,39 @@ function Fact({ label, value }: { label: string; value: string }) {
     <View style={styles.fact}>
       <Text style={styles.factLabel}>{label}</Text>
       <Text style={styles.factValue}>{value}</Text>
+    </View>
+  );
+}
+
+// Name, e-mail and phone of an existing customer. A changed e-mail is also their login.
+function EditCustomerForm({ user, onCancel, onSave }: { user: AppUser; onCancel: () => void; onSave: (fields: { name: string; phone: string; email: string }) => Promise<void> }) {
+  const [name, setName] = useState(user.name);
+  const [email, setEmail] = useState(hasEmail(user.email) ? user.email : '');
+  const [phone, setPhone] = useState(user.phone ?? '');
+  const [error, setError] = useState<string | null>(null);
+  const save = () => {
+    if (!name.trim()) return setError('Vul een naam in.');
+    if (email.trim() && !isEmail(email.trim())) return setError('Dit e-mailadres klopt niet.');
+    if (!email.trim() && hasEmail(user.email)) return setError('Vul een e-mailadres in.');
+    setError(null);
+    onSave({ name: name.trim(), phone: phone.trim(), email: email.trim() });
+  };
+  return (
+    <View>
+      <Text style={styles.formTitle}>Gegevens aanpassen</Text>
+      <TextField label="Naam" value={name} onChangeText={setName} autoCapitalize="words" />
+      <TextField label={hasEmail(user.email) ? 'E-mailadres' : 'E-mailadres (optioneel)'} placeholder="naam@voorbeeld.nl" value={email} onChangeText={setEmail} keyboardType="email-address" />
+      <TextField label="Telefoon" placeholder="06 12345678" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+      {hasEmail(user.email) && email.trim().toLowerCase() !== user.email ? (
+        <Text style={styles.formHint}>Let op: de klant logt daarna in met het nieuwe e-mailadres. Het wachtwoord blijft hetzelfde.</Text>
+      ) : null}
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+      <Pressable style={styles.sheetBtn} onPress={save}>
+        <Text style={styles.sheetBtnText}>Opslaan</Text>
+      </Pressable>
+      <Pressable onPress={onCancel} style={{ alignItems: 'center', paddingTop: 4 }}>
+        <Text style={styles.cancelText}>Annuleren</Text>
+      </Pressable>
     </View>
   );
 }

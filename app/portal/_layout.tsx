@@ -20,6 +20,7 @@ import { useCurrentUser, useUsers } from '@/contexts/UsersContext';
 const NAV = [
   { path: '/portal', icon: '🗓️', label: 'Rooster' },
   { path: '/portal/reserveringen', icon: '📨', label: 'Reserveringen' },
+  { path: '/portal/betaalverzoeken', icon: '💶', label: 'Betaalverzoeken' },
   { path: '/portal/klanten', icon: '👥', label: 'Klanten' },
   { path: '/portal/beheer', icon: '🛠️', label: 'Rooster beheren' },
   { path: '/portal/presentie', icon: '✅', label: 'Presentielijst' },
@@ -70,6 +71,7 @@ export default function PortalLayout() {
     '/portal/presentie': schedule.unconfirmedLessons().length,
     '/portal/klanten': accountRequests.length,
     '/portal/berichten': inbox.badge,
+    '/portal/betaalverzoeken': inbox.payments.open.length,
   };
   const badge = (path: string) => badges[path] ?? 0;
   const narrow = width < 800;

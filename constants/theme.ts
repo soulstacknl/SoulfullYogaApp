@@ -5,6 +5,7 @@ export const colors = {
   marigold: '#E8A33D', // accent — Gentle Yoga
   rani: '#C23B6E', // accent — Flow Yoga / primary CTA
   teal: '#1C6B5E', // accent — Yin Yoga
+  plum: '#6E4B8F', // private lessons
   sand: '#E3D5BE', // borders / lines
   card: '#FFFFFF',
   stageBg: '#EDE6D8',

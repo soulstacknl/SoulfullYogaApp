@@ -52,7 +52,7 @@ export default function ClassCard({ session, spotsText, spotsTone, closedReason,
 export function PrivateClassCard({ name, time, onPress }: { name: string; time: string; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
-      <View style={[styles.dot, { backgroundColor: colors.ink }]}>
+      <View style={[styles.dot, { backgroundColor: colors.plum }]}>
         <Text style={styles.dotLabel}>P</Text>
       </View>
       <View style={styles.meta}>

@@ -235,7 +235,8 @@
 /* Rooster beheren */
 .actgrid{display:flex; gap:8px;}
 .actbtn{flex:1; text-align:center; background:var(--card); border:1.5px solid var(--ink); border-radius:var(--r-row); padding:12px 4px; font:700 12.5px var(--body);}
-.datebox.prive,.dot.prive,.ini.prive{background:var(--ink); color:#fff;}
+.datebox.prive,.dot.prive,.ini.prive{background:#6E4B8F; color:#fff;}
+.mcal .dots i.prive{background:#6E4B8F;}
 .vtag{display:inline-block; font:600 11px var(--body); border-radius:20px; padding:3px 9px; margin-top:6px; background:#EAF3EE; color:var(--teal);}
 .vtag.exp{background:#FBE7EE; color:var(--rani);}
 .strip .vtag:not(.exp),.ministrip .vtag:not(.exp){background:rgba(255,255,255,.12); color:#DCEBDF;}

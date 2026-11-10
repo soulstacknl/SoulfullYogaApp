@@ -449,6 +449,18 @@ function sendMessage(email, from, text){ const m = {id:`m-${Date.now()}`, email,
 function sendPayment(email, text, cents, url){ const m = sendMessage(email, 'studio', text); Object.assign(m, {kind:'betaalverzoek', cents, url, paidAt:null}); return m; }
 function sendFile(email, name, type, size, dataUrl){ const m = sendMessage(email, 'studio', name); Object.assign(m, {kind:'bestand', type, size, dataUrl}); return m; }
 function setPaid(id, paid){ const m = S.messages.find(x => x.id === id); if (m) m.paidAt = paid ? nowIso() : null; }
+// De link uit wat er geplakt is: bank-apps delen "Wil je … betalen? https://…".
+const linkIn = (text) => (text || '').match(/https:\/\/[^\s"'<>]+/)?.[0]?.replace(/[.,;)]+$/, '') ?? null;
+const openPayments = () => S.messages.filter(m => m.kind === 'betaalverzoek' && !m.paidAt).reverse();
+const paidPayments = () => S.messages.filter(m => m.kind === 'betaalverzoek' && m.paidAt).sort((a, b) => b.paidAt.localeCompare(a.paidAt));
+// Groepsles verwijderen: nooit gegeven → helemaal weg; met geschiedenis → stopt na gisteren.
+function removeWeekly(sid){
+  const hasHistory = Object.keys(S.confirmed).some(k => k.startsWith(sid + '@'));
+  if (hasHistory) { const d = plusDays(isoOf(now()), -1); SES[sid].until = d; for (const k of ['bookings', 'requests', 'cancels']) S[k] = S[k].filter(x => !(x.sessionId === sid && x.date > d)); return 'gestopt'; }
+  S.sessions = S.sessions.filter(s => s.id !== sid);
+  for (const k of ['bookings', 'requests', 'cancels', 'enrollments']) S[k] = S[k].filter(x => x.sessionId !== sid);
+  reindex(); return 'verwijderd';
+}
 const euro = (c) => `€ ${(c / 100).toFixed(2).replace('.', ',')}`;
 const fileIcon = (t) => t?.startsWith('image/') ? '🖼️' : t?.startsWith('video/') ? '🎬' : '📄';
 const sizeLabel = (b) => !b ? '' : b < 1048576 ? `${Math.max(1, Math.round(b / 1024))} kB` : `${(b / 1048576).toFixed(1).replace('.', ',')} MB`;

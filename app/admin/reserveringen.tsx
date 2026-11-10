@@ -50,7 +50,7 @@ export default function ReserveringenScreen() {
     const meta = session ? styleMeta[session.style] : undefined;
     return (
       <View key={c.key} style={styles.row}>
-        <View style={[styles.dot, { backgroundColor: meta?.color ?? colors.ink }]}>
+        <View style={[styles.dot, { backgroundColor: meta?.color ?? colors.plum }]}>
           <Text style={styles.dotLabel}>{meta?.dotLabel ?? 'P'}</Text>
         </View>
         <View style={styles.info}>

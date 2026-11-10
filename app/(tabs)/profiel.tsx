@@ -11,6 +11,7 @@ import ScreenHeader from '@/components/ScreenHeader';
 import { colors, fonts } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
+import { useInbox } from '@/contexts/InboxContext';
 import { useSchedule } from '@/contexts/ScheduleContext';
 import { useCurrentUser, useUsers } from '@/contexts/UsersContext';
 
@@ -27,6 +28,7 @@ export default function ProfielScreen() {
   const { students, deleteOwnAccount, accountRequests } = useUsers();
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
   const { data, today, unconfirmedLessons, openCancellations } = useSchedule();
+  const openPayments = useInbox().payments.open.length;
   // Badge: open requests plus cancellations the admin hasn't marked as seen.
   const toReview = data.requests.length + (user?.role === 'admin' ? openCancellations().length : 0);
   const toConfirm = user?.role === 'admin' ? unconfirmedLessons().length : 0;
@@ -103,6 +105,16 @@ export default function ProfielScreen() {
                 {toReview > 0 ? (
                   <View style={styles.adminActionBadge}>
                     <Text style={styles.adminActionBadgeText}>{toReview}</Text>
+                  </View>
+                ) : null}
+                <Text style={styles.adminActionChevron}>›</Text>
+              </Pressable>
+              <Pressable style={styles.adminActionBtn} onPress={() => router.push('/admin/betaalverzoeken')}>
+                <Text style={styles.adminActionIcon}>💶</Text>
+                <Text style={styles.adminActionText}>Betaalverzoeken</Text>
+                {openPayments > 0 ? (
+                  <View style={styles.adminActionBadge}>
+                    <Text style={styles.adminActionBadgeText}>{openPayments}</Text>
                   </View>
                 ) : null}
                 <Text style={styles.adminActionChevron}>›</Text>

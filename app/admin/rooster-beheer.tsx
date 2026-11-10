@@ -68,7 +68,7 @@ export default function RoosterBeherenScreen() {
               </View>
               <View style={styles.info}>
                 <Text style={styles.name}>
-                  {s.day} · {startTimeOf(s)}
+                  {s.day} · {s.time}
                 </Text>
                 <Text style={styles.detail}>
                   {meta.label} · {s.capacity} plekken
@@ -195,6 +195,7 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
     paddingTop: 14,
+    paddingBottom: 40,
   },
   actions: {
     flexDirection: 'row',
@@ -256,7 +257,7 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   privateDot: {
-    backgroundColor: colors.ink,
+    backgroundColor: colors.plum,
   },
   rowCancelled: {
     opacity: 0.6,

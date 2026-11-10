@@ -21,6 +21,8 @@ type UsersContextValue = {
   // origin 'aanvraag': the customer also gets a mail to set a password for the app.
   createCustomer: (name: string, email: string, phone: string, origin: CustomerOrigin) => Promise<boolean>;
   deleteCustomer: (email: string) => Promise<boolean>;
+  // Name, phone and e-mail; a new e-mail is also the customer's login from then on.
+  updateCustomer: (email: string, fields: { name: string; phone: string; email: string }) => Promise<boolean>;
   // Account requests from the app (admin): approve creates the customer and sends the password mail.
   accountRequests: AccountRequest[];
   approveAccountRequest: (id: string) => Promise<boolean>;
@@ -89,6 +91,10 @@ export function UsersProvider({ children }: { children: ReactNode }) {
           return ok;
         },
         rejectAccountRequest: (id) => run(() => remote.rejectAccountRequest(id)),
+        updateCustomer: async (email, fields) => {
+          const user = byEmail(email);
+          return !!user && run(() => remote.updateCustomer(user.id, fields.name, fields.phone, fields.email));
+        },
         deleteCustomer: async (email) => {
           const user = byEmail(email);
           return (

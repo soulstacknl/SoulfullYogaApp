@@ -7,6 +7,7 @@ import ChatThread from '@/components/ChatThread';
 import ScreenHeader from '@/components/ScreenHeader';
 import { colors, fonts } from '@/constants/theme';
 import { useCurrentUser, useUsers } from '@/contexts/UsersContext';
+import { shownEmail } from '@/data/users';
 
 // One conversation. A customer always chats with Marjolijn; the admin opens /chat?klant=<id>.
 export default function ChatScreen() {
@@ -39,7 +40,7 @@ export default function ChatScreen() {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       {isAdmin ? (
-        <ScreenHeader backLabel="Berichten" onBack={back} eyebrow="Chat" title={customer.name} subtitle={customer.email} />
+        <ScreenHeader backLabel="Berichten" onBack={back} eyebrow="Chat" title={customer.name} subtitle={[shownEmail(customer.email), customer.phone].filter(Boolean).join(' · ')} />
       ) : (
         <ScreenHeader backLabel="Berichten" onBack={back} eyebrow="Soulful Yoga" title={TEACHER_NAME} subtitle="Reageert meestal binnen een dag" photo={teacherPhoto} />
       )}

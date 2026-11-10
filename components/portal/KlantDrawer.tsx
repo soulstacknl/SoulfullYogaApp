@@ -11,7 +11,7 @@ import type { Lesson } from '@/contexts/ScheduleContext';
 import { useSchedule } from '@/contexts/ScheduleContext';
 import { CARD_SIZE, useUsers } from '@/contexts/UsersContext';
 import type { Session } from '@/data/schedule';
-import { ORIGIN_LABEL, ORIGIN_TONE, shownEmail } from '@/data/users';
+import { hasEmail, ORIGIN_LABEL, ORIGIN_TONE, shownEmail } from '@/data/users';
 import { dateLabel, shortDate } from '@/lib/dutchDate';
 import { enrollmentOf, horizonEnd, isExtra, lastLessonOf, nextOccurrence, ONGOING_WEEKS, openChargeCount, startTimeOf } from '@/lib/schedule';
 
@@ -28,7 +28,9 @@ export function weeklySessions(sessions: Session[], today: string) {
 // One customer: strips, standing lessons (add / stop) and their lessons.
 export default function KlantDrawer({ email }: { email: string }) {
   const schedule = useSchedule();
-  const { users, adjustStrip, activateCard, deleteCustomer, adjustPrivateStrips } = useUsers();
+  const { users, adjustStrip, activateCard, deleteCustomer, adjustPrivateStrips, updateCustomer } = useUsers();
+  const [editing, setEditing] = useState<{ name: string; email: string; phone: string } | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
   const portal = usePortal();
   const [sessionId, setSessionId] = useState('');
   const [from, setFrom] = useState(schedule.today);
@@ -111,6 +113,47 @@ export default function KlantDrawer({ email }: { email: string }) {
 
   return (
     <Drawer eyebrow="Klant" title={user.name} subtitle={[shownEmail(user.email), user.phone].filter(Boolean).join(' · ')} onClose={portal.closeDrawer}>
+      {editing ? (
+        <Card title="Gegevens aanpassen">
+          <View style={portalStyles.form}>
+            <Field label="Naam" style={portalStyles.full}>
+              <Input value={editing.name} onChange={(v) => setEditing({ ...editing, name: v })} />
+            </Field>
+            <Field label={hasEmail(user.email) ? 'E-mailadres' : 'E-mailadres (optioneel)'}>
+              <Input type="email" value={editing.email} onChange={(v) => setEditing({ ...editing, email: v })} />
+            </Field>
+            <Field label="Telefoon">
+              <Input value={editing.phone} onChange={(v) => setEditing({ ...editing, phone: v })} />
+            </Field>
+            {hasEmail(user.email) && editing.email.trim().toLowerCase() !== user.email ? (
+              <View style={portalStyles.full}>
+                <Note text="De klant logt daarna in met het nieuwe e-mailadres. Het wachtwoord blijft hetzelfde." />
+              </View>
+            ) : null}
+            {editError ? (
+              <View style={portalStyles.full}>
+                <ErrorText text={editError} />
+              </View>
+            ) : null}
+            <View style={[portalStyles.full, s.row]}>
+              <Btn
+                label="Opslaan"
+                tone="primary"
+                onPress={async () => {
+                  if (!editing.name.trim()) return setEditError('Vul een naam in.');
+                  setEditError(null);
+                  const newEmail = editing.email.trim().toLowerCase();
+                  if (!(await updateCustomer(email, { name: editing.name.trim(), phone: editing.phone.trim(), email: newEmail }))) return;
+                  setEditing(null);
+                  portal.toast('Gegevens opgeslagen ✓');
+                  if (newEmail && newEmail !== email) portal.openKlant(newEmail);
+                }}
+              />
+              <Btn label="Annuleren" onPress={() => setEditing(null)} />
+            </View>
+          </View>
+        </Card>
+      ) : null}
       <Card>
         <KV label="Strippen">
           <View style={s.row}>
@@ -135,6 +178,11 @@ export default function KlantDrawer({ email }: { email: string }) {
           <Pill label={ORIGIN_LABEL[user.origin]} tone={ORIGIN_TONE[user.origin]} />
         </KV>
         <View style={[s.row, { marginTop: 8 }]}>
+          <Btn
+            label="✏️ Gegevens aanpassen"
+            small
+            onPress={() => setEditing({ name: user.name, email: hasEmail(user.email) ? user.email : '', phone: user.phone ?? '' })}
+          />
           <Btn
             label={`💬 Chat met ${user.name.split(' ')[0]}`}
             small

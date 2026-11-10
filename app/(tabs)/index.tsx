@@ -95,7 +95,11 @@ export default function ScheduleScreen() {
         <MonthCalendar
           first={first}
           today={today}
-          lessonsOn={(date) => schedule.sessionsOn(date).filter((s) => !schedule.closureOf(s.id, date)).map((s) => s.style)}
+          lessonsOn={(date) => [
+            ...schedule.sessionsOn(date).filter((s) => !schedule.closureOf(s.id, date)).map((s) => s.style),
+            // The admin also sees a dot per private lesson.
+            ...(isAdmin ? schedule.data.privates.filter((p) => p.date === date && !p.cancelled).map(() => 'prive' as const) : []),
+          ]}
           onSelect={(date) => {
             const y = dayY.current[date];
             if (y !== undefined) scroll.current?.scrollTo({ y: y - 8, animated: true });

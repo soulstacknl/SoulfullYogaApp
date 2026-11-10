@@ -176,6 +176,12 @@ export const remote = {
     );
   },
   removeSession: (sessionId: string) => check(supabase.from('sessions').delete().eq('id', sessionId)),
+  // A weekly lesson: deleted when it never took place, otherwise stopped after yesterday.
+  removeWeeklySession: async (sessionId: string) => {
+    const { data, error } = await supabase.rpc('admin_remove_session', { p_id: sessionId });
+    if (error) throw new Error(error.message);
+    return data as 'verwijderd' | 'gestopt';
+  },
   addClosure: (c: Omit<Closure, 'id'>) =>
     check(supabase.from('closures').insert({ from_date: c.from, to_date: c.to, session_id: c.sessionId, reason: c.reason })),
   removeClosure: (closureId: string) => check(supabase.from('closures').delete().eq('id', closureId)),
@@ -239,6 +245,8 @@ export const remote = {
     return data as string;
   },
   rejectAccountRequest: (requestId: string) => check(supabase.from('account_requests').delete().eq('id', requestId)),
+  updateCustomer: (userId: string, name: string, phone: string, email: string) =>
+    check(supabase.rpc('admin_update_customer', { p_id: userId, p_name: name, p_phone: phone, p_email: email })),
   deleteCustomer: (userId: string) => check(supabase.rpc('admin_delete_customer', { p_id: userId })),
   createCustomer: (name: string, email: string, phone: string, origin: CustomerOrigin) =>
     check(supabase.rpc('admin_create_customer', { p_name: name, p_email: email, p_phone: phone, p_origin: origin })),
