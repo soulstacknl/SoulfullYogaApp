@@ -22,6 +22,7 @@ type UsersContextValue = {
   createCustomer: (name: string, email: string, phone: string, origin: CustomerOrigin) => Promise<boolean>;
   deleteCustomer: (email: string) => Promise<boolean>;
   // Name, phone and e-mail; a new e-mail is also the customer's login from then on.
+  setCardValidUntil: (email: string, date: string) => Promise<boolean>;
   updateCustomer: (email: string, fields: { name: string; phone: string; email: string }) => Promise<boolean>;
   // Account requests from the app (admin): approve creates the customer and sends the password mail.
   accountRequests: AccountRequest[];
@@ -91,6 +92,10 @@ export function UsersProvider({ children }: { children: ReactNode }) {
           return ok;
         },
         rejectAccountRequest: (id) => run(() => remote.rejectAccountRequest(id)),
+        setCardValidUntil: async (email, date) => {
+          const user = byEmail(email);
+          return !!user && run(() => remote.setCardValidUntil(user.id, date));
+        },
         updateCustomer: async (email, fields) => {
           const user = byEmail(email);
           return !!user && run(() => remote.updateCustomer(user.id, fields.name, fields.phone, fields.email));

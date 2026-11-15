@@ -47,6 +47,14 @@ export function weekdayOf(iso: string): string {
   return WEEKDAYS[toDate(iso).getDay()];
 }
 
+// Same day n months later (clamped to the month's last day).
+export function plusMonths(iso: string, months: number): string {
+  const d = toDate(iso);
+  const target = new Date(d.getFullYear(), d.getMonth() + months, 1);
+  const last = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  return isoOf(new Date(target.getFullYear(), target.getMonth(), Math.min(d.getDate(), last)));
+}
+
 // "Maandag 2 november"
 export function dateLabel(iso: string): string {
   const d = toDate(iso);

@@ -245,6 +245,8 @@ export const remote = {
     return data as string;
   },
   rejectAccountRequest: (requestId: string) => check(supabase.from('account_requests').delete().eq('id', requestId)),
+  // End date of the strip card, set by hand (bought earlier, or extra time after illness).
+  setCardValidUntil: (userId: string, date: string) => check(supabase.rpc('admin_set_card_valid_until', { p_id: userId, p_date: date })),
   updateCustomer: (userId: string, name: string, phone: string, email: string) =>
     check(supabase.rpc('admin_update_customer', { p_id: userId, p_name: name, p_phone: phone, p_email: email })),
   deleteCustomer: (userId: string) => check(supabase.rpc('admin_delete_customer', { p_id: userId })),

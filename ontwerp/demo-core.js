@@ -399,10 +399,12 @@ function removeClosure(id){ S.closures = S.closures.filter(c => c.id !== id); }
 const CARD_SIZE = 10;
 // Een strippenkaart is 4 maanden geldig; bij elke + of +10 begint die periode opnieuw.
 const cardValidUntil = () => { const n = now(); return isoOf(new Date(n.getFullYear(), n.getMonth() + 4, n.getDate())); };
+// Een hand-ingestelde latere einddatum (bijv. verlenging bij ziekte) blijft staan.
+const laterOf = (a, b) => (a && a > b ? a : b);
 const validity = (iso) => { if (!iso) return null; const d = toDate(iso); return {expired: iso < isoOf(now()), date:`${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`}; };
 const validTag = (iso, extra = '') => { const v = validity(iso); return !v ? '' : v.expired ? `<span class="vtag exp" ${extra}>Vervallen · was geldig t/m ${v.date}</span>` : `<span class="vtag" ${extra}>Geldig t/m ${v.date}</span>`; };
-function activateCard(email){ const u = userBy(email); u.strippen = (u.strippen ?? 0) + CARD_SIZE; u.total = Math.max(CARD_SIZE, u.strippen); u.validUntil = cardValidUntil(); return u.strippen; }
-function adjustUserStrip(email, delta){ const u = userBy(email); u.strippen = Math.max(0, (u.strippen ?? 0) + delta); if (delta > 0) u.validUntil = cardValidUntil(); return u.strippen; }
+function activateCard(email){ const u = userBy(email); u.strippen = (u.strippen ?? 0) + CARD_SIZE; u.total = Math.max(CARD_SIZE, u.strippen); u.validUntil = laterOf(u.validUntil, cardValidUntil()); return u.strippen; }
+function adjustUserStrip(email, delta){ const u = userBy(email); u.strippen = Math.max(0, (u.strippen ?? 0) + delta); if (delta > 0) u.validUntil = laterOf(u.validUntil, cardValidUntil()); return u.strippen; }
 // Aparte strippenkaart voor privélessen, zonder einddatum: de beheerder schrijft zelf af (−), niet via de presentielijst.
 function adjustPrivateStrip(email, delta){ const u = userBy(email); u.privateStrips = Math.max(0, (u.privateStrips ?? 0) + delta); return u.privateStrips; }
 function removePrivateCard(email){ const u = userBy(email); u.privateStrips = null; }

@@ -11,11 +11,13 @@ import TextField from '@/components/TextField';
 import Toast, { useToast } from '@/components/Toast';
 import PrivateStripsSection from '@/components/PrivateStripsSection';
 import UserStripRow from '@/components/UserStripRow';
+import { DateField } from '@/components/DateTimeField';
 import { colors, fonts } from '@/constants/theme';
 import { useSchedule } from '@/contexts/ScheduleContext';
 import { CARD_SIZE, useUsers } from '@/contexts/UsersContext';
 import type { AppUser, CustomerOrigin } from '@/data/users';
 import { cardValidity, hasEmail, ORIGIN_LABEL, ORIGIN_TONE, shownEmail } from '@/data/users';
+import { plusDays, plusMonths } from '@/lib/dutchDate';
 import { currentStandingSession, startTimeOf } from '@/lib/schedule';
 
 const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
@@ -23,7 +25,7 @@ const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 // The admin's full customer file: strips (−/+/+10), private-lesson strips, add customers by
 // hand or after an account request, and remove customers. Green initials = account request, yellow = by hand.
 export default function KlantenScreen() {
-  const { students, adjustStrip, activateCard, createCustomer, deleteCustomer, updateCustomer, accountRequests, approveAccountRequest, rejectAccountRequest } = useUsers();
+  const { students, adjustStrip, activateCard, createCustomer, deleteCustomer, updateCustomer, setCardValidUntil, accountRequests, approveAccountRequest, rejectAccountRequest } = useUsers();
   const { data, today } = useSchedule();
   const insets = useSafeAreaInsets();
   const toast = useToast();
@@ -32,6 +34,7 @@ export default function KlantenScreen() {
   const [adding, setAdding] = useState(false);
   const [open, setOpen] = useState<AppUser | null>(null);
   const [editing, setEditing] = useState(false);
+  const [editingValid, setEditingValid] = useState(false);
   // Strippenkaart = group lessons; Privélessen = the separate private-lesson cards.
   const [section, setSection] = useState<'groep' | 'prive'>('groep');
 
@@ -148,6 +151,7 @@ export default function KlantenScreen() {
             today={today}
                 onOpen={() => {
               setEditing(false);
+              setEditingValid(false);
               setOpen(u);
             }}
                 onAdjust={(delta) => adjustStrip(u.email, delta)}
@@ -162,7 +166,20 @@ export default function KlantenScreen() {
       {/* One customer: details, chat and remove. */}
       <Modal visible={!!openUser} transparent animationType="slide" onRequestClose={() => setOpen(null)}>
         <Pressable style={styles.backdrop} onPress={() => setOpen(null)}>
-          {openUser && editing ? (
+          {openUser && editingValid ? (
+            <Pressable style={[styles.sheet, { paddingBottom: insets.bottom + 22 }]} onPress={(e) => e.stopPropagation()}>
+              <ValidUntilForm
+                user={openUser}
+                today={today}
+                onCancel={() => setEditingValid(false)}
+                onSave={async (date) => {
+                  if (!(await setCardValidUntil(openUser.email, date))) return;
+                  setEditingValid(false);
+                  toast.show('Einddatum opgeslagen ✓');
+                }}
+              />
+            </Pressable>
+          ) : openUser && editing ? (
             <Pressable style={[styles.sheet, { paddingBottom: insets.bottom + 22 }]} onPress={(e) => e.stopPropagation()}>
               <EditCustomerForm
                 user={openUser}
@@ -189,6 +206,11 @@ export default function KlantenScreen() {
                 <Fact label="Groepsles" value={standingLabel(openUser.email)?.replace('vast: ', '') ?? '—'} />
                 <Fact label="Voorwaarden" value={openUser.termsAcceptedAt ? `akkoord ${openUser.termsAcceptedAt}` : 'nog niet akkoord'} />
               </View>
+              {openUser.strippen !== null ? (
+                <Pressable style={styles.sheetBtn} onPress={() => setEditingValid(true)}>
+                  <Text style={styles.sheetBtnText}>📅 Einddatum strippenkaart</Text>
+                </Pressable>
+              ) : null}
               <Pressable style={styles.sheetBtn} onPress={() => setEditing(true)}>
                 <Text style={styles.sheetBtnText}>✏️ Gegevens aanpassen</Text>
               </Pressable>
@@ -233,6 +255,37 @@ function Fact({ label, value }: { label: string; value: string }) {
     <View style={styles.fact}>
       <Text style={styles.factLabel}>{label}</Text>
       <Text style={styles.factValue}>{value}</Text>
+    </View>
+  );
+}
+
+// The strip card's end date: for a customer who bought the card before joining the app,
+// or extra time after illness. Quick buttons add a week or months to the current date.
+function ValidUntilForm({ user, today, onCancel, onSave }: { user: AppUser; today: string; onCancel: () => void; onSave: (date: string) => Promise<void> }) {
+  const [date, setDate] = useState(user.stripsValidUntil ?? plusMonths(today, 4));
+  const v = cardValidity(date, today);
+  return (
+    <View>
+      <Text style={styles.formTitle}>Einddatum strippenkaart</Text>
+      <Text style={styles.formHint}>
+        {user.name} · {user.strippen} {user.strippen === 1 ? 'strip' : 'strippen'}. Normaal 4 maanden na het toevoegen van strippen; hier
+        pas je het aan, bijvoorbeeld bij ziekte.
+      </Text>
+      <DateField label="Geldig t/m" value={date} onChange={(d) => d && setDate(d)} />
+      <View style={styles.quick}>
+        {([['+1 week', 0, 7], ['+1 maand', 1, 0], ['+3 maanden', 3, 0]] as const).map(([label, months, days]) => (
+          <Pressable key={label} style={styles.quickBtn} onPress={() => setDate(plusDays(plusMonths(date, months), days))}>
+            <Text style={styles.quickText}>{label}</Text>
+          </Pressable>
+        ))}
+      </View>
+      {v?.expired ? <Text style={styles.error}>Deze datum is al voorbij: de kaart staat dan op Vervallen.</Text> : null}
+      <Pressable style={styles.sheetBtn} onPress={() => onSave(date)}>
+        <Text style={styles.sheetBtnText}>Opslaan</Text>
+      </Pressable>
+      <Pressable onPress={onCancel} style={{ alignItems: 'center', paddingTop: 4 }}>
+        <Text style={styles.cancelText}>Annuleren</Text>
+      </Pressable>
     </View>
   );
 }
@@ -363,5 +416,8 @@ const styles = StyleSheet.create({
   factValue: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.ink, flexShrink: 1, textAlign: 'right' },
   sheetBtn: { borderWidth: 1.5, borderColor: colors.ink, borderRadius: 14, paddingVertical: 13, alignItems: 'center', marginBottom: 10 },
   deleteBtn: { borderColor: colors.rani },
+  quick: { flexDirection: 'row', gap: 8, marginTop: -6, marginBottom: 14 },
+  quickBtn: { flex: 1, borderWidth: 1, borderColor: colors.sand, borderRadius: 12, paddingVertical: 8, alignItems: 'center', backgroundColor: '#fff' },
+  quickText: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: colors.ink },
   sheetBtnText: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.ink },
 });

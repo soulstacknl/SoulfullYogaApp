@@ -688,8 +688,12 @@ function bookingSheetBody({sid, d}){
   }
   return sheetWrap(body);
 }
-function klantSheet({email, editing}){
+function klantSheet({email, editing, valid}){
   const u = userBy(email); if (!u) return '';
+  if (valid) return sheetWrap(`<h2>Einddatum strippenkaart</h2><div class="small-note" style="margin:6px 0 12px">${esc(u.name)} · ${u.strippen} strippen. Normaal 4 maanden na het toevoegen van strippen; hier pas je het aan, bijvoorbeeld bij ziekte.</div>
+    <div class="form"><div class="field"><label>Geldig t/m</label><input type="date" data-f="vu" value="${esc(UI.form.vu ?? u.validUntil ?? '')}"></div>
+    <div class="twobtn" style="margin-bottom:14px">${[['+1 week', 0, 7], ['+1 maand', 1, 0], ['+3 maanden', 3, 0]].map(([l, m, d]) => `<div class="cta outline" style="border-color:var(--sand);color:var(--ink);padding:8px 0;font-size:12.5px" data-act="validPlus" data-m="${m}" data-d="${d}" data-email="${u.email}">${l}</div>`).join('')}</div>
+    <div class="cta" data-act="saveValid" data-email="${u.email}">Opslaan</div><div class="logout" data-act="openKlant" data-email="${u.email}">Annuleren</div></div>`);
   if (editing) { const f = UI.form;
     return sheetWrap(`<h2>Gegevens aanpassen</h2><div class="form" style="margin-top:12px">
       <div class="field"><label>Naam</label><input type="text" data-f="en" value="${esc(f.en ?? u.name)}"></div>
@@ -704,6 +708,7 @@ function klantSheet({email, editing}){
       ${u.strippen !== null ? `<div>Strippenkaart<b>${validity(u.validUntil)?.expired ? `vervallen (was t/m ${validity(u.validUntil).date})` : `geldig t/m ${validity(u.validUntil)?.date ?? '—'}`}</b></div>` : ''}
       <div>Privéstrippen<b>${u.privateStrips == null ? 'geen kaart' : u.privateStrips}</b></div><div>Groepsles<b>${v || '—'}</b></div>
       <div>Voorwaarden<b>${u.termsAcceptedAt ? `akkoord ${u.termsAcceptedAt}` : 'nog niet akkoord'}</b></div></div>
+    ${u.strippen !== null ? `<div class="cta outline" style="border-color:var(--ink);color:var(--ink);margin-bottom:10px" data-act="editValid" data-email="${u.email}">📅 Einddatum strippenkaart</div>` : ''}
     <div class="cta outline" style="border-color:var(--ink);color:var(--ink);margin-bottom:10px" data-act="editKlant" data-email="${u.email}">✏️ Gegevens aanpassen</div>
     ${u.origin === 'aanvraag' && hasEmail(u.email) ? `<div class="cta outline" style="border-color:var(--ink);color:var(--ink);margin-bottom:10px" data-act="openChat" data-email="${u.email}">💬 Chat met ${esc(u.name.split(' ')[0])}</div>` : ''}
     <div class="cta outline" data-act="askDeleteKlant" data-email="${u.email}">Klant verwijderen</div>`);
@@ -972,6 +977,9 @@ const ACTIONS = {
     showToast(origin === 'aanvraag' ? `${name} toegevoegd · mail verstuurd ✓` : `${name} toegevoegd ✓`); return 'rendered';
   },
   openKlant(el){ UI.sheet = {type:'klant', email:el.dataset.email}; UI.formError = null; },
+  editValid(el){ UI.form = {}; UI.sheet = {type:'klant', email:el.dataset.email, valid:true}; },
+  validPlus(el){ const u = userBy(el.dataset.email); const cur = UI.form.vu ?? u.validUntil ?? isoOf(now()); const d = toDate(cur); UI.form.vu = isoOf(new Date(d.getFullYear(), d.getMonth() + num(el.dataset.m), d.getDate() + num(el.dataset.d))); },
+  saveValid(el){ const u = userBy(el.dataset.email); if (UI.form.vu) u.validUntil = UI.form.vu; log(`Einddatum strippenkaart ${u.name}: ${u.validUntil}`); UI.sheet = {type:'klant', email:u.email}; UI.form = {}; save(); showToast('Einddatum opgeslagen ✓'); return 'rendered'; },
   editKlant(el){ UI.form = {}; UI.formError = null; UI.sheet = {type:'klant', email:el.dataset.email, editing:true}; },
   saveKlant(el){
     const u = userBy(el.dataset.email); const f = UI.form;

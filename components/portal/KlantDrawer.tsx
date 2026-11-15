@@ -28,7 +28,8 @@ export function weeklySessions(sessions: Session[], today: string) {
 // One customer: strips, standing lessons (add / stop) and their lessons.
 export default function KlantDrawer({ email }: { email: string }) {
   const schedule = useSchedule();
-  const { users, adjustStrip, activateCard, deleteCustomer, adjustPrivateStrips, updateCustomer } = useUsers();
+  const { users, adjustStrip, activateCard, deleteCustomer, adjustPrivateStrips, updateCustomer, setCardValidUntil } = useUsers();
+  const [validDate, setValidDate] = useState<string | null>(null);
   const [editing, setEditing] = useState<{ name: string; email: string; phone: string } | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
   const portal = usePortal();
@@ -162,6 +163,26 @@ export default function KlantDrawer({ email }: { email: string }) {
             {user.strippen !== null ? <ValidityPill validUntil={user.stripsValidUntil} today={schedule.today} /> : null}
           </View>
         </KV>
+        {user.strippen !== null ? (
+          <KV label="Geldig t/m">
+            <View style={s.row}>
+              <Input type="date" value={validDate ?? user.stripsValidUntil ?? ''} onChange={setValidDate} style={{ padding: '4px 6px', fontSize: 12.5 }} />
+              {validDate && validDate !== user.stripsValidUntil ? (
+                <Btn
+                  label="Opslaan"
+                  tone="primary"
+                  small
+                  onPress={async () => {
+                    if (await setCardValidUntil(email, validDate)) {
+                      setValidDate(null);
+                      portal.toast('Einddatum opgeslagen ✓');
+                    }
+                  }}
+                />
+              ) : null}
+            </View>
+          </KV>
+        ) : null}
         {user.privateStrips !== null ? (
           <KV label="Privéstrippen">
             <View style={s.row}>

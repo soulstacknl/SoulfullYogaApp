@@ -59,7 +59,7 @@ Soulful Yoga · Runselstraat 18 · 5351 NJ Berghem · www.soulfulyoga.nl
 - Naam: `Testaccount klant`
 - Gebruikersnaam: `review@soulfulyoga.nl`
 - Wachtwoord: staat in `.env.local` (`PLAY_REVIEW_PASSWORD`), niet in deze repo
-- Instructies: `Open de tab Profiel en log in. Het account heeft 10 strippen en een groepsles op woensdag 9.00. Onder Berichten staan het nieuws en de chat met de studio.`
+- Instructies: `Open de tab Profiel en log in. Het account heeft 10 strippen. Kies in het Rooster een les en vraag een plek aan. Onder Berichten staan het nieuws en de chat met de studio.`
 
 **Advertenties** – *Nee, mijn app bevat geen advertenties.*
 
