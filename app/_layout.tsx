@@ -89,6 +89,7 @@ export default function RootLayout() {
                   <Stack.Screen name="wachtwoord-instellen" options={{ headerShown: false }} />
                   <Stack.Screen name="chat" options={{ headerShown: false }} />
                   <Stack.Screen name="nieuws" options={{ headerShown: false }} />
+                  <Stack.Screen name="yin-challenge" options={{ headerShown: false }} />
                   <Stack.Screen name="portal" options={{ headerShown: false, title: 'Beheerportaal' }} />
                 </Stack>
               </ThemeProvider>

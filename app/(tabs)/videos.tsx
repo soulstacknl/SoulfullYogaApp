@@ -1,3 +1,5 @@
+import { router } from 'expo-router';
+import type { Href } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -27,10 +29,30 @@ export default function VideosScreen() {
 
   const visibleVideos = videos.filter((v) => filter === 'alles' || v.style === filter);
 
+  // The Yin Yoga challenge: 30 days of short series with photos, above the videos.
+  const challenge = (
+    <Pressable
+      style={({ pressed }) => [styles.challenge, pressed && { opacity: 0.85 }]}
+      onPress={() => router.push('/yin-challenge' as Href)}
+      accessibilityRole="button"
+      accessibilityLabel="Yin challenge openen">
+      <LinearGradient colors={gradients.yin} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.challengeBadge}>
+        <Text style={styles.challengeDays}>30</Text>
+        <Text style={styles.challengeDaysLabel}>dagen</Text>
+      </LinearGradient>
+      <View style={styles.info2}>
+        <Text style={styles.challengeTitle}>Yin challenge</Text>
+        <Text style={styles.sub}>30 dagen Yin Yoga: elke dag een mini reeks of meditatie</Text>
+      </View>
+      <Text style={styles.challengeChevron}>›</Text>
+    </Pressable>
+  );
+
   if (videos.length === 0) {
     return (
       <View style={styles.container}>
         <ScreenHeader title="Video's" subtitle="Oefen op jouw moment, in jouw tempo" />
+        {challenge}
         <View style={styles.soon}>
           <View style={styles.soonIcon}>
             <View style={[styles.playTriangle, styles.soonTriangle]} />
@@ -63,6 +85,7 @@ export default function VideosScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+        {challenge}
         {visibleVideos.map((video) => (
           <View key={video.id} style={styles.card}>
             <LinearGradient
@@ -92,6 +115,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.ivory,
   },
+  challenge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginHorizontal: 20,
+    marginTop: 16,
+    padding: 12,
+    borderRadius: 18,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.sand,
+  },
+  challengeBadge: { width: 64, height: 64, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  challengeDays: { fontFamily: fonts.display, fontSize: 24, lineHeight: 26, color: '#fff' },
+  challengeDaysLabel: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: '#fff' },
+  challengeTitle: { fontFamily: fonts.display, fontSize: 18, color: colors.ink },
+  challengeChevron: { fontSize: 24, color: colors.sand, paddingRight: 4 },
+  info2: { flex: 1 },
   filters: {
     flexDirection: 'row',
     gap: 8,
