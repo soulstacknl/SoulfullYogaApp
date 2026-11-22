@@ -94,11 +94,13 @@ Verzamelde gegevens (alle: *verzameld*, *niet gedeeld*, *niet tijdelijk*, doel: 
 | Persoonlijke info | Naam | Verplicht | Account, lessen, presentielijst |
 | Persoonlijke info | E-mailadres | Verplicht | Inloggen, wachtwoord-mails |
 | Persoonlijke info | Telefoonnummer | Optioneel | Contact door de studio |
+| Persoonlijke info | Adres | Optioneel | Klantgegevens voor de studio |
+| Foto's en video's | Foto's | Optioneel | Profielfoto (alleen zichtbaar voor de klant en de studio) |
 | Berichten | Andere berichten in de app | Optioneel | Chat met de studio |
 | App-activiteit | Andere acties | Verplicht | Reserveringen, afmeldingen, aanwezigheid, strippen |
 | Apparaat- of andere ID's | Apparaat- of andere ID's | Optioneel | Pushmeldingen (alleen als je meldingen toestaat) |
 
-Niet verzameld: locatie, financiële gegevens (betalen gaat buiten de app), gezondheid, foto's/video's, contacten, agenda, webgeschiedenis, crashlogs/analytics.
+Niet verzameld: locatie, financiële gegevens (betalen gaat buiten de app), gezondheid, video's, contacten, agenda, webgeschiedenis, crashlogs/analytics. (Foto's en bestanden in de chat stuurt alleen de studio; klanten uploaden alleen hun profielfoto.)
 
 ## 4. Release
 

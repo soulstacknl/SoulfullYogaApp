@@ -1,6 +1,6 @@
 # Privacyverklaring Soulful Yoga
 
-*Versie 1.0 · november 2026*
+*Versie 1.1 · november 2026*
 
 Soulful Yoga vindt jouw privacy belangrijk. In deze privacyverklaring lees je welke gegevens we verwerken als je de Soulful Yoga-app gebruikt of lessen volgt, waarom we dat doen en welke rechten je hebt.
 
@@ -10,7 +10,8 @@ E-mail: info@soulfulyoga.nl · telefoon: 06 12 68 08 52.
 Soulful Yoga is verantwoordelijk voor de verwerking van je persoonsgegevens.
 
 ## Welke gegevens verwerken we?
-- **Naam, e-mailadres en (als je dat opgeeft) telefoonnummer**: voor je account en om contact met je te hebben.
+- **Naam, e-mailadres en (als je dat opgeeft) telefoonnummer en adres**: voor je account en om contact met je te hebben.
+- **Een profielfoto**, alleen als je die zelf toevoegt. Alleen jij en Soulful Yoga zien de foto; je kunt hem altijd vervangen.
 - **Je lessen**: je groepsles, reserveringen, afmeldingen, aanwezigheid en het aantal strippen op je strippenkaart.
 - **Je akkoord met de algemene voorwaarden** en de datum waarop je akkoord gaf.
 - **Chatberichten** die je met Soulful Yoga uitwisselt in de app.
@@ -33,7 +34,7 @@ We delen je gegevens niet met anderen en verkopen ze nooit. Wel gebruiken we een
 - **Expo, Google (Firebase Cloud Messaging) en Apple**: bezorging van pushmeldingen. Daarbij kunnen de tekst van de melding en de pushmeldingssleutel buiten de Europese Unie worden verwerkt. Dit gebeurt met de waarborgen die de AVG vraagt, zoals de standaardcontractbepalingen van de Europese Commissie.
 
 ## Hoe lang bewaren we je gegevens?
-Zolang je klant bent en een account hebt. Verwijder je je account, dan verwijderen we je gegevens, je lessen en je chatberichten direct. Gegevens die we wettelijk moeten bewaren, zoals onze financiële administratie, bewaren we zolang de wet dat vraagt (meestal 7 jaar).
+Zolang je klant bent en een account hebt. Verwijder je je account, dan verwijderen we je gegevens, je profielfoto, je lessen en je chatberichten direct. Gegevens die we wettelijk moeten bewaren, zoals onze financiële administratie, bewaren we zolang de wet dat vraagt (meestal 7 jaar).
 
 ## Je rechten
 Je mag je gegevens inzien, laten verbeteren of laten verwijderen. Je kunt ook bezwaar maken of vragen om je gegevens over te dragen. Mail daarvoor naar info@soulfulyoga.nl; we reageren binnen vier weken.
