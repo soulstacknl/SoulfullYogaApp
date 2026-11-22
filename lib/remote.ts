@@ -14,6 +14,14 @@ type Row = Record<string, any>;
 
 // A guest's request for an account (only the admin can read them).
 export type AccountRequest = { id: string; name: string; email: string; phone: string; at: string };
+// What the admin did with a customer's strips (new card, + or −); newest first.
+export type StripEvent = { id: string; card: 'groep' | 'prive'; kind: 'kaart' | 'aanpassing' | 'vervallen'; delta: number; balance: number; at: string };
+export async function loadStripEvents(userId: string): Promise<StripEvent[]> {
+  const { data, error } = await supabase.from('strip_events').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+  if (error) return [];
+  return (data ?? []).map((r: Row) => ({ id: r.id, card: r.card, kind: r.kind, delta: r.delta, balance: r.balance, at: r.created_at }));
+}
+
 export type Snapshot = { users: AppUser[]; data: ScheduleData; accountRequests: AccountRequest[] };
 
 // "19:00:00" → "19.00"
@@ -32,10 +40,10 @@ async function rows(table: string): Promise<Row[]> {
 }
 
 export async function loadSnapshot(): Promise<Snapshot> {
-  const [profiles, sessions, enrollments, bookings, requests, cancels, closures, caps, roster, drafts, confirmations, records, accountRequests, privates] =
+  const [profiles, sessions, enrollments, bookings, requests, cancels, closures, caps, roster, drafts, confirmations, records, accountRequests, privates, waitlist] =
     await Promise.all(
       ['profiles', 'sessions', 'enrollments', 'bookings', 'requests', 'cancellations', 'closures', 'capacity_overrides',
-        'roster_entries', 'attendance_drafts', 'confirmations', 'attendance_records', 'account_requests', 'private_lessons'].map(rows)
+        'roster_entries', 'attendance_drafts', 'confirmations', 'attendance_records', 'account_requests', 'private_lessons', 'waitlist'].map(rows)
     );
 
   // Sorted by name: the database returns rows in a different order after each change.
@@ -51,6 +59,10 @@ export async function loadSnapshot(): Promise<Snapshot> {
     role: p.role as UserRole,
     termsAcceptedAt: toDutchDate(p.terms_accepted_at),
     origin: (p.origin ?? 'aanvraag') as CustomerOrigin,
+    avatarPath: p.avatar_path ?? null,
+    address: p.address ?? '',
+    postcode: p.postcode ?? '',
+    city: p.city ?? '',
   })).sort((a, b) => a.name.localeCompare(b.name, 'nl'));
   const emailById = new Map(users.map((u) => [u.id, u.email]));
   const key = (userId: string) => emailById.get(userId) ?? userId;
@@ -70,7 +82,16 @@ export async function loadSnapshot(): Promise<Snapshot> {
     ),
     roster: {},
     enrollments: enrollments.map((e) => ({ id: e.id, sessionId: e.session_id, email: key(e.user_id), start: e.start_date, weeks: e.weeks })),
-    bookings: bookings.map((b) => ({ sessionId: b.session_id, date: b.date, email: key(b.user_id) })),
+    bookings: bookings.map((b) => ({
+      sessionId: b.session_id,
+      date: b.date,
+      email: key(b.user_id),
+      by: b.booked_by,
+      at: b.created_at,
+      seen: !!b.seen_at,
+      requestedAt: b.requested_at ?? undefined,
+      approvedAt: b.approved_at ?? undefined,
+    })),
     requests: requests
       .sort((a, b) => b.created_at.localeCompare(a.created_at))
       .map((r) => ({ id: r.id, sessionId: r.session_id, date: r.date, email: key(r.user_id), name: nameById.get(r.user_id) ?? '' })),
@@ -87,6 +108,7 @@ export async function loadSnapshot(): Promise<Snapshot> {
       id: p.id, email: key(p.user_id), date: p.date, time: `${dotTime(p.start_time)} – ${dotTime(p.end_time)}`, cancelled: !!p.cancelled_at,
       cancelledAt: p.cancelled_at ?? undefined, cancelSeen: !!p.cancel_seen_at,
     })),
+    waitlist: waitlist.map((w) => ({ id: w.id, sessionId: w.session_id, date: w.date, email: key(w.user_id) })),
   };
 
   for (const e of roster) (data.roster[e.session_id] ??= []).push({ id: e.id, name: e.name, strips: e.strips });
@@ -137,6 +159,15 @@ async function check<T extends { error: { message: string } | null }>(query: Pro
 }
 
 export const remote = {
+  // The customer plans a lesson with a free spot (the database checks the spot again).
+  bookLesson: (sessionId: string, date: string, userId: string) =>
+    check(supabase.from('bookings').insert({ session_id: sessionId, date, user_id: userId })),
+  acknowledgeBooking: (sessionId: string, date: string, userId: string) =>
+    check(supabase.from('bookings').update({ seen_at: new Date().toISOString() }).match({ session_id: sessionId, date, user_id: userId })),
+  joinWaitlist: (sessionId: string, date: string, userId: string) =>
+    check(supabase.from('waitlist').upsert({ session_id: sessionId, date, user_id: userId }, { onConflict: 'session_id,date,user_id', ignoreDuplicates: true })),
+  leaveWaitlist: (sessionId: string, date: string, userId: string) =>
+    check(supabase.from('waitlist').delete().match({ session_id: sessionId, date, user_id: userId })),
   requestLesson: (sessionId: string, date: string, userId: string) =>
     check(supabase.from('requests').insert({ session_id: sessionId, date, user_id: userId })),
   cancelLesson: (sessionId: string, date: string, userId: string, by: 'klant' | 'beheer') =>
@@ -249,8 +280,14 @@ export const remote = {
   setCardValidUntil: (userId: string, date: string) => check(supabase.rpc('admin_set_card_valid_until', { p_id: userId, p_date: date })),
   updateCustomer: (userId: string, name: string, phone: string, email: string) =>
     check(supabase.rpc('admin_update_customer', { p_id: userId, p_name: name, p_phone: phone, p_email: email })),
+  // The admin edits a customer's address (the profile policy allows the admin).
+  updateCustomerAddress: (userId: string, a: { address: string; postcode: string; city: string }) =>
+    check(supabase.from('profiles').update(a).eq('id', userId)),
   deleteCustomer: (userId: string) => check(supabase.rpc('admin_delete_customer', { p_id: userId })),
   createCustomer: (name: string, email: string, phone: string, origin: CustomerOrigin) =>
     check(supabase.rpc('admin_create_customer', { p_name: name, p_email: email, p_phone: phone, p_origin: origin })),
+  // The customer's own phone number and address (all optional).
+  updateMyDetails: (userId: string, d: { phone: string; address: string; postcode: string; city: string }) =>
+    check(supabase.from('profiles').update(d).eq('id', userId)),
   deleteOwnAccount: () => check(supabase.rpc('delete_own_account')),
 };

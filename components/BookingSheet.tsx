@@ -6,10 +6,10 @@ import type { ConfirmRequest } from '@/components/ConfirmDialog';
 import Stepper from '@/components/Stepper';
 import { colors, fonts, styleMeta } from '@/constants/theme';
 import { useSchedule } from '@/contexts/ScheduleContext';
-import { useCurrentUser } from '@/contexts/UsersContext';
+import { useCurrentUser, useUsers } from '@/contexts/UsersContext';
 import { classDescriptions } from '@/data/schedule';
 import { dateLabel, shortDate } from '@/lib/dutchDate';
-import { cancelNotice, LATE_CANCEL_HOURS } from '@/lib/schedule';
+import { cancelNotice, heldByCancellation, LATE_CANCEL_HOURS } from '@/lib/schedule';
 
 export type LessonSelection = { sessionId: string; date: string };
 
@@ -34,6 +34,7 @@ export default function BookingSheet({
   const { height } = useWindowDimensions();
   const user = useCurrentUser();
   const schedule = useSchedule();
+  const { users } = useUsers();
   const session = selection ? schedule.sessionById(selection.sessionId) : undefined;
 
   const renderBody = () => {
@@ -102,6 +103,17 @@ export default function BookingSheet({
               <Text style={styles.bookedValue}>{occupancy.booked}</Text>
             </View>
           </View>
+          {/* Spots still held by cancellations to confirm, and who is waiting for a spot. */}
+          {heldByCancellation(schedule.data, session.id, date) ? (
+            <Text style={styles.hint}>
+              Waarvan {heldByCancellation(schedule.data, session.id, date)} afgemeld: de plek komt vrij na Akkoord bij Afmeldingen.
+            </Text>
+          ) : null}
+          {schedule.waitlistOf(session.id, date).length ? (
+            <Text style={styles.hint}>
+              Wachtlijst: {schedule.waitlistOf(session.id, date).map((w) => users.find((u) => u.email === w.email)?.name ?? 'klant').join(', ')}
+            </Text>
+          ) : null}
           <AdminLessonPanel session={session} date={date} onToast={onToast} />
           {!started ? (
             <SheetButton
@@ -156,7 +168,8 @@ export default function BookingSheet({
                     confirmLabel: paysStrip ? 'Afmelden (−1 strip)' : 'Afmelden',
                     onConfirm: () => {
                       schedule.cancelLesson(user.email, session.id, date, 'klant');
-                      onToast(paysStrip ? 'Afgemeld — 1 strip afgeschreven' : 'Afgemeld — telt niet mee');
+                      onClose();
+                      onToast(paysStrip ? 'Afgemeld — 1 strip afgeschreven' : 'Afgemeld ✓');
                     },
                   })
                 }
@@ -171,6 +184,36 @@ export default function BookingSheet({
         </>
       );
     }
+    // While the admin hasn't confirmed the cancellation the spot is still the customer's.
+    const ownCancel = schedule.cancellationOf(user.email, session.id, date);
+    const spotHeld = ownCancel?.by === 'klant' && !ownCancel.seen;
+    const waiting = schedule.onWaitlist(user.email, session.id, date);
+    const waitlistButtons = waiting ? (
+      <>
+        <Text style={styles.note}>✓ Je staat op de wachtlijst</Text>
+        <Text style={styles.hint}>Komt er een plek vrij, dan krijg je een melding. Tik dan hier op Les inplannen.</Text>
+        <SheetButton
+          label="Van de wachtlijst af"
+          tone="outline"
+          onPress={() => {
+            schedule.leaveWaitlist(session.id, date, user.email);
+            onToast('Van de wachtlijst af');
+          }}
+        />
+      </>
+    ) : (
+      <>
+        <SheetButton
+          label="Op wachtlijst"
+          tone="teal"
+          onPress={() => {
+            schedule.joinWaitlist(session.id, date, user.email);
+            onToast('Je staat op de wachtlijst ✓');
+          }}
+        />
+        <Text style={styles.hint}>De les is vol. Op de wachtlijst krijg je een melding als er een plek vrijkomt.</Text>
+      </>
+    );
     if (status?.cancelled) {
       return (
         <>
@@ -178,7 +221,11 @@ export default function BookingSheet({
           <Text style={[styles.note, styles.noteMuted]}>
             Je hebt je afgemeld voor deze les{charged ? ` (binnen ${LATE_CANCEL_HOURS} uur, 1 strip afgeschreven)` : ''}
           </Text>
-          {!started && !isFull ? (
+          {started ? (
+            <SheetButton label="Les is al begonnen" disabled />
+          ) : !spotHeld && isFull ? (
+            waitlistButtons
+          ) : (
             <SheetButton
               label={charged ? 'Toch weer aanmelden (strip terug)' : 'Toch weer aanmelden'}
               tone="teal"
@@ -188,8 +235,6 @@ export default function BookingSheet({
                 }
               }}
             />
-          ) : (
-            <SheetButton label="Geen plek meer vrij" disabled />
           )}
         </>
       );
@@ -202,18 +247,26 @@ export default function BookingSheet({
         </>
       );
     }
+    if (started) {
+      return (
+        <>
+          {header}
+          <SheetButton label="Les is al begonnen" disabled />
+        </>
+      );
+    }
     return (
       <>
         {header}
         {isFull ? (
-          <SheetButton label="Vol — geen plekken meer" disabled />
+          waitlistButtons
         ) : (
           <SheetButton
-            label="Plek reserveren"
-            onPress={() => {
-              if (schedule.requestLesson(session.id, date, { name: user.name, email: user.email })) {
+            label="Les inplannen"
+            onPress={async () => {
+              if (await schedule.bookLesson(session.id, date, user.email)) {
                 onClose();
-                onToast('Reservering aangevraagd ✓');
+                onToast('Les ingepland ✓');
               }
             }}
           />

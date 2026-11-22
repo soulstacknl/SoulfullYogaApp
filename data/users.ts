@@ -19,7 +19,16 @@ export type AppUser = {
   role: UserRole;
   termsAcceptedAt: string | null; // DD-MM-YYYY when the customer agreed to the algemene voorwaarden
   origin: CustomerOrigin;
+  // Filled in by the customer on Profiel (all optional).
+  avatarPath?: string | null; // photo in the private 'avatars' bucket
+  address?: string;
+  postcode?: string;
+  city?: string;
 };
+
+// "Dorpsstraat 1, 5351 AB Berghem" or '' when the customer gave no address.
+export const addressOf = (u: Pick<AppUser, 'address' | 'postcode' | 'city'>) =>
+  [u.address, [u.postcode, u.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
 
 // Strip cards are valid for 4 months after the admin last added strips (+, +10, new card).
 export function cardValidity(validUntil: string | null, today: string) {

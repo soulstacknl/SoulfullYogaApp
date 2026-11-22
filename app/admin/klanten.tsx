@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import Avatar from '@/components/Avatar';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import type { ConfirmRequest } from '@/components/ConfirmDialog';
 import ScreenHeader from '@/components/ScreenHeader';
@@ -16,7 +17,7 @@ import { colors, fonts } from '@/constants/theme';
 import { useSchedule } from '@/contexts/ScheduleContext';
 import { CARD_SIZE, useUsers } from '@/contexts/UsersContext';
 import type { AppUser, CustomerOrigin } from '@/data/users';
-import { cardValidity, hasEmail, ORIGIN_LABEL, ORIGIN_TONE, shownEmail } from '@/data/users';
+import { addressOf, cardValidity, hasEmail, ORIGIN_LABEL, ORIGIN_TONE, shownEmail } from '@/data/users';
 import { plusDays, plusMonths } from '@/lib/dutchDate';
 import { currentStandingSession, startTimeOf } from '@/lib/schedule';
 
@@ -195,11 +196,13 @@ export default function KlantenScreen() {
             </Pressable>
           ) : openUser ? (
             <Pressable style={[styles.sheet, { paddingBottom: insets.bottom + 22 }]} onPress={(e) => e.stopPropagation()}>
+              {openUser.avatarPath ? <Avatar path={openUser.avatarPath} name={openUser.name} size={120} style={{ marginBottom: 12, alignSelf: 'center' }} /> : null}
               <Text style={styles.sheetName}>{openUser.name}</Text>
               <Tag label={ORIGIN_LABEL[openUser.origin]} tone={ORIGIN_TONE[openUser.origin]} />
               <View style={styles.facts}>
                 <Fact label="E-mailadres" value={shownEmail(openUser.email)} />
                 <Fact label="Telefoon" value={openUser.phone || '—'} />
+                <Fact label="Adres" value={addressOf(openUser) || '—'} />
                 <Fact label="Strippen" value={openUser.strippen === null ? 'geen kaart' : String(openUser.strippen)} />
                 <Fact label="Strippenkaart" value={validityText(openUser.strippen, openUser.stripsValidUntil)} />
                 <Fact label="Privéstrippen" value={openUser.privateStrips === null ? 'geen kaart' : String(openUser.privateStrips)} />
@@ -291,17 +294,21 @@ function ValidUntilForm({ user, today, onCancel, onSave }: { user: AppUser; toda
 }
 
 // Name, e-mail and phone of an existing customer. A changed e-mail is also their login.
-function EditCustomerForm({ user, onCancel, onSave }: { user: AppUser; onCancel: () => void; onSave: (fields: { name: string; phone: string; email: string }) => Promise<void> }) {
+type CustomerFields = { name: string; phone: string; email: string; address: string; postcode: string; city: string };
+function EditCustomerForm({ user, onCancel, onSave }: { user: AppUser; onCancel: () => void; onSave: (fields: CustomerFields) => Promise<void> }) {
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(hasEmail(user.email) ? user.email : '');
   const [phone, setPhone] = useState(user.phone ?? '');
+  const [address, setAddress] = useState(user.address ?? '');
+  const [postcode, setPostcode] = useState(user.postcode ?? '');
+  const [city, setCity] = useState(user.city ?? '');
   const [error, setError] = useState<string | null>(null);
   const save = () => {
     if (!name.trim()) return setError('Vul een naam in.');
     if (email.trim() && !isEmail(email.trim())) return setError('Dit e-mailadres klopt niet.');
     if (!email.trim() && hasEmail(user.email)) return setError('Vul een e-mailadres in.');
     setError(null);
-    onSave({ name: name.trim(), phone: phone.trim(), email: email.trim() });
+    onSave({ name: name.trim(), phone: phone.trim(), email: email.trim(), address: address.trim(), postcode: postcode.trim(), city: city.trim() });
   };
   return (
     <View>
@@ -309,6 +316,15 @@ function EditCustomerForm({ user, onCancel, onSave }: { user: AppUser; onCancel:
       <TextField label="Naam" value={name} onChangeText={setName} autoCapitalize="words" />
       <TextField label={hasEmail(user.email) ? 'E-mailadres' : 'E-mailadres (optioneel)'} placeholder="naam@voorbeeld.nl" value={email} onChangeText={setEmail} keyboardType="email-address" />
       <TextField label="Telefoon" placeholder="06 12345678" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+      <TextField label="Adres (optioneel)" placeholder="Straat en huisnummer" value={address} onChangeText={setAddress} autoCapitalize="words" />
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <View style={{ flex: 1 }}>
+          <TextField label="Postcode" placeholder="1234 AB" value={postcode} onChangeText={setPostcode} autoCapitalize="characters" />
+        </View>
+        <View style={{ flex: 1.4 }}>
+          <TextField label="Plaats" placeholder="Berghem" value={city} onChangeText={setCity} autoCapitalize="words" />
+        </View>
+      </View>
       {hasEmail(user.email) && email.trim().toLowerCase() !== user.email ? (
         <Text style={styles.formHint}>Let op: de klant logt daarna in met het nieuwe e-mailadres. Het wachtwoord blijft hetzelfde.</Text>
       ) : null}
@@ -326,7 +342,7 @@ function EditCustomerForm({ user, onCancel, onSave }: { user: AppUser; onCancel:
 // Add a customer: after an account request (gets a mail to set a password), or by
 // hand for someone who doesn't use the app (e-mail optional).
 function NewCustomerForm({ onCancel, onCreate }: { onCancel: () => void; onCreate: (name: string, email: string, phone: string, origin: CustomerOrigin) => Promise<void> }) {
-  const [origin, setOrigin] = useState<CustomerOrigin>('beheer');
+  const [origin, setOrigin] = useState<CustomerOrigin>('aanvraag');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -347,7 +363,7 @@ function NewCustomerForm({ onCancel, onCreate }: { onCancel: () => void; onCreat
     <View style={styles.form}>
       <Text style={styles.formTitle}>Klant toevoegen</Text>
       <View style={styles.segment}>
-        {(['beheer', 'aanvraag'] as const).map((o) => (
+        {(['aanvraag', 'beheer'] as const).map((o) => (
           <Pressable key={o} style={[styles.segmentBtn, origin === o && styles.segmentOn]} onPress={() => setOrigin(o)}>
             <Text style={[styles.segmentText, origin === o && { color: colors.ink }]}>{ORIGIN_LABEL[o]}</Text>
           </Pressable>

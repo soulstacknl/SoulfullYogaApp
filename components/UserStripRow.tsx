@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import Avatar from '@/components/Avatar';
 import CardValidity from '@/components/CardValidity';
 import { colors, fonts } from '@/constants/theme';
 import type { AppUser } from '@/data/users';
@@ -36,9 +37,13 @@ export default function UserStripRow({ user, detail, today, onActivateCard, onAd
   return (
     <View style={styles.row}>
       <Pressable style={styles.open} onPress={onOpen} disabled={!onOpen}>
-        <View style={[styles.initials, { backgroundColor: tint.backgroundColor }]}>
-          <Text style={[styles.initialsText, { color: tint.color }]}>{initialsFor(user.name)}</Text>
-        </View>
+        {user.avatarPath ? (
+          <Avatar path={user.avatarPath} name={user.name} size={38} />
+        ) : (
+          <View style={[styles.initials, { backgroundColor: tint.backgroundColor }]}>
+            <Text style={[styles.initialsText, { color: tint.color }]}>{initialsFor(user.name)}</Text>
+          </View>
+        )}
         <View style={styles.info}>
           <Text style={styles.name}>{user.name}</Text>
           <Text style={styles.strip}>

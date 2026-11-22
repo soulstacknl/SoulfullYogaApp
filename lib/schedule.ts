@@ -8,7 +8,20 @@ import { daysBetween, isoOf, plusDays, toDate, weekdayOf, WEEKDAYS } from '@/lib
 // Standing customer of a weekly session, for `weeks` weeks starting on `start`.
 export type Enrollment = { id: string; sessionId: string; email: string; start: string; weeks: number };
 // Approved one-off booking for a single lesson date.
-export type Booking = { sessionId: string; date: string; email: string };
+// requestedAt/approvedAt: set when the booking came from an approved request.
+// by 'klant': the customer planned it themselves; seen: the admin tapped Akkoord under Aanmeldingen.
+export type Booking = {
+  sessionId: string;
+  date: string;
+  email: string;
+  by?: 'beheer' | 'klant';
+  at?: string;
+  seen?: boolean;
+  requestedAt?: string;
+  approvedAt?: string;
+};
+// Waiting list for a full lesson date (customers see only their own entries).
+export type WaitlistEntry = { id: string; sessionId: string; date: string; email: string };
 // One-off booking waiting for the teacher's approval — already holds a spot.
 export type ReservationRequest = { id: string; sessionId: string; date: string; email: string; name: string };
 // Customer is off for one lesson date. Free up to LATE_CANCEL_HOURS before the start;
@@ -61,6 +74,7 @@ export type ScheduleData = {
   extras: Record<string, Attendee[]>; // per lesson key: people the admin added to the list
   confirmed: Record<string, Confirmation>; // per lesson key — strips are only deducted here
   privates: PrivateLesson[]; // only the customer's own, or all of them for the admin
+  waitlist: WaitlistEntry[];
 };
 
 // 'extra' = not scheduled, but confirmed present by the admin.
@@ -100,6 +114,11 @@ export const privatesOf = (data: ScheduleData, email: string) =>
 // Upcoming private lessons of every customer (admin), first one first.
 export const upcomingPrivates = (data: ScheduleData, now: Date) =>
   data.privates.filter((p) => privateEnd(p) > now).sort((a, b) => privateStart(a).getTime() - privateStart(b).getTime());
+// Lessons customers planned themselves that the admin hasn't seen yet, newest first.
+export const openBookings = (data: ScheduleData) =>
+  data.bookings.filter((b) => b.by === 'klant' && !b.seen).sort((a, b) => (b.at ?? '').localeCompare(a.at ?? ''));
+export const onWaitlist = (data: ScheduleData, email: string, sessionId: string, date: string) =>
+  data.waitlist.some((w) => w.email === email && w.sessionId === sessionId && w.date === date);
 // Newest first. Only the customer's own cancellations; the admin knows about their own.
 export function openCancellations(data: ScheduleData): OpenCancellation[] {
   const group: OpenCancellation[] = data.cancels
@@ -170,10 +189,16 @@ export function participantKeys(data: ScheduleData, sessionId: string, date: str
   return keys;
 }
 
+// A customer's cancellation keeps holding the spot until the admin confirmed it (Akkoord),
+// so nobody else can take it before then.
+export const heldByCancellation = (data: ScheduleData, sessionId: string, date: string) =>
+  data.cancels.filter((c) => c.sessionId === sessionId && c.date === date && c.by === 'klant' && !c.seen).length;
+
 export function occupancy(data: ScheduleData, _people: Person[], sessionId: string, date: string): Occupancy {
   const session = data.sessions.find((s) => s.id === sessionId);
   const capacity = data.capOverride[lessonKey(sessionId, date)] ?? session?.capacity ?? 0;
-  const booked = (data.roster[sessionId] ?? []).length + participantKeys(data, sessionId, date).size;
+  const booked =
+    (data.roster[sessionId] ?? []).length + participantKeys(data, sessionId, date).size + heldByCancellation(data, sessionId, date);
   return { capacity, booked, available: Math.max(0, capacity - booked) };
 }
 
@@ -384,4 +409,5 @@ export const emptyScheduleData = (): ScheduleData => ({
   extras: {},
   confirmed: {},
   privates: [],
+  waitlist: [],
 });

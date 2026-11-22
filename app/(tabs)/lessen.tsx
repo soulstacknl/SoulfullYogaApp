@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import CardValidity from '@/components/CardValidity';
@@ -13,6 +13,8 @@ import { colors, fonts, styleMeta } from '@/constants/theme';
 import { useSchedule } from '@/contexts/ScheduleContext';
 import type { Lesson, PrivateLesson } from '@/contexts/ScheduleContext';
 import { useCurrentUser } from '@/contexts/UsersContext';
+import type { StripEvent } from '@/lib/remote';
+import { loadStripEvents } from '@/lib/remote';
 import { capitalize, isoOf, monthStart, MONTHS, shortDate, toDate } from '@/lib/dutchDate';
 import {
   cancelNotice,
@@ -27,7 +29,12 @@ import {
 
 type Segment = 'komend' | 'afgenomen';
 // Group lessons and private lessons in one list, in time order.
-type Item = { at: number; date: string } & ({ lesson: Lesson; prive?: never } | { prive: PrivateLesson; lesson?: never });
+// A strip event: the studio added (or corrected) strips on the customer's card.
+type Item = { at: number; date: string } & (
+  | { lesson: Lesson; prive?: never; strip?: never }
+  | { prive: PrivateLesson; lesson?: never; strip?: never }
+  | { strip: StripEvent; lesson?: never; prive?: never }
+);
 
 // What a customer is scheduled for: upcoming group and private lessons (with cancel)
 // and the finished ones, each showing whether it cost a strip.
@@ -37,6 +44,16 @@ export default function MijnLessenScreen() {
   const [segment, setSegment] = useState<Segment>('komend');
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
   const toast = useToast();
+  const [strips, setStrips] = useState<StripEvent[]>([]);
+  // Reload the strip history when the balance changes (e.g. the studio added a card).
+  useEffect(() => {
+    if (!user) return;
+    let live = true;
+    loadStripEvents(user.id).then((e) => live && setStrips(e));
+    return () => {
+      live = false;
+    };
+  }, [user?.id, user?.strippen, user?.privateStrips]);
 
   if (!user) {
     return (
@@ -56,15 +73,17 @@ export default function MijnLessenScreen() {
   const horizon = monthStart(MONTHS_AHEAD + 1, schedule.now);
   horizon.setDate(0); // last day of the furthest bookable month
   const all = schedule.myLessons(user.email, '2000-01-01', isoOf(horizon));
-  const upcoming = all.filter((l) => !schedule.isPast(l.session, l.date));
+  // A lesson the customer cancelled leaves their schedule at once (it stays under Afgenomen).
+  const upcoming = all.filter((l) => !schedule.isPast(l.session, l.date) && !l.status.cancelled);
   const past = all.filter((l) => schedule.isPast(l.session, l.date) && l.status.source !== 'aanvraag').reverse();
   const privates = schedule.privatesOf(user.email);
-  const upcomingPrivates = privates.filter((p) => privateEnd(p) > schedule.now);
+  const upcomingPrivates = privates.filter((p) => privateEnd(p) > schedule.now && !p.cancelled);
   const pastPrivates = privates.filter((p) => privateEnd(p) <= schedule.now);
   const groupItem = (l: Lesson): Item => ({ lesson: l, date: l.date, at: startOf(l.session, l.date).getTime() });
   const privateItem = (p: PrivateLesson): Item => ({ prive: p, date: p.date, at: privateStart(p).getTime() });
   const upcomingItems = [...upcoming.map(groupItem), ...upcomingPrivates.map(privateItem)].sort((a, b) => a.at - b.at);
-  const pastItems = [...past.map(groupItem), ...pastPrivates.map(privateItem)].sort((a, b) => b.at - a.at);
+  const stripItem = (e: StripEvent): Item => ({ strip: e, date: isoOf(new Date(e.at)), at: new Date(e.at).getTime() });
+  const pastItems = [...past.map(groupItem), ...pastPrivates.map(privateItem), ...strips.map(stripItem)].sort((a, b) => b.at - a.at);
 
   const upcomingCount =
     upcoming.filter((l) => !l.status.cancelled && !l.closure).length + upcomingPrivates.filter((p) => !p.cancelled).length;
@@ -121,8 +140,26 @@ export default function MijnLessenScreen() {
     />
   );
 
+  const renderStrip = (e: StripEvent) => {
+    const n = Math.abs(e.delta);
+    const prive = e.card === 'prive';
+    const title = prive
+      ? e.kind === 'kaart' ? 'Nieuwe privé-strippenkaart' : e.delta > 0 ? 'Privéstrippen erbij' : 'Privéstrip eraf (correctie)'
+      : e.kind === 'vervallen' ? 'Strippen vervallen (einddatum verstreken)' : e.kind === 'kaart' ? 'Nieuwe strippenkaart' : e.delta > 0 ? 'Strippen erbij' : 'Strip eraf (correctie)';
+    return (
+      <LessonCard
+        key={e.id}
+        date={isoOf(new Date(e.at))}
+        title={title}
+        time={`Daarna ${e.balance} ${prive ? 'privéstrippen' : e.balance === 1 ? 'strip' : 'strippen'}`}
+        color={prive ? colors.plum : colors.ink}
+        tag={{ label: `${e.delta > 0 ? '+' : '−'}${n} ${n === 1 ? 'strip' : 'strippen'}`, tone: e.delta > 0 ? 'teal' : 'rani' }}
+      />
+    );
+  };
+
   const renderItem = (item: Item, isPastLesson: boolean) =>
-    item.prive ? renderPrivate(item.prive, isPastLesson) : renderCard(item.lesson!, isPastLesson);
+    item.strip ? renderStrip(item.strip) : item.prive ? renderPrivate(item.prive, isPastLesson) : renderCard(item.lesson!, isPastLesson);
 
   const renderCard = (l: Lesson, isPastLesson: boolean) => {
     const key = `${l.session.id}-${l.date}`;
@@ -195,7 +232,7 @@ export default function MijnLessenScreen() {
       const isFirst = lastMonth === -1;
       lastMonth = m;
       return (
-        <View key={item.prive ? item.prive.id : `${item.lesson.session.id}-${item.date}`}>
+        <View key={item.prive ? item.prive.id : `${item.lesson!.session.id}-${item.date}`}>
           {showMonth ? (
             <Text style={[styles.monthLabel, isFirst && styles.monthLabelFirst]}>{capitalize(MONTHS[m])}</Text>
           ) : null}

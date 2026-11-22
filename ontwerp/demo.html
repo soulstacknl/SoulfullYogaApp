@@ -128,9 +128,9 @@ function spotLabel(sid, d){
   const u = me();
   if (u?.role === 'student') {
     const st = statusFor(u.email, sid, d);
-    if (st?.cancelled) return ['Afgemeld', ''];
     if (st?.source === 'aanvraag') return ['Aangevraagd', 'pend'];
-    if (st) return ['✓ Ingepland', 'mine'];
+    if (st && !st.cancelled) return ['✓ Ingepland', 'mine'];
+    if (onWaitlist(u.email, sid, d)) return [occ(sid, d).available > 0 ? 'Wachtlijst · plek vrij!' : 'Wachtlijst', 'pend'];
   }
   const o = occ(sid, d);
   return o.available <= 0 ? ['Vol', 'full'] : [`${o.available}/${o.cap} beschikbaar`, ''];
@@ -205,21 +205,31 @@ function privateCard(p, past){
   return `<div class="lcard ${p.cancelled ? 'dim' : ''}"><div class="datebox prive"><b>${dt.getDate()}</b><span>${WEEKDAYS[dt.getDay()].slice(0,2)}</span></div>
     <div class="meta"><div class="nm">Privéles</div><div class="tm">${p.time}</div>${p.cancelled ? '<span class="tag off">Privéles · afgemeld</span>' : '<span class="tag open">Privéles</span>'}</div>${btn}</div>`;
 }
+function stripCard(e){
+  const dt = new Date(e.at); const n = Math.abs(e.delta); const prive = e.card === 'prive';
+  const title = prive ? (e.kind === 'kaart' ? 'Nieuwe privé-strippenkaart' : e.delta > 0 ? 'Privéstrippen erbij' : 'Privéstrip eraf (correctie)')
+    : e.kind === 'vervallen' ? 'Strippen vervallen (einddatum verstreken)' : e.kind === 'kaart' ? 'Nieuwe strippenkaart' : e.delta > 0 ? 'Strippen erbij' : 'Strip eraf (correctie)';
+  return `<div class="lcard"><div class="datebox ${prive ? 'prive' : ''}" style="${prive ? '' : 'background:var(--ink)'}"><b>${dt.getDate()}</b><span>${WEEKDAYS[dt.getDay()].slice(0,2)}</span></div>
+    <div class="meta"><div class="nm">${title}</div><div class="tm">Daarna ${e.balance} ${prive ? 'privéstrippen' : e.balance === 1 ? 'strip' : 'strippen'}</div><span class="tag ${e.delta > 0 ? 'vast' : 'open'}">${e.delta > 0 ? '+' : '−'}${n} ${n === 1 ? 'strip' : 'strippen'}</span></div></div>`;
+}
 function lessenTab(){
   const u = me();
   if (!u) return header({title:'Mijn lessen', subtitle:'Je planning en geschiedenis'}) +
     `<div class="info-c"><div class="ic">🧘</div><p>Log in om te zien voor welke lessen je bent ingepland.</p><div class="cta" data-act="tab" data-v="profiel">Inloggen</div></div>`;
   const today = isoOf(now());
   const all = myLessons(u.email, '2000-01-01', horizonEnd());
-  const upcoming = all.filter(l => !isPast(l.sid, l.d));
+  // Een afgemelde les gaat meteen uit de planning (onder Afgenomen blijft hij zichtbaar).
+  const upcoming = all.filter(l => !isPast(l.sid, l.d) && !l.st.cancelled);
   const past = all.filter(l => isPast(l.sid, l.d) && l.st.source !== 'aanvraag').reverse();
   // Groeps- en privélessen in één lijst, op tijd.
   const privs = privatesOf(u.email);
   const upPriv = privs.filter(p => privEnd(p) > now()), pastPriv = privs.filter(p => privEnd(p) <= now());
   const items = (ls, ps) => [...ls.map(l => ({d:l.d, at:startOf(l.sid, l.d), l})), ...ps.map(p => ({d:p.date, at:privStart(p), p}))];
   const upItems = items(upcoming, upPriv).sort((a, b) => a.at - b.at);
-  const pastItems = items(past, pastPriv).sort((a, b) => b.at - a.at);
-  const card = (it, isPast) => it.p ? privateCard(it.p, isPast) : lessonCard(it.l, isPast);
+  // Strips the studio added (or corrected) also show under Afgenomen.
+  const stripItems = (u.stripLog || []).map(e => ({d: isoOf(new Date(e.at)), at: new Date(e.at), e}));
+  const pastItems = [...items(past, pastPriv), ...stripItems].sort((a, b) => b.at - a.at);
+  const card = (it, isPast) => it.e ? stripCard(it.e) : it.p ? privateCard(it.p, isPast) : lessonCard(it.l, isPast);
   const vast = vastLabel(u);
   const strip = u.strippen === null ? 'Geen kaart' : `${u.strippen} <small>${u.strippen === 1 ? 'strip' : 'strippen'}</small>`;
   let list = '';
@@ -301,13 +311,24 @@ function profielTab(){
   if (!u) return loginScreen();
   // De beheerder begint direct met de knoppen; een klant ziet naam en strippenkaart.
   const top = header({eyebrow:'Jouw account', title:'Profiel', subtitle:'Berghem · info@soulfulyoga.nl'}) +
-    `<div class="hero"><div class="avatar"></div><h2>${esc(u.name)}</h2><p>${esc(u.email)}</p></div>`;
+    `<div class="hero"><label style="position:relative;display:inline-block;cursor:pointer;margin-bottom:10px" title="Profielfoto aanpassen">${avatarHtml(u, 84)}
+        <span style="position:absolute;right:-2px;bottom:-2px;width:30px;height:30px;border-radius:50%;background:#fff;border:1px solid var(--sand);display:flex;align-items:center;justify-content:center;font-size:14px">📷</span>
+        <input type="file" accept="image/*" id="avatarPick" style="display:none"></label><h2>${esc(u.name)}</h2><p>${esc(u.email)}</p>
+      ${UI.myDetails ? `<div class="card" style="text-align:left;margin:16px 0 0;padding:16px;background:#fff;border:1px solid var(--sand);border-radius:16px"><div class="sect" style="padding:0;margin-bottom:8px">Mijn gegevens</div>
+        <div class="field"><label>Telefoonnummer (optioneel)</label><input type="text" data-f="mp" value="${esc(UI.form.mp ?? u.phone ?? '')}" placeholder="06 12345678"></div>
+        <div class="field"><label>Adres (optioneel)</label><input type="text" data-f="ma" value="${esc(UI.form.ma ?? u.address ?? '')}" placeholder="Straat en huisnummer"></div>
+        <div style="display:flex;gap:10px"><div class="field" style="flex:1"><label>Postcode</label><input type="text" data-f="mz" value="${esc(UI.form.mz ?? u.postcode ?? '')}" placeholder="1234 AB"></div>
+          <div class="field" style="flex:1.4"><label>Plaats</label><input type="text" data-f="mc" value="${esc(UI.form.mc ?? u.city ?? '')}" placeholder="Berghem"></div></div>
+        <div class="cta" data-act="saveMyDetails">Opslaan</div><div class="small-note" style="text-align:center;cursor:pointer" data-act="cancelMyDetails">Annuleren</div></div>`
+      : `<div class="card" style="text-align:left;margin:16px 0 0;padding:16px;background:#fff;border:1px solid var(--sand);border-radius:16px;cursor:pointer" data-act="editMyDetails"><div style="display:flex;justify-content:space-between"><div class="sect" style="padding:0;margin-bottom:8px">Mijn gegevens</div><b style="color:var(--teal);font-size:13px">Aanpassen ›</b></div>
+        <div style="font-size:13.5px">📞 ${esc(u.phone || 'Geen telefoonnummer')}</div><div style="font-size:13.5px">🏠 ${esc(addressOf(u) || 'Geen adres (optioneel)')}</div>
+        ${u.avatar ? '' : '<div class="small-note" style="margin-top:8px">Tik op de foto om een profielfoto toe te voegen.</div>'}</div>`}</div>`;
   if (u.role === 'admin') return header({eyebrow:'Beheerder', title:'Profiel', subtitle:`${u.name} · ${u.email}`}) + `
     <div class="aactions" style="margin-top:18px">
       <div class="abtn" data-act="push" data-v="vandaag"><span class="ic">✅</span><span class="t">Vandaag · presentielijst</span>${unconfirmedLessons().length ? `<span class="bdg">${unconfirmedLessons().length}</span>` : ''}<span class="chev">›</span></div>
       <div class="abtn" data-act="push" data-v="rooster-beheer"><span class="ic">🗓️</span><span class="t">Rooster beheren</span><span class="chev">›</span></div>
       <div class="abtn" data-act="push" data-v="klanten"><span class="ic">👥</span><span class="t">Klanten beheren</span>${(S.accountRequests || []).length ? `<span class="bdg">${S.accountRequests.length}</span>` : ''}<span class="chev">›</span></div>
-      <div class="abtn" data-act="push" data-v="reserveringen"><span class="ic">📨</span><span class="t">Aanvragen en afmeldingen</span>${S.requests.length + openCancellations().length ? `<span class="bdg">${S.requests.length + openCancellations().length}</span>` : ''}<span class="chev">›</span></div>
+      <div class="abtn" data-act="push" data-v="reserveringen"><span class="ic">📨</span><span class="t">Aanmeldingen en afmeldingen</span>${S.requests.length + openBookings().length + openCancellations().length ? `<span class="bdg">${S.requests.length + openBookings().length + openCancellations().length}</span>` : ''}<span class="chev">›</span></div>
       <div class="abtn" data-act="push" data-v="betaalverzoeken"><span class="ic">💶</span><span class="t">Betaalverzoeken</span>${openPayments().length ? `<span class="bdg">${openPayments().length}</span>` : ''}<span class="chev">›</span></div>
       <div class="abtn" data-act="push" data-v="voorwaarden-overzicht"><span class="ic">📄</span><span class="t">Algemene voorwaarden<small class="abtn-sub">${termsCount()}</small></span><span class="chev">›</span></div>
     </div>${profileFooter}`;
@@ -505,9 +526,9 @@ const STACK = {
   klanten: () => {
     const q = (UI.form.kq || '').toLowerCase();
     const list = students().filter(u => !q || u.name.toLowerCase().includes(q) || u.email.includes(q));
-    const f = UI.form; const origin = f.origin || 'beheer';
+    const f = UI.form; const origin = f.origin || 'aanvraag';
     const form = UI.adding ? `<div class="row" style="display:block"><div class="sect" style="padding:0;margin-bottom:10px">Klant toevoegen</div>
-      <div class="seg2">${['beheer', 'aanvraag'].map(o => `<div class="${origin === o ? 'on' : ''}" data-act="setOrigin" data-v="${o}">${ORIGIN_LABEL[o]}</div>`).join('')}</div>
+      <div class="seg2">${['aanvraag', 'beheer'].map(o => `<div class="${origin === o ? 'on' : ''}" data-act="setOrigin" data-v="${o}">${ORIGIN_LABEL[o]}</div>`).join('')}</div>
       <div class="field"><label>Naam</label><input type="text" data-f="name" value="${esc(f.name || '')}" placeholder="Voor- en achternaam"></div>
       <div class="field"><label>E-mailadres${origin === 'aanvraag' ? '' : ' (optioneel)'}</label><input type="email" data-f="email" value="${esc(f.email || '')}" placeholder="naam@voorbeeld.nl"></div>
       <div class="field"><label>Telefoon (optioneel)</label><input type="text" data-f="phone" value="${esc(f.phone || '')}" placeholder="06 12345678"></div>
@@ -549,18 +570,22 @@ const STACK = {
           <div class="adj"><div class="circ" data-act="userStrip" data-email="${u.email}" data-d="-1">–</div><div class="circ" data-act="userStrip" data-email="${u.email}" data-d="1">+</div><div class="obtn teal" data-act="askCard" data-email="${u.email}">+10</div></div></div>`; }).join('') || '<div class="empty">Geen klant gevonden.</div>'}</div>`;
   },
 
-  reserveringen: () => { const open = openCancellations(); const tab = UI.resTab || 'aanvragen';
-    const seg = `<div class="seg">${[['aanvragen', 'Aanvragen', S.requests.length], ['afmeldingen', 'Afmeldingen', open.length]].map(([k, l, n]) => `<div class="${tab === k ? 'on' : ''}" data-act="resTab" data-v="${k}">${l}${n ? ` (${n})` : ''}</div>`).join('')}</div>`;
-    const head = header({back:'Terug', eyebrow:'Docentmodus', title:'Reserveringen', subtitle: tab === 'aanvragen' ? 'Tik op een aanvraag om te beoordelen' : 'De klant is al afgemeld; Akkoord betekent: gezien'}) + seg;
+  reserveringen: () => { const open = openCancellations(); const tab = UI.resTab || 'aanmeldingen'; const books = openBookings();
+    const seg = `<div class="seg">${[['aanmeldingen', 'Aanmeldingen', books.length + S.requests.length], ['afmeldingen', 'Afmeldingen', open.length]].map(([k, l, n]) => `<div class="${tab === k ? 'on' : ''}" data-act="resTab" data-v="${k}">${l}${n ? ` (${n})` : ''}</div>`).join('')}</div>`;
+    const head = header({back:'Terug', eyebrow:'Docentmodus', title:'Reserveringen', subtitle: tab === 'aanmeldingen' ? 'Klanten plannen zelf in. Ter info; Akkoord betekent: gezien' : 'Na Akkoord komt de plek vrij en krijgt de wachtlijst een melding'}) + seg;
     if (tab === 'afmeldingen') return head + `<div class="pad" style="padding-top:8px">${open.length ? open.map(c => { const s = c.kind === 'groep' ? SES[c.sid] : null;
       return `<div class="row" style="gap:14px">${s ? dot(s.style, true) : '<div class="ini prive">P</div>'}
         <div class="meta"><div class="nm">${esc(userBy(c.email)?.name || c.email)}</div><div class="dt">${s ? STYLE[s.style].label : 'Privéles'} · ${dateLabel(c.date)} · ${s ? s.time : c.time}</div>
           ${c.kind === 'groep' && c.charged ? '<span class="tag open">Binnen 24 uur · −1 strip</span>' : `<span class="tag off">${c.kind === 'prive' ? 'Privéles afgemeld' : 'Kosteloos afgemeld'}</span>`}
           <div class="em">Afgemeld ${new Date(c.at).toLocaleString('nl-NL', {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})}</div></div>
         <div class="obtn teal" data-act="ackCancel" data-key="${c.key}">Akkoord</div></div>`; }).join('') : '<div class="empty" style="margin-top:40px">Geen nieuwe afmeldingen</div>'}</div>`;
-    return head + `<div class="pad" style="padding-top:8px">${S.requests.length ? S.requests.map(r => { const s = SES[r.sessionId]; return `<div class="row" style="gap:14px" data-act="openRequest" data-id="${r.id}">${dot(s.style, true)}
+    const bookRows = books.map(b => { const s = SES[b.sessionId]; return `<div class="row" style="gap:14px">${dot(s.style, true)}
+      <div class="meta"><div class="nm">${esc(userBy(b.email)?.name || b.email)}</div><div class="dt">${STYLE[s.style].label} · ${dateLabel(b.date)} · ${s.time}</div><span class="tag vast">Zelf ingepland</span>
+        <div class="em">Aangemeld ${new Date(b.at).toLocaleString('nl-NL', {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})}</div></div>
+      <div class="obtn teal" data-act="ackBooking" data-key="${b.sessionId}@${b.date}#${b.email}">Akkoord</div></div>`; }).join('');
+    return head + `<div class="pad" style="padding-top:8px">${bookRows}${S.requests.length || books.length ? S.requests.map(r => { const s = SES[r.sessionId]; return `<div class="row" style="gap:14px" data-act="openRequest" data-id="${r.id}">${dot(s.style, true)}
       <div class="meta"><div class="nm">${esc(r.name)}</div><div class="dt">${STYLE[s.style].label} · ${dateLabel(r.date)} · ${s.time}</div><div class="em">${esc(r.email)}</div></div><div class="chev">›</div></div>`; }).join('')
-      : '<div class="empty" style="margin-top:40px">Nog geen aanvragen</div>'}</div>`; },
+      : '<div class="empty" style="margin-top:40px">Geen nieuwe aanmeldingen</div>'}</div>`; },
 
   // Alle betaalverzoeken uit de chats: open en betaald.
   betaalverzoeken: () => { const tab = UI.payTab || 'open'; const list = tab === 'open' ? openPayments() : paidPayments();
@@ -678,15 +703,23 @@ function bookingSheetBody({sid, d}){
       (started ? '<div class="cta off">Les is al begonnen</div>' : `<div class="cta outline" data-act="askCancel" ${at(sid, d)}>Afmelden voor deze les</div>` +
         (isLateCancel(sid, d) ? `<div class="cancelhint late">Deze les begint binnen ${LATE_CANCEL_HOURS} uur: afmelden kost 1 strip.</div>` : `<div class="cancelhint">Kosteloos afmelden tot ${LATE_CANCEL_HOURS} uur voor aanvang. Daarna gaat er 1 strip af.</div>`));
   } else if (st?.cancelled) {
-    const charged = cancellationOf(u.email, sid, d)?.charged;
+    const own = cancellationOf(u.email, sid, d); const charged = own?.charged; const held = own?.by === 'klant' && own.seen === false;
     body += `<div class="note muted">Je hebt je afgemeld voor deze les${charged ? ` (binnen ${LATE_CANCEL_HOURS} uur, 1 strip afgeschreven)` : ''}</div>` +
-      (!started && o.available > 0 ? `<div class="cta" style="background:var(--teal)" data-act="undoCancel" ${at(sid, d)}>Toch weer aanmelden${charged ? ' (strip terug)' : ''}</div>` : '<div class="cta off">Geen plek meer vrij</div>');
+      (started ? '<div class="cta off">Les is al begonnen</div>' : held || o.available > 0 ? `<div class="cta" style="background:var(--teal)" data-act="undoCancel" ${at(sid, d)}>Toch weer aanmelden${charged ? ' (strip terug)' : ''}</div>` : waitlistCta(u, sid, d));
   } else if (st?.source === 'aanvraag') {
     body += '<div class="cta off">Aangevraagd — wacht op goedkeuring</div>';
+  } else if (started) {
+    body += '<div class="cta off">Les is al begonnen</div>';
   } else {
-    body += o.available <= 0 ? '<div class="cta off">Vol — geen plekken meer</div>' : '<div class="cta" data-act="book">Plek reserveren</div>';
+    body += o.available <= 0 ? waitlistCta(u, sid, d) : '<div class="cta" data-act="book">Les inplannen</div>';
   }
   return sheetWrap(body);
+}
+// Volle les: op de wachtlijst, of eraf.
+function waitlistCta(u, sid, d){
+  return onWaitlist(u.email, sid, d)
+    ? `<div class="note">✓ Je staat op de wachtlijst</div><div class="cancelhint">Komt er een plek vrij, dan krijg je een melding. Tik dan hier op Les inplannen.</div><div class="cta outline" data-act="leaveWait" ${at(sid, d)}>Van de wachtlijst af</div>`
+    : `<div class="cta" style="background:var(--teal)" data-act="joinWait" ${at(sid, d)}>Op wachtlijst</div><div class="cancelhint">De les is vol. Op de wachtlijst krijg je een melding als er een plek vrijkomt.</div>`;
 }
 function klantSheet({email, editing, valid}){
   const u = userBy(email); if (!u) return '';
@@ -699,11 +732,14 @@ function klantSheet({email, editing, valid}){
       <div class="field"><label>Naam</label><input type="text" data-f="en" value="${esc(f.en ?? u.name)}"></div>
       <div class="field"><label>E-mailadres${hasEmail(u.email) ? '' : ' (optioneel)'}</label><input type="text" data-f="ee" value="${esc(f.ee ?? (hasEmail(u.email) ? u.email : ''))}" placeholder="naam@voorbeeld.nl"></div>
       <div class="field"><label>Telefoon</label><input type="text" data-f="ep" value="${esc(f.ep ?? u.phone ?? '')}" placeholder="06 12345678"></div>
+      <div class="field"><label>Adres (optioneel)</label><input type="text" data-f="ea" value="${esc(f.ea ?? u.address ?? '')}" placeholder="Straat en huisnummer"></div>
+      <div style="display:flex;gap:10px"><div class="field" style="flex:1"><label>Postcode</label><input type="text" data-f="ez" value="${esc(f.ez ?? u.postcode ?? '')}" placeholder="1234 AB"></div>
+        <div class="field" style="flex:1.4"><label>Plaats</label><input type="text" data-f="ec" value="${esc(f.ec ?? u.city ?? '')}" placeholder="Berghem"></div></div>
       <div class="small-note">Verander je het e-mailadres, dan logt de klant daarna daarmee in. Het wachtwoord blijft hetzelfde.</div>
       ${UI.formError ? `<div class="err">${UI.formError}</div>` : ''}<div class="cta" data-act="saveKlant" data-email="${u.email}">Opslaan</div><div class="logout" data-act="openKlant" data-email="${u.email}">Annuleren</div></div>`); }
   const v = vastLabel(u);
   return sheetWrap(`<h2>${esc(u.name)}</h2><span class="tag org-${u.origin}">${ORIGIN_LABEL[u.origin]}</span>
-    <div class="facts"><div>E-mailadres<b>${esc(shownEmail(u.email))}</b></div><div>Telefoon<b>${esc(u.phone || '—')}</b></div>
+    <div class="facts"><div>E-mailadres<b>${esc(shownEmail(u.email))}</b></div><div>Telefoon<b>${esc(u.phone || '—')}</b></div><div>Adres<b>${esc(addressOf(u) || '—')}</b></div>
       <div>Strippen<b>${u.strippen === null ? 'geen kaart' : u.strippen}</b></div>
       ${u.strippen !== null ? `<div>Strippenkaart<b>${validity(u.validUntil)?.expired ? `vervallen (was t/m ${validity(u.validUntil).date})` : `geldig t/m ${validity(u.validUntil)?.date ?? '—'}`}</b></div>` : ''}
       <div>Privéstrippen<b>${u.privateStrips == null ? 'geen kaart' : u.privateStrips}</b></div><div>Groepsles<b>${v || '—'}</b></div>
@@ -800,10 +836,12 @@ const ACTIONS = {
   loginRequired(){ UI.sheet = null; UI.tab = 'profiel'; UI.stack = []; },
   book(){
     const {sid, d} = UI.sheet; const u = me();
-    if (!requestLesson(sid, d, u)) return;
-    log(`${u.name} vraagt ${lessonName(sid, d)} aan`);
-    UI.sheet = null; save(); showToast('Reservering aangevraagd ✓'); return 'rendered';
+    if (!bookLesson(sid, d, u)) return;
+    log(`${u.name} plant ${lessonName(sid, d)} in · push naar de beheerder (ter info)`);
+    UI.sheet = null; save(); showToast('Les ingepland ✓'); return 'rendered';
   },
+  joinWait(el){ const u = me(); joinWaitlist(el.dataset.sid, el.dataset.date, u.email); log(`${u.name} staat op de wachtlijst voor ${lessonName(el.dataset.sid, el.dataset.date)}`); save(); showToast('Je staat op de wachtlijst ✓'); },
+  leaveWait(el){ const u = me(); leaveWaitlist(el.dataset.sid, el.dataset.date, u.email); save(); showToast('Van de wachtlijst af'); },
 
   // Klant meldt zich af — met bevestiging
   askCancel(el){
@@ -816,12 +854,12 @@ const ACTIONS = {
     cancelLesson(u.email, sid, d, 'klant');
     const charged = cancellationOf(u.email, sid, d)?.charged;
     log(`${u.name} meldt zich af voor ${lessonName(sid, d)}${charged ? ' (binnen 24 uur, −1 strip)' : ''}`);
-    UI.confirm = null; UI.sheet = null; save(); showToast(charged ? 'Afgemeld — 1 strip afgeschreven' : 'Afgemeld — telt niet mee'); return 'rendered';
+    UI.confirm = null; UI.sheet = null; save(); showToast(charged ? 'Afgemeld — 1 strip afgeschreven' : 'Afgemeld ✓'); return 'rendered';
   },
   closeConfirm(){ UI.confirm = null; },
   undoCancel(el){
-    const {sid, date: d} = el.dataset; const u = me();
-    if (occ(sid, d).available <= 0) return;
+    const {sid, date: d} = el.dataset; const u = me(); const own = cancellationOf(u.email, sid, d);
+    if (!(own?.by === 'klant' && own.seen === false) && occ(sid, d).available <= 0) return;
     const charged = cancellationOf(u.email, sid, d)?.charged;
     undoCancel(u.email, sid, d); log(`${u.name} meldt zich weer aan voor ${lessonName(sid, d)}`);
     UI.sheet = null; save(); showToast(charged ? 'Weer aangemeld ✓ — strip teruggezet' : 'Weer aangemeld ✓'); return 'rendered';
@@ -963,11 +1001,11 @@ const ACTIONS = {
   },
   askCard(el){ const u = userBy(el.dataset.email); UI.confirm = {title:'Nieuwe strippenkaart?', text:`${esc(u.name)} krijgt een nieuwe 10-strippenkaart: ${u.strippen ?? 0} → ${(u.strippen ?? 0) + CARD_SIZE} strippen.`, ok:'Activeren', act:'doCard', email:u.email}; },
   doCard(){ const u = userBy(UI.confirm.email); activateCard(u.email); log(`Nieuwe 10-strippenkaart voor ${u.name} (${u.strippen} strippen)`); UI.confirm = null; save(); showToast('Strippenkaart geactiveerd ✓'); return 'rendered'; },
-  startAdd(){ UI.adding = true; UI.form = {kq: UI.form.kq, origin:'beheer'}; UI.formError = null; },
+  startAdd(){ UI.adding = true; UI.form = {kq: UI.form.kq, origin:'aanvraag'}; UI.formError = null; },
   cancelAdd(){ UI.adding = false; UI.formError = null; },
   setOrigin(el){ UI.form.origin = el.dataset.v; },
   addCustomer(){
-    const f = UI.form; const origin = f.origin || 'beheer';
+    const f = UI.form; const origin = f.origin || 'aanvraag';
     const name = (f.name || '').trim(), email = (f.email || '').trim().toLowerCase();
     if (!name) { UI.formError = 'Vul een naam in.'; return; }
     if ((origin === 'aanvraag' || email) && !isEmail(email)) { UI.formError = 'Vul een geldig e-mailadres in.'; return; }
@@ -987,7 +1025,7 @@ const ACTIONS = {
     UI.formError = !name ? 'Vul een naam in.' : mail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail) ? 'Dit e-mailadres klopt niet.' : !mail && hasEmail(u.email) ? 'Vul een e-mailadres in.'
       : mail && mail !== u.email && userBy(mail) ? 'Er bestaat al een klant met dit e-mailadres.' : null;
     if (UI.formError) return;
-    const old = u.email; u.name = name; u.phone = phone;
+    const old = u.email; u.name = name; u.phone = phone; u.address = (f.ea ?? u.address ?? '').trim(); u.postcode = (f.ez ?? u.postcode ?? '').trim().toUpperCase(); u.city = (f.ec ?? u.city ?? '').trim();
     if (mail && mail !== old) { u.email = mail; for (const k of ['enrollments', 'bookings', 'requests', 'cancels', 'messages', 'privates']) (S[k] || []).forEach(x => { if (x.email === old) x.email = mail; }); }
     log(`Gegevens van ${name} aangepast`); UI.sheet = {type:'klant', email:u.email}; UI.form = {}; save(); showToast('Gegevens opgeslagen ✓'); return 'rendered';
   },
@@ -996,7 +1034,8 @@ const ACTIONS = {
   userStrip(el){ const u = userBy(el.dataset.email); adjustUserStrip(u.email, num(el.dataset.d)); log(`Strippen ${u.name}: ${u.strippen}${num(el.dataset.d) > 0 ? ' · weer 4 maanden geldig' : ''}`); save(); },
   klantTab(el){ UI.klantTab = el.dataset.v; },
   resTab(el){ UI.resTab = el.dataset.v; },
-  ackCancel(el){ acknowledgeCancellation(el.dataset.key); log('Afmelding gezien (Akkoord)'); save(); showToast('Gezien ✓'); return 'rendered'; },
+  ackCancel(el){ acknowledgeCancellation(el.dataset.key); log('Afmelding bevestigd (Akkoord): plek vrij, wachtlijst krijgt een melding'); save(); showToast('Bevestigd ✓ · de plek is weer vrij'); return 'rendered'; },
+  ackBooking(el){ acknowledgeBooking(el.dataset.key); log('Aanmelding gezien (Akkoord)'); save(); showToast('Gezien ✓'); return 'rendered'; },
   privStrip(el){
     const u = userBy(el.dataset.email); const d = num(el.dataset.d);
     if (d < 0 && !u.privateStrips) { showToast(`${u.name.split(' ')[0]} heeft geen privéstrippen meer`); return 'rendered'; }
@@ -1014,7 +1053,7 @@ const ACTIONS = {
   resolve(el){
     const r = S.requests.find(x => x.id === UI.sheet.id); const ok = el.dataset.v === '1';
     S.requests = S.requests.filter(x => x !== r);
-    if (ok) S.bookings.push({sessionId:r.sessionId, date:r.date, email:r.email});
+    if (ok) S.bookings.push({sessionId:r.sessionId, date:r.date, email:r.email, requestedAt:r.at, approvedAt:nowIso()});
     log(`Aanvraag ${r.name} (${lessonName(r.sessionId, r.date)}) ${ok ? 'goedgekeurd' : 'geweigerd — plek vrijgegeven'}`);
     UI.sheet = null; save();
   },
@@ -1155,6 +1194,14 @@ const ACTIONS = {
     UI.month = 0; save();
   },
   openVandaag(){ UI.sheet = null; UI.prompt = null; UI.confirm = null; UI.stack = [{screen:'vandaag'}]; },
+  editMyDetails(){ UI.myDetails = true; UI.form = {}; },
+  cancelMyDetails(){ UI.myDetails = false; },
+  saveMyDetails(){
+    const u = me(); const f = UI.form;
+    u.phone = (f.mp ?? u.phone ?? '').trim(); u.address = (f.ma ?? u.address ?? '').trim();
+    u.postcode = (f.mz ?? u.postcode ?? '').trim().toUpperCase(); u.city = (f.mc ?? u.city ?? '').trim();
+    UI.myDetails = false; log(`${u.name} past de eigen gegevens aan`); save(); showToast('Gegevens opgeslagen ✓'); return 'rendered';
+  },
   reset(){
     if (!confirm('Alle wijzigingen in de demo wissen en opnieuw beginnen?')) return;
     try { localStorage.removeItem(SAVE_KEY); } catch {}
@@ -1188,6 +1235,18 @@ document.addEventListener('input', (e) => {
   if (e.target.dataset.f) UI.form[e.target.dataset.f] = e.target.value;
 });
 // Datum/keuze bevestigd → opnieuw tekenen (bv. voor het aantal vervallen lessen)
+// Profielfoto kiezen (demo: verkleind en als data-URL bewaard).
+document.addEventListener('change', (e) => {
+  if (e.target.id !== 'avatarPick' || !e.target.files?.[0]) return;
+  const img = new Image(); const reader = new FileReader();
+  reader.onload = () => { img.onload = () => {
+    const c = document.createElement('canvas'); const s = 240; c.width = s; c.height = s;
+    const k = Math.max(s / img.width, s / img.height); const w = img.width * k, h = img.height * k;
+    c.getContext('2d').drawImage(img, (s - w) / 2, (s - h) / 2, w, h);
+    me().avatar = c.toDataURL('image/jpeg', 0.85); save(); render(); showToast('Foto opgeslagen ✓');
+  }; img.src = reader.result; };
+  reader.readAsDataURL(e.target.files[0]);
+});
 document.addEventListener('change', (e) => { if (e.target.dataset?.f && e.target.type !== 'text') { UI.form[e.target.dataset.f] = e.target.value; render(); } });
 
 /* ── Testpaneel ─────────────────────────────────────────────────────── */
@@ -1223,7 +1282,7 @@ function renderSide(){
     <div class="box"><h2>Probeer eens</h2><ol class="tips">
       <li>Open als <b>Marieke</b> de tab <b>Mijn lessen</b>: haar vaste dinsdagavond, komende en afgenomen lessen.</li>
       <li>Meld je af voor een komende les en spoel de tijd vooruit met <b>+1 week</b>. Als <b>Beheer</b>: Profiel → Vandaag · presentielijst → bevestig de les. Pas dan gaat er een strip af.</li>
-      <li>Reserveer als Marieke een losse les en keur hem als <b>Beheer</b> goed onder Profiel → Reservering aanvragen.</li>
+      <li>Plan als Marieke een losse les in (of zet haar op de wachtlijst bij een volle les) en bekijk als <b>Beheer</b> Profiel → Aanmeldingen en afmeldingen.</li>
       <li>Tik als beheerder op een les: je ziet direct alle deelnemers. Plan via <b>＋ Klant toevoegen</b> <b>Daan</b> vast in, en kijk als Daan bij Mijn lessen.</li>
       <li>Ga als <b>Beheer</b> naar Profiel → Klanten beheren: voeg een klant zonder app toe (geel) of na een accountaanvraag (groen), of verwijder een klant.</li>
       <li>Zet als Marieke het schuifje bij de Algemene voorwaarden aan; bekijk als Beheer wie akkoord heeft.</li>

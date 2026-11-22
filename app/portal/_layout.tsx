@@ -67,7 +67,7 @@ export default function PortalLayout() {
   };
   // Counter next to a menu item: what still needs the admin's attention.
   const badges: Record<string, number> = {
-    '/portal/reserveringen': schedule.data.requests.length + schedule.openCancellations().length,
+    '/portal/reserveringen': schedule.data.requests.length + schedule.openCancellations().length + schedule.openBookings().length,
     '/portal/presentie': schedule.unconfirmedLessons().length,
     '/portal/klanten': accountRequests.length,
     '/portal/berichten': inbox.badge,

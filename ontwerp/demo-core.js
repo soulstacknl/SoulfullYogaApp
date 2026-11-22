@@ -53,6 +53,8 @@ let S; // toestand, zie onder
 const now = () => new Date(Date.now() + (S?.offsetDays || 0) * DAY);
 const isoOf = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const toDate = (iso, hm = '00.00') => { const [y,m,d] = iso.split('-').map(Number); const [h,mi] = hm.split('.').map(Number); return new Date(y, m-1, d, h, mi); };
+// Same day n months later (clamped to the last day of that month).
+const plusMonths = (iso, n) => { const d = toDate(iso); const t = new Date(d.getFullYear(), d.getMonth() + n, 1); const last = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate(); return isoOf(new Date(t.getFullYear(), t.getMonth(), Math.min(d.getDate(), last))); };
 const plusDays = (iso, n) => { const d = toDate(iso); d.setDate(d.getDate() + n); return isoOf(d); };
 const daysBetween = (a, b) => Math.round((toDate(b) - toDate(a)) / DAY);
 const startOf = (sid, d) => toDate(d, SES[sid].time.split(' – ')[0]);
@@ -145,7 +147,7 @@ function seedCustomers(s){
     const u = pick(customers); const sid = pick(sessionIds);
     let d = plusDays(today, 2 + Math.floor(rnd() * 14));
     while (weekdayOf(d) !== SES[sid].day) d = plusDays(d, 1);
-    if (!s.enrollments.some(e => e.email === u.email && e.sessionId === sid)) s.requests.push({id:`r-seed-${i}`, sessionId:sid, date:d, email:u.email, name:u.name});
+    if (!s.enrollments.some(e => e.email === u.email && e.sessionId === sid)) s.bookings.push({sessionId:sid, date:d, email:u.email, by:'klant', at:new Date(Date.now() - (i + 1) * 3600000).toISOString(), seen:false});
   }
 }
 
@@ -181,7 +183,7 @@ try { S = JSON.parse(localStorage.getItem(SAVE_KEY)) || null; } catch { S = null
 const reindex = () => { SES = Object.fromEntries(S.sessions.map(s => [s.id, s])); };
 if (!S) { S = initialState(); S.seedPending = true; }   // geschiedenis volgt onderaan, als alle regels bekend zijn
 reindex();
-const save = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch {} };
+const save = () => { expireCards(); try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch {} };
 
 
 const me = () => S.users.find(u => u.email === S.email) || null;
@@ -217,9 +219,11 @@ function statusFor(email, sid, d){
 }
 // App-klanten die op deze datum meedoen (aanvragen houden ook een plek vast)
 const attendees = (sid, d) => students().map(u => ({user:u, st:statusFor(u.email, sid, d)})).filter(x => x.st && !x.st.cancelled);
+// Een afmelding van een klant houdt de plek bezet tot de beheerder hem bevestigt (Akkoord).
+const heldByCancellation = (sid, d) => S.cancels.filter(c => c.sessionId === sid && c.date === d && c.by === 'klant' && c.seen === false).length;
 function occ(sid, d){
   const cap = S.capOverride[key(sid, d)] ?? SES[sid].capacity;
-  const booked = (S.roster[sid] || []).length + attendees(sid, d).length;
+  const booked = (S.roster[sid] || []).length + attendees(sid, d).length + heldByCancellation(sid, d);
   return {cap, booked, available: Math.max(0, cap - booked)};
 }
 // Alle lessen van een klant tussen twee datums, op volgorde
@@ -322,9 +326,24 @@ const checkTimes = (f) => !f.start || !f.end ? 'Vul een begin- en eindtijd in.' 
 const timeOf = (f) => `${f.start.replace(':', '.')} – ${f.end.replace(':', '.')}`;
 
 /* ── Acties op de data ──────────────────────────────────────────────── */
+// De klant plant zelf in als er plek is (geen goedkeuring); de beheerder ziet het onder Aanmeldingen.
+function bookLesson(sid, d, u){
+  if (statusFor(u.email, sid, d) || occ(sid, d).available <= 0) return false;
+  S.bookings.push({sessionId:sid, date:d, email:u.email, by:'klant', at:nowIso(), seen:false});
+  S.waitlist = (S.waitlist || []).filter(w => !(w.email === u.email && w.sessionId === sid && w.date === d));
+  return true;
+}
+const onWaitlist = (email, sid, d) => (S.waitlist || []).some(w => w.email === email && w.sessionId === sid && w.date === d);
+const waitlistOf = (sid, d) => (S.waitlist || []).filter(w => w.sessionId === sid && w.date === d);
+function joinWaitlist(sid, d, email){ if (!onWaitlist(email, sid, d)) (S.waitlist ||= []).push({sessionId:sid, date:d, email, at:nowIso()}); }
+function leaveWaitlist(sid, d, email){ S.waitlist = (S.waitlist || []).filter(w => !(w.email === email && w.sessionId === sid && w.date === d)); }
+// Er kwam een plek vrij: iedereen op de wachtlijst krijgt een melding (in de demo: notified).
+function notifyWaitlist(sid, d){ if (occ(sid, d).available > 0) waitlistOf(sid, d).forEach(w => { w.notified = nowIso(); }); }
+const openBookings = () => S.bookings.filter(b => b.by === 'klant' && b.seen === false).sort((a, b) => (b.at || '').localeCompare(a.at || ''));
+function acknowledgeBooking(k){ const b = S.bookings.find(x => `${x.sessionId}@${x.date}#${x.email}` === k); if (b) b.seen = true; }
 function requestLesson(sid, d, u){
   if (statusFor(u.email, sid, d) || occ(sid, d).available <= 0) return false;
-  S.requests.unshift({id:`r-${Date.now()}`, sessionId:sid, date:d, email:u.email, name:u.name});
+  S.requests.unshift({id:`r-${Date.now()}`, sessionId:sid, date:d, email:u.email, name:u.name, at:nowIso()});
   return true;
 }
 // Voorwaarden art. 5.4: een klant die later dan 24 uur voor aanvang afmeldt, betaalt 1 strip.
@@ -343,6 +362,7 @@ function cancelLesson(email, sid, d, by){
   const charged = late && (u?.strippen ?? 0) > 0;
   if (charged) u.strippen--;
   S.cancels.push({sessionId:sid, date:d, email, by, late, charged, at:nowIso(), seen: by === 'klant' ? false : true});
+  if (by === 'beheer') notifyWaitlist(sid, d);
 }
 // Weer aanmelden: een strip die voor te laat afmelden afging, komt terug.
 const undoCancel = (email, sid, d) => {
@@ -384,7 +404,7 @@ function resolveRequest(id, approved){
   const r = S.requests.find(x => x.id === id);
   if (!r) return null;
   S.requests = S.requests.filter(x => x !== r);
-  if (approved) S.bookings.push({sessionId:r.sessionId, date:r.date, email:r.email});
+  if (approved) S.bookings.push({sessionId:r.sessionId, date:r.date, email:r.email, requestedAt:r.at, approvedAt:nowIso()});
   return r;
 }
 function addSession(session){ S.sessions.push({...session, id:`s-${Date.now()}`}); reindex(); }
@@ -403,10 +423,20 @@ const cardValidUntil = () => { const n = now(); return isoOf(new Date(n.getFullY
 const laterOf = (a, b) => (a && a > b ? a : b);
 const validity = (iso) => { if (!iso) return null; const d = toDate(iso); return {expired: iso < isoOf(now()), date:`${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`}; };
 const validTag = (iso, extra = '') => { const v = validity(iso); return !v ? '' : v.expired ? `<span class="vtag exp" ${extra}>Vervallen · was geldig t/m ${v.date}</span>` : `<span class="vtag" ${extra}>Geldig t/m ${v.date}</span>`; };
-function activateCard(email){ const u = userBy(email); u.strippen = (u.strippen ?? 0) + CARD_SIZE; u.total = Math.max(CARD_SIZE, u.strippen); u.validUntil = laterOf(u.validUntil, cardValidUntil()); return u.strippen; }
-function adjustUserStrip(email, delta){ const u = userBy(email); u.strippen = Math.max(0, (u.strippen ?? 0) + delta); if (delta > 0) u.validUntil = laterOf(u.validUntil, cardValidUntil()); return u.strippen; }
+// What the admin did with the strips (new card, + or −): the customer's history.
+function logStrip(u, card, kind, delta, balance){ if (delta) (u.stripLog ||= []).unshift({card, kind, delta, balance, at: new Date().toISOString()}); }
+// Strips left after the end date go to 0 (the database does this every hour), logged as "vervallen".
+function expireCards(){
+  if (!S?.users) return;
+  const today = isoOf(now());
+  S.users.forEach(u => { if (u.strippen > 0 && u.validUntil && u.validUntil < today) {
+    const at = toDate(plusDays(u.validUntil, 1)); at.setMinutes(5);
+    (u.stripLog ||= []).unshift({card:'groep', kind:'vervallen', delta:-u.strippen, balance:0, at:at.toISOString()}); u.strippen = 0; } });
+}
+function activateCard(email){ const u = userBy(email); u.strippen = (u.strippen ?? 0) + CARD_SIZE; u.total = Math.max(CARD_SIZE, u.strippen); u.validUntil = laterOf(u.validUntil, cardValidUntil()); logStrip(u, 'groep', 'kaart', CARD_SIZE, u.strippen); return u.strippen; }
+function adjustUserStrip(email, delta){ const u = userBy(email); const before = u.strippen ?? 0; u.strippen = Math.max(0, before + delta); if (delta > 0) u.validUntil = laterOf(u.validUntil, cardValidUntil()); logStrip(u, 'groep', 'aanpassing', u.strippen - before, u.strippen); return u.strippen; }
 // Aparte strippenkaart voor privélessen, zonder einddatum: de beheerder schrijft zelf af (−), niet via de presentielijst.
-function adjustPrivateStrip(email, delta){ const u = userBy(email); u.privateStrips = Math.max(0, (u.privateStrips ?? 0) + delta); return u.privateStrips; }
+function adjustPrivateStrip(email, delta){ const u = userBy(email); const before = u.privateStrips; u.privateStrips = Math.max(0, (before ?? 0) + delta); logStrip(u, 'prive', before === null ? 'kaart' : 'aanpassing', u.privateStrips - (before ?? 0), u.privateStrips); return u.privateStrips; }
 function removePrivateCard(email){ const u = userBy(email); u.privateStrips = null; }
 function adjustSeedStrip(sid, id, delta){ const e = (S.roster[sid] || []).find(x => x.id === id); e.strips = Math.max(0, e.strips + delta); }
 
@@ -417,6 +447,12 @@ if (S.seedPending) { delete S.seedPending; seedHistory(); save(); }
 // S.news: {id, title, body, at, push}. S.messages: {id, email (de klant), from:'klant'|'studio', text, at}.
 // Gelezen tot: S.read[email] = {news, chat} voor de klant, S.studioRead[email] voor de studio.
 const nowIso = () => now().toISOString();
+// Adres van een klant op één regel ('' als de klant niets invulde).
+const addressOf = (u) => [u.address, [u.postcode, u.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+// Profielfoto (in de demo als data-URL bewaard) of initialen.
+const avatarHtml = (u, size = 40) => u.avatar
+  ? `<img src="${u.avatar}" alt="" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;flex:none">`
+  : `<span style="width:${size}px;height:${size}px;border-radius:50%;flex:none;display:inline-flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#E8A33D,#C23B6E);color:#fff;font-weight:700;font-size:${Math.round(size * 0.36)}px">${u.name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('')}</span>`;
 const agoIso = (days, hours = 0) => new Date(Date.now() - (days * 24 + hours) * 3600000).toISOString();
 function seedMessages(s){
   s.news = [
@@ -568,7 +604,7 @@ const openCancellations = () => [
   ...S.privates.filter(p => p.cancelled && p.cancelSeen === false).map(p => ({kind:'prive', key:p.id, email:p.email, date:p.date, at:p.cancelledAt, id:p.id, time:p.time})),
 ].sort((a, b) => b.at.localeCompare(a.at));
 function acknowledgeCancellation(key){
-  const c = S.cancels.find(x => `${x.sessionId}@${x.date}#${x.email}` === key); if (c) c.seen = true;
+  const c = S.cancels.find(x => `${x.sessionId}@${x.date}#${x.email}` === key); if (c) { c.seen = true; notifyWaitlist(c.sessionId, c.date); }
   const p = S.privates.find(x => x.id === key); if (p) p.cancelSeen = true;
 }
 // Geldigheid en privéstrippen voor demo’s die al bewaard waren.

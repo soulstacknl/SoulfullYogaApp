@@ -9,7 +9,8 @@ import { colors, fonts, styleMeta } from '@/constants/theme';
 import { useSchedule } from '@/contexts/ScheduleContext';
 import { CARD_SIZE, useUsers } from '@/contexts/UsersContext';
 import type { AppUser, CustomerOrigin } from '@/data/users';
-import { ORIGIN_LABEL, ORIGIN_TONE, shownEmail } from '@/data/users';
+import Avatar from '@/components/Avatar';
+import { addressOf, ORIGIN_LABEL, ORIGIN_TONE, shownEmail } from '@/data/users';
 import { dateLabel, plusDays } from '@/lib/dutchDate';
 import { activeOn, openChargeCount, startTimeOf } from '@/lib/schedule';
 
@@ -178,7 +179,7 @@ export default function PortalKlanten() {
         {list.length ? (
           <>
             <View style={styles.head}>
-              {['Klant', 'Telefoon', 'Strippen', 'Groepsles', 'Voorwaarden', 'Openstaand'].map((h, i) => (
+              {['Klant', 'Telefoon · adres', 'Strippen', 'Groepsles', 'Voorwaarden', 'Openstaand'].map((h, i) => (
                 <Text key={h} style={[styles.th, COLS[i]]}>
                   {h}
                 </Text>
@@ -192,12 +193,18 @@ export default function PortalKlanten() {
                   key={u.email}
                   onPress={() => portal.openKlant(u.email)}
                   style={({ hovered }: { hovered?: boolean }) => [styles.tr, hovered && { backgroundColor: '#FBF7EF' }]}>
-                  <View style={COLS[0]}>
-                    <Text style={s.nm}>{u.name}</Text>
-                    <Text style={s.dt}>{shownEmail(u.email)}</Text>
-                    <Pill label={ORIGIN_LABEL[u.origin]} tone={ORIGIN_TONE[u.origin]} />
+                  <View style={[COLS[0], { flexDirection: 'row', gap: 10, alignItems: 'flex-start' }]}>
+                    <Avatar path={u.avatarPath} name={u.name} size={34} />
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={s.nm}>{u.name}</Text>
+                      <Text style={s.dt}>{shownEmail(u.email)}</Text>
+                      <Pill label={ORIGIN_LABEL[u.origin]} tone={ORIGIN_TONE[u.origin]} />
+                    </View>
                   </View>
-                  <Text style={[s.body, COLS[1]]}>{u.phone}</Text>
+                  <View style={COLS[1]}>
+                    <Text style={s.body}>{u.phone}</Text>
+                    {addressOf(u) ? <Text style={s.dt}>{addressOf(u)}</Text> : null}
+                  </View>
                   <View style={[s.row, COLS[2]]}>
                     <Stepper value={u.strippen ?? 0} onChange={(d) => adjustStrip(u.email, d)} />
                     <Btn label="+10" tone="teal" small onPress={() => askCard(u)} />
@@ -232,7 +239,7 @@ export default function PortalKlanten() {
 // Adds a customer: after an account request (gets a mail to set a password for the app),
 // or by hand for a customer who doesn't use the app (e-mail optional).
 function NewCustomerCard({ onClose, onCreate }: { onClose: () => void; onCreate: (name: string, email: string, phone: string, origin: CustomerOrigin) => Promise<boolean> }) {
-  const [origin, setOrigin] = useState<CustomerOrigin>('beheer');
+  const [origin, setOrigin] = useState<CustomerOrigin>('aanvraag');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -248,7 +255,7 @@ function NewCustomerCard({ onClose, onCreate }: { onClose: () => void; onCreate:
 
   return (
     <Card title="Klant toevoegen" style={{ marginBottom: 14 }}>
-      <Segmented<CustomerOrigin> options={[['beheer', ORIGIN_LABEL.beheer], ['aanvraag', ORIGIN_LABEL.aanvraag]]} value={origin} onChange={setOrigin} />
+      <Segmented<CustomerOrigin> options={[['aanvraag', ORIGIN_LABEL.aanvraag], ['beheer', ORIGIN_LABEL.beheer]]} value={origin} onChange={setOrigin} />
       <View style={portalStyles.form}>
         <Field label="Naam">
           <Input value={name} onChange={setName} placeholder="Voor- en achternaam" />

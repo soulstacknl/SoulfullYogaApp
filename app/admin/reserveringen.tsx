@@ -8,12 +8,12 @@ import Tag from '@/components/Tag';
 import Toast, { useToast } from '@/components/Toast';
 import { colors, fonts, styleMeta } from '@/constants/theme';
 import { useSchedule } from '@/contexts/ScheduleContext';
-import type { ReservationRequest } from '@/contexts/ScheduleContext';
+import type { Booking, ReservationRequest } from '@/contexts/ScheduleContext';
 import { useUsers } from '@/contexts/UsersContext';
 import { dateLabel } from '@/lib/dutchDate';
 import type { OpenCancellation } from '@/lib/schedule';
 
-type Tab = 'aanvragen' | 'afmeldingen';
+type Tab = 'aanmeldingen' | 'afmeldingen';
 
 // "zo 8 nov 16.43"
 const momentLabel = (iso: string) =>
@@ -23,15 +23,19 @@ const momentLabel = (iso: string) =>
         .replace(':', '.')
     : '';
 
-// Requests for single lessons, and the customers' cancellations. Akkoord on a
-// cancellation only marks it as seen: the customer is already cancelled.
+// Lessons customers planned themselves (for information: Akkoord = seen) and their
+// cancellations. Akkoord on a cancellation releases the spot: until then it stays taken,
+// afterwards the waiting list gets a push.
 export default function ReserveringenScreen() {
   const params = useLocalSearchParams<{ tab?: Tab }>();
-  const { data, sessionById, resolveRequest, openCancellations, acknowledgeCancellation } = useSchedule();
+  const { data, sessionById, resolveRequest, openCancellations, acknowledgeCancellation, openBookings, acknowledgeBooking } = useSchedule();
+  const bookings = openBookings();
   const { users } = useUsers();
-  const { requests } = data;
+  // A request just approved or rejected leaves the list at once, before the reload.
+  const [handled, setHandled] = useState<string[]>([]);
+  const requests = data.requests.filter((r) => !handled.includes(r.id));
   const cancellations = openCancellations();
-  const [tab, setTab] = useState<Tab>(params.tab === 'afmeldingen' ? 'afmeldingen' : 'aanvragen');
+  const [tab, setTab] = useState<Tab>(params.tab === 'afmeldingen' ? 'afmeldingen' : 'aanmeldingen');
   const [selected, setSelected] = useState<ReservationRequest | null>(null);
   const toast = useToast();
 
@@ -41,7 +45,9 @@ export default function ReserveringenScreen() {
   const handleResolve = (approved: boolean) => {
     if (!selected) return;
     resolveRequest(selected.id, approved);
+    setHandled((ids) => [...ids, selected.id]);
     closeSheet();
+    toast.show(approved ? 'Goedgekeurd ✓ · de klant krijgt een melding' : 'Afgewezen');
   };
 
   const renderCancellation = (c: OpenCancellation) => {
@@ -70,6 +76,36 @@ export default function ReserveringenScreen() {
           hitSlop={6}
           onPress={() => {
             acknowledgeCancellation(c);
+            toast.show(c.kind === 'groep' ? 'Bevestigd ✓ · de plek is weer vrij' : 'Gezien ✓');
+          }}>
+          <Text style={styles.okBtnText}>Akkoord</Text>
+        </Pressable>
+      </View>
+    );
+  };
+
+  const renderBooking = (b: Booking) => {
+    const session = sessionById(b.sessionId);
+    if (!session) return null;
+    const meta = styleMeta[session.style];
+    return (
+      <View key={`${b.sessionId}@${b.date}#${b.email}`} style={styles.row}>
+        <View style={[styles.dot, { backgroundColor: meta.color }]}>
+          <Text style={styles.dotLabel}>{meta.dotLabel}</Text>
+        </View>
+        <View style={styles.info}>
+          <Text style={styles.name}>{nameOf(b.email)}</Text>
+          <Text style={styles.detail}>
+            {meta.label} · {dateLabel(b.date)} · {session.time}
+          </Text>
+          <Tag label="Zelf ingepland" tone="teal" />
+          {b.at ? <Text style={styles.email}>Aangemeld {momentLabel(b.at)}</Text> : null}
+        </View>
+        <Pressable
+          style={styles.okBtn}
+          hitSlop={6}
+          onPress={() => {
+            acknowledgeBooking(b);
             toast.show('Gezien ✓');
           }}>
           <Text style={styles.okBtnText}>Akkoord</Text>
@@ -85,15 +121,19 @@ export default function ReserveringenScreen() {
         onBack={() => router.back()}
         eyebrow="Docentmodus"
         title="Reserveringen"
-        subtitle={tab === 'aanvragen' ? 'Tik op een aanvraag om te beoordelen' : 'De klant is al afgemeld; Akkoord betekent: gezien'}
+        subtitle={
+          tab === 'aanmeldingen'
+            ? 'Klanten plannen zelf in. Ter info; Akkoord betekent: gezien'
+            : 'Na Akkoord komt de plek vrij en krijgt de wachtlijst een melding'
+        }
       />
       <View style={styles.segment}>
-        {(['aanvragen', 'afmeldingen'] as const).map((t) => {
-          const count = t === 'aanvragen' ? requests.length : cancellations.length;
+        {(['aanmeldingen', 'afmeldingen'] as const).map((t) => {
+          const count = t === 'aanmeldingen' ? bookings.length + requests.length : cancellations.length;
           return (
             <Pressable key={t} style={[styles.segmentBtn, tab === t && styles.segmentBtnOn]} onPress={() => setTab(t)}>
               <Text style={[styles.segmentText, tab === t && styles.segmentTextOn]}>
-                {t === 'aanvragen' ? 'Aanvragen' : 'Afmeldingen'}
+                {t === 'aanmeldingen' ? 'Aanmeldingen' : 'Afmeldingen'}
                 {count ? ` (${count})` : ''}
               </Text>
             </Pressable>
@@ -107,10 +147,10 @@ export default function ReserveringenScreen() {
           ) : (
             cancellations.map(renderCancellation)
           )
-        ) : requests.length === 0 ? (
-          <Text style={styles.empty}>Nog geen aanvragen</Text>
+        ) : bookings.length + requests.length === 0 ? (
+          <Text style={styles.empty}>Geen nieuwe aanmeldingen</Text>
         ) : (
-          requests.map((request) => {
+          [...bookings.map(renderBooking), ...requests.map((request) => {
             const session = sessionById(request.sessionId);
             if (!session) return null;
             const meta = styleMeta[session.style];
@@ -132,7 +172,7 @@ export default function ReserveringenScreen() {
                 <Text style={styles.chevron}>›</Text>
               </Pressable>
             );
-          })
+          })]
         )}
       </ScrollView>
 

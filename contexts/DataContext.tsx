@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Alert, Platform } from 'react-native';
+import { Alert, AppState, Platform } from 'react-native';
 
 import { useAuth } from '@/contexts/AuthContext';
 import type { AppUser } from '@/data/users';
@@ -59,8 +59,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
         timer = setTimeout(reload, 300);
       })
       .subscribe();
+    // Back from the background (e.g. after tapping a push): the live connection may have
+    // missed changes meanwhile, so load everything again.
+    const appState = AppState.addEventListener('change', (state) => {
+      if (state === 'active') reload();
+    });
     return () => {
       clearTimeout(timer);
+      appState.remove();
       supabase.removeChannel(channel);
     };
   }, [ready, userId, reload]);

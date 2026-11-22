@@ -10,6 +10,7 @@ import * as rules from '@/lib/schedule';
 import type {
   AttendanceEntry,
   Attendee,
+  Booking,
   Cancellation,
   Charge,
   Closure,
@@ -23,6 +24,7 @@ import type {
   PrivateLesson,
   ReservationRequest,
   ScheduleData,
+  WaitlistEntry,
 } from '@/lib/schedule';
 
 export type {
@@ -37,6 +39,8 @@ export type {
   OpenCancellation,
   PrivateLesson,
   ReservationRequest,
+  Booking,
+  WaitlistEntry,
 } from '@/lib/schedule';
 
 type ScheduleContextValue = {
@@ -60,6 +64,14 @@ type ScheduleContextValue = {
   cancellationOf: (email: string, sessionId: string, date: string) => Cancellation | undefined;
   // Customer
   requestLesson: (sessionId: string, date: string, person: Person) => boolean;
+  // The customer plans a lesson with a free spot; a full lesson has a waiting list.
+  bookLesson: (sessionId: string, date: string, email: string) => Promise<boolean>;
+  onWaitlist: (email: string, sessionId: string, date: string) => boolean;
+  joinWaitlist: (sessionId: string, date: string, email: string) => void;
+  leaveWaitlist: (sessionId: string, date: string, email: string) => void;
+  waitlistOf: (sessionId: string, date: string) => WaitlistEntry[];
+  openBookings: () => Booking[];
+  acknowledgeBooking: (booking: Booking) => void;
   cancelLesson: (email: string, sessionId: string, date: string, by: 'klant' | 'beheer') => void;
   undoCancel: (email: string, sessionId: string, date: string) => boolean;
   // Admin
@@ -127,9 +139,12 @@ export function ScheduleProvider({ children }: { children: ReactNode }) {
     if (!rules.isCancelled(data, email, sessionId, date)) run(() => remote.cancelLesson(sessionId, date, idOf(email), by));
   };
 
-  // Coming back is only possible while the freed spot hasn't been taken.
+  // Coming back: always while the admin hasn't confirmed the cancellation (the spot is
+  // still held), otherwise only while there is a free spot.
   const undoCancel = (email: string, sessionId: string, date: string) => {
-    if (occupancy(sessionId, date).available <= 0) return false;
+    const own = rules.cancellationOf(data, email, sessionId, date);
+    const stillHeld = own?.by === 'klant' && !own.seen;
+    if (!stillHeld && occupancy(sessionId, date).available <= 0) return false;
     run(() => remote.undoCancel(sessionId, date, idOf(email)));
     return true;
   };
@@ -247,6 +262,16 @@ export function ScheduleProvider({ children }: { children: ReactNode }) {
         isLateCancel: (session, date) => rules.isLateCancel(session, date, now),
         cancellationOf: (email, sessionId, date) => rules.cancellationOf(data, email, sessionId, date),
         requestLesson,
+        bookLesson: async (sessionId, date, email) => {
+          if (rules.statusFor(data, email, sessionId, date) || occupancy(sessionId, date).available <= 0) return false;
+          return run(() => remote.bookLesson(sessionId, date, idOf(email)));
+        },
+        onWaitlist: (email, sessionId, date) => rules.onWaitlist(data, email, sessionId, date),
+        joinWaitlist: (sessionId, date, email) => run(() => remote.joinWaitlist(sessionId, date, idOf(email))),
+        leaveWaitlist: (sessionId, date, email) => run(() => remote.leaveWaitlist(sessionId, date, idOf(email))),
+        waitlistOf: (sessionId, date) => data.waitlist.filter((w) => w.sessionId === sessionId && w.date === date),
+        openBookings: () => rules.openBookings(data),
+        acknowledgeBooking: (b) => run(() => remote.acknowledgeBooking(b.sessionId, b.date, idOf(b.email))),
         cancelLesson,
         undoCancel,
         resolveRequest,

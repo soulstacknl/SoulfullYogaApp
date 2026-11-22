@@ -5,6 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import type { AppUser, CustomerOrigin } from '@/data/users';
 import type { AccountRequest } from '@/lib/remote';
+import type { ChosenImage } from '@/lib/avatar';
+import { removeAvatarsOf, uploadAvatar } from '@/lib/avatar';
 import { inboxRemote } from '@/lib/inbox';
 import { remote } from '@/lib/remote';
 
@@ -23,12 +25,18 @@ type UsersContextValue = {
   deleteCustomer: (email: string) => Promise<boolean>;
   // Name, phone and e-mail; a new e-mail is also the customer's login from then on.
   setCardValidUntil: (email: string, date: string) => Promise<boolean>;
-  updateCustomer: (email: string, fields: { name: string; phone: string; email: string }) => Promise<boolean>;
+  updateCustomer: (
+    email: string,
+    fields: { name: string; phone: string; email: string; address?: string; postcode?: string; city?: string }
+  ) => Promise<boolean>;
   // Account requests from the app (admin): approve creates the customer and sends the password mail.
   accountRequests: AccountRequest[];
   approveAccountRequest: (id: string) => Promise<boolean>;
   rejectAccountRequest: (id: string) => Promise<boolean>;
   deleteOwnAccount: () => Promise<boolean>;
+  // The signed-in customer's own photo, phone and address.
+  setMyAvatar: (image: ChosenImage) => Promise<boolean>;
+  updateMyDetails: (d: { phone: string; address: string; postcode: string; city: string }) => Promise<boolean>;
 };
 
 export const CARD_SIZE = 10;
@@ -98,7 +106,19 @@ export function UsersProvider({ children }: { children: ReactNode }) {
         },
         updateCustomer: async (email, fields) => {
           const user = byEmail(email);
-          return !!user && run(() => remote.updateCustomer(user.id, fields.name, fields.phone, fields.email));
+          return (
+            !!user &&
+            run(async () => {
+              await remote.updateCustomer(user.id, fields.name, fields.phone, fields.email);
+              if (fields.address !== undefined) {
+                await remote.updateCustomerAddress(user.id, {
+                  address: fields.address,
+                  postcode: (fields.postcode ?? '').toUpperCase(),
+                  city: fields.city ?? '',
+                });
+              }
+            })
+          );
         },
         deleteCustomer: async (email) => {
           const user = byEmail(email);
@@ -106,6 +126,7 @@ export function UsersProvider({ children }: { children: ReactNode }) {
             !!user &&
             run(async () => {
               await inboxRemote.removeFilesOf(user.id);
+              await removeAvatarsOf(user.id);
               await remote.deleteCustomer(user.id);
             })
           );
@@ -113,8 +134,14 @@ export function UsersProvider({ children }: { children: ReactNode }) {
         deleteOwnAccount: () =>
           run(async () => {
             if (userId) await inboxRemote.removeFilesOf(userId);
+            if (userId) await removeAvatarsOf(userId);
             await remote.deleteOwnAccount();
           }),
+        setMyAvatar: async (image) => {
+          const me = users.find((u) => u.id === userId);
+          return !!userId && run(() => uploadAvatar(userId, image, me?.avatarPath ?? null));
+        },
+        updateMyDetails: async (d) => !!userId && run(() => remote.updateMyDetails(userId, d)),
       }}>
       {children}
     </UsersContext.Provider>

@@ -20,7 +20,7 @@ Meer rust en ruimte voor jezelf. Met de app van Soulful Yoga in Berghem regel je
 
 ROOSTER
 • Bekijk het lesrooster per maand, met een kalender waarin je in één oogopslag ziet wanneer er Yin, Flow of Gentle Yoga is.
-• Zie direct hoeveel plekken er nog vrij zijn en vraag een plek aan in een les.
+• Zie direct hoeveel plekken er nog vrij zijn en plan zelf een les in, of zet je op de wachtlijst als een les vol is.
 
 MIJN LESSEN
 • Je groepsles staat automatisch voor je klaar.
@@ -59,7 +59,7 @@ Soulful Yoga · Runselstraat 18 · 5351 NJ Berghem · www.soulfulyoga.nl
 - Naam: `Testaccount klant`
 - Gebruikersnaam: `review@soulfulyoga.nl`
 - Wachtwoord: staat in `.env.local` (`PLAY_REVIEW_PASSWORD`), niet in deze repo
-- Instructies: `Open de tab Profiel en log in. Het account heeft 10 strippen. Kies in het Rooster een les en vraag een plek aan. Onder Berichten staan het nieuws en de chat met de studio.`
+- Instructies: `Open de tab Profiel en log in. Het account heeft 10 strippen. Kies in het Rooster een les en tik op Les inplannen. Onder Berichten staan het nieuws en de chat met de studio.`
 
 **Advertenties** – *Nee, mijn app bevat geen advertenties.*
 

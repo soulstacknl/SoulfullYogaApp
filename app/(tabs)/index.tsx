@@ -49,9 +49,10 @@ export default function ScheduleScreen() {
     if (schedule.closureOf(session.id, date)) return ['Vervalt', 'muted'];
     if (user && !isAdmin) {
       const status = schedule.statusFor(user.email, session.id, date);
-      if (status?.cancelled) return ['Afgemeld', 'muted'];
+      // A cancelled lesson is off the customer's schedule: it shows like any other lesson.
       if (status?.source === 'aanvraag') return ['Aangevraagd', 'pending'];
-      if (status) return ['✓ Ingepland', 'mine'];
+      if (status && !status.cancelled) return ['✓ Ingepland', 'mine'];
+      if (schedule.onWaitlist(user.email, session.id, date)) return ['Wachtlijst', 'pending'];
     }
     const occupancy = schedule.occupancy(session.id, date);
     return occupancy.available <= 0

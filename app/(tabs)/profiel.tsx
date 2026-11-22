@@ -1,4 +1,3 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -7,6 +6,8 @@ import CardValidity from '@/components/CardValidity';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import type { ConfirmRequest } from '@/components/ConfirmDialog';
 import LoginScreen from '@/components/LoginScreen';
+import MyDetails from '@/components/MyDetails';
+import Toast, { useToast } from '@/components/Toast';
 import ScreenHeader from '@/components/ScreenHeader';
 import { colors, fonts } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,10 +28,11 @@ export default function ProfielScreen() {
   const user = useCurrentUser();
   const { students, deleteOwnAccount, accountRequests } = useUsers();
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
-  const { data, today, unconfirmedLessons, openCancellations } = useSchedule();
+  const toast = useToast();
+  const { data, today, unconfirmedLessons, openCancellations, openBookings } = useSchedule();
   const openPayments = useInbox().payments.open.length;
   // Badge: open requests plus cancellations the admin hasn't marked as seen.
-  const toReview = data.requests.length + (user?.role === 'admin' ? openCancellations().length : 0);
+  const toReview = data.requests.length + (user?.role === 'admin' ? openCancellations().length + openBookings().length : 0);
   const toConfirm = user?.role === 'admin' ? unconfirmedLessons().length : 0;
 
   if (userId && (loading || !user)) {
@@ -59,16 +61,7 @@ export default function ProfielScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* The admin starts straight with the buttons; a customer sees their name and strip card. */}
         {!isAdmin ? (
-          <View style={styles.hero}>
-            <LinearGradient
-              colors={[colors.marigold, colors.rani]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.avatar}
-            />
-            <Text style={styles.name}>{user.name}</Text>
-            <Text style={styles.email}>{user.email}</Text>
-          </View>
+          <MyDetails user={user} onSaved={toast.show} />
         ) : null}
 
         {isAdmin ? (
@@ -101,7 +94,7 @@ export default function ProfielScreen() {
               </Pressable>
               <Pressable style={styles.adminActionBtn} onPress={() => router.push('/admin/reserveringen')}>
                 <Text style={styles.adminActionIcon}>📨</Text>
-                <Text style={styles.adminActionText}>Aanvragen en afmeldingen</Text>
+                <Text style={styles.adminActionText}>Aanmeldingen en afmeldingen</Text>
                 {toReview > 0 ? (
                   <View style={styles.adminActionBadge}>
                     <Text style={styles.adminActionBadgeText}>{toReview}</Text>
@@ -217,6 +210,7 @@ export default function ProfielScreen() {
         ) : null}
       </ScrollView>
       <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} />
+      <Toast message={toast.message} visible={toast.visible} />
     </View>
   );
 }
