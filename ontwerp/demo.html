@@ -63,6 +63,11 @@
   .quick span[data-act].on{background:var(--ink); color:var(--ivory); border-color:var(--ink);}
 
   @media (max-width:720px){ .panel-side{width:100%; max-width:395px; order:2;} }
+  .tiles{display:flex;flex-wrap:wrap;justify-content:space-between;row-gap:14px;padding:20px 20px 32px}
+  .tile{width:48%;border-radius:18px;overflow:hidden;background:#fff;border:1px solid var(--sand);cursor:pointer}
+  .tile .tm-media{width:100%;aspect-ratio:4/5;background:var(--sand);display:flex;align-items:center;justify-content:center}
+  .tile .tm-media img{width:100%;height:100%;object-fit:cover;display:block}
+  .tile .tt{padding:10px 12px;font-family:'Fraunces',serif;font-weight:600;font-size:16px;color:var(--ink)}
 </style>
 </head>
 <body>
@@ -81,7 +86,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>
 const ICON = {
   rooster:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>',
   lessen:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M8.5 14.5l2.5 2.5 4.5-5"/></svg>',
-  videos:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9l6 3-6 3z" fill="currentColor" stroke="none"/></svg>',
+  videos:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M10 3.5l1.6 4.9 4.9 1.6-4.9 1.6L10 16.5l-1.6-4.9L3.5 10l4.9-1.6z"/><path d="M18 14.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg>',
   berichten:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-4 3.5V17H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/><path d="M8 10h8M8 13h5"/></svg>',
   profiel:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4.5 5-6 8-6s6.5 1.5 8 6"/></svg>',
 };
@@ -93,10 +98,10 @@ const header = ({eyebrow, title, subtitle='', back, photo}) => `
       <h1>${esc(title)}</h1><p>${esc(subtitle)}</p>
     </div><img src="${photo || 'logo-mark.png'}" class="${photo ? 'hphoto' : ''}" alt=""></div>
   </div>`;
-// Video's staat er al; daar komen later video's en mediabestanden.
+// Inspiratie: de Yin challenge, later ook video's, foto's en bestanden.
 const tabs = () => isAdmin()
-  ? [['rooster','Rooster'],['berichten','Berichten'],['videos',"Video's"],['profiel','Profiel']]
-  : [['rooster','Rooster'],['lessen','Mijn lessen'],['berichten','Berichten'],['videos',"Video's"],['profiel','Profiel']];
+  ? [['rooster','Rooster'],['berichten','Berichten'],['videos','Inspiratie'],['profiel','Profiel']]
+  : [['rooster','Rooster'],['lessen','Mijn lessen'],['berichten','Berichten'],['videos','Inspiratie'],['profiel','Profiel']];
 // Rood getal op de tab Berichten: ongelezen nieuws en chat (beheerder: gesprekken met nieuwe berichten).
 const berichtenBadge = () => { const u = me(); return !u ? 0 : u.role === 'admin' ? studioUnread() : unreadNews(u.email) + unreadChat(u.email); };
 const tabbar = () => `<div class="tabbar">${tabs().map(([k,l]) => { const n = k === 'berichten' ? berichtenBadge() : 0;
@@ -255,13 +260,13 @@ function lessenTab(){
      <div class="pad" style="padding-top:8px">${list}</div>`;
 }
 
-/* ── Tab: Video's ───────────────────────────────────────────────────── */
-// De Yin challenge staat bovenaan Video's.
-const yinCard = () => `<div class="ccard" style="margin:16px 20px 0" data-act="push" data-v="yin-challenge"><div style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,var(--teal),#2C8B7A);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;flex:none"><b style="font-size:20px;line-height:1">30</b><small style="font-size:10px">dagen</small></div><div class="meta"><div class="nm">Yin challenge</div><div class="tm">30 dagen Yin Yoga: elke dag een mini reeks of meditatie</div></div><div class="chev">›</div></div>`;
+/* ── Tab: Inspiratie ───────────────────────────────────────────────────── */
+// Inspiratie: grote blokken, twee naast elkaar; de Yin challenge linksboven.
+const yinCard = () => `<div class="tile" data-act="push" data-v="yin-challenge"><div class="tm-media"><img src="${yinImg(YIN_DAYS[0].steps[0].image, 'step')}" alt=""></div><div class="tt">Yin challenge</div></div>`;
 function videosTab(){
   const list = VIDEOS.filter(v => UI.filter === 'alles' || v.s === UI.filter);
-  if (!VIDEOS.length) return header({title:"Video's", subtitle:'Oefen op jouw moment, in jouw tempo'}) + yinCard() + `<div class="soon"><div class="soon-ic"></div><h3>Video's en media volgen binnenkort</h3><p>Hier deelt Soulful Yoga straks video's en mediabestanden, zoals lessen om thuis mee te oefenen, op jouw moment en in jouw tempo.</p></div>`;
-  return header({title:"Video's", subtitle:'Oefen op jouw moment, in jouw tempo'}) +
+  if (!VIDEOS.length) return header({title:'Inspiratie', subtitle:'Oefen op jouw moment, in jouw tempo'}) + `<div class="tiles">${yinCard()}</div>`;
+  return header({title:'Inspiratie', subtitle:'Oefen op jouw moment, in jouw tempo'}) + yinCard() +
     `<div class="filters">${[['alles','Alles'],['yin','Yin'],['flow','Flow'],['gentle','Gentle']].map(([k,l]) => `<div class="chip ${UI.filter===k?'on':''}" data-act="filter" data-v="${k}">${l}</div>`).join('')}</div>
      <div style="padding:10px 0 24px">${list.map(v => `<div class="vcard"><div class="thumb ${v.s}"><div class="play"></div></div><div class="vinfo"><div class="nm">${v.t}</div><div class="sb2">${v.m} min · ${v.l}</div></div></div>`).join('')}</div>`;
 }
@@ -357,8 +362,8 @@ const chargeTag = (p) => !p.present ? '<span class="tag off">Afwezig · geen str
 const STUDIO_MAIL = 'info@soulfulyoga.nl';
 const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 const STACK = {
-  'yin-challenge': () => header({back:"Video's", eyebrow:'Yin challenge', title:'30 dagen Yin Yoga challenge', subtitle:'Elke dag een mini yin yoga reeks of meditatie'}) +
-    `<div class="pad"><p style="font-size:13.5px;line-height:1.55;margin:0 0 14px">${esc(YIN_INTRO)}</p>${YIN_DAYS.map(d => `<div class="ccard" data-act="push" data-v="yin-dag" data-date="${d.day}"><img src="${yinImg(d.thumb, 'thumb')}" alt="" style="width:56px;height:56px;border-radius:12px;object-fit:cover;flex:none"><div class="meta"><div class="nm">${yinTitle(d)}</div><div class="tm">${d.meditation ? 'Meditatie' : esc([...new Set(d.steps.map(s => s.title))].filter(t => t !== 'Easy pose' && t !== 'Savasana').join(' · '))}</div></div><div class="chev">›</div></div>`).join('')}</div>`,
+  'yin-challenge': () => header({back:'Inspiratie', eyebrow:'Yin challenge', title:'30 dagen Yin Yoga challenge', subtitle:'Elke dag een mini yin yoga reeks of meditatie'}) +
+    `<div class="pad"><p style="font-size:13.5px;line-height:1.55;margin:0 0 14px">${esc(YIN_INTRO)}</p>${YIN_DAYS.map(d => `<div class="ccard" data-act="push" data-v="yin-dag" data-date="${d.day}"><img src="${yinImg(d.thumb, 'thumb')}" alt="" style="width:56px;height:56px;border-radius:12px;object-fit:cover;flex:none"><div class="meta"><div class="nm">${yinTitle(d)}</div></div><div class="chev">›</div></div>`).join('')}</div>`,
   'yin-dag': ({d}) => { const day = YIN_DAYS.find(x => String(x.day) === String(d));
     return header({back:'Yin challenge', eyebrow:'Yin challenge', title:yinTitle(day), subtitle: day.meditation ? 'Een moment van rust en aandacht' : `${day.steps.length} houdingen · neem de tijd voor elke houding`}) +
       `<div class="pad">${day.meditation

@@ -5,20 +5,13 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import ScreenHeader from '@/components/ScreenHeader';
 import { colors, fonts } from '@/constants/theme';
 import { CHALLENGE_INTRO, CHALLENGE_TITLE, challengeDays, challengeImage, dayTitle } from '@/data/yinChallenge';
-import type { ChallengeDay } from '@/data/yinChallenge';
-
-// The poses of a day in one line: "Vlinder · Halve god van de vissen".
-const posesOf = (d: ChallengeDay) =>
-  d.meditation
-    ? 'Meditatie'
-    : [...new Set(d.steps.map((s) => s.title))].filter((t) => t !== 'Easy pose' && t !== 'Savasana').join(' · ');
 
 // The 30 days of the Yin Yoga challenge under each other; tap a day for its steps.
 export default function YinChallengeScreen() {
   const back = () => (router.canGoBack() ? router.back() : router.replace('/videos'));
   return (
     <View style={styles.container}>
-      <ScreenHeader backLabel="Video's" onBack={back} eyebrow="Yin challenge" title={CHALLENGE_TITLE} subtitle="Elke dag een mini yin yoga reeks of meditatie" />
+      <ScreenHeader backLabel="Inspiratie" onBack={back} eyebrow="Yin challenge" title={CHALLENGE_TITLE} subtitle="Elke dag een mini yin yoga reeks of meditatie" />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.intro}>{CHALLENGE_INTRO}</Text>
         {challengeDays.map((d) => (
@@ -31,9 +24,6 @@ export default function YinChallengeScreen() {
             <Image source={{ uri: challengeImage(d.thumb, 'thumb') }} style={styles.thumb} />
             <View style={styles.info}>
               <Text style={styles.title}>{dayTitle(d)}</Text>
-              <Text style={styles.sub} numberOfLines={2}>
-                {posesOf(d)}
-              </Text>
             </View>
             <Text style={styles.chevron}>›</Text>
           </Pressable>
@@ -61,6 +51,5 @@ const styles = StyleSheet.create({
   thumb: { width: 64, height: 64, borderRadius: 12, backgroundColor: colors.sand },
   info: { flex: 1 },
   title: { fontFamily: fonts.display, fontSize: 17, color: colors.ink },
-  sub: { fontFamily: fonts.body, fontSize: 12.5, lineHeight: 17, color: colors.mutedText, marginTop: 2 },
   chevron: { fontSize: 24, color: colors.sand, paddingRight: 4 },
 });

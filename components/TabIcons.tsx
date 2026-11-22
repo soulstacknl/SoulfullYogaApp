@@ -29,8 +29,9 @@ export function LessenIcon({ color, size = 22 }: IconProps) {
 export function VideosIcon({ color, size = 22 }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8}>
-      <Rect x="3" y="5" width="18" height="14" rx="3" />
-      <Path d="M10 9l6 3-6 3z" fill={color} stroke="none" />
+      {/* Inspiratie: a large and a small sparkle. */}
+      <Path d="M10 3.5l1.6 4.9 4.9 1.6-4.9 1.6L10 16.5l-1.6-4.9L3.5 10l4.9-1.6z" strokeLinejoin="round" />
+      <Path d="M18 14.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z" strokeLinejoin="round" />
     </Svg>
   );
 }

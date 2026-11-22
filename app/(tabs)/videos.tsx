@@ -1,22 +1,14 @@
 import { router } from 'expo-router';
 import type { Href } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import type { ReactNode } from 'react';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import ScreenHeader from '@/components/ScreenHeader';
-import { colors, fonts, styleMeta } from '@/constants/theme';
+import { colors, fonts } from '@/constants/theme';
 import type { ClassStyle } from '@/constants/theme';
 import { videos } from '@/data/videos';
-
-type Filter = 'alles' | ClassStyle;
-
-const filters: { key: Filter; label: string }[] = [
-  { key: 'alles', label: 'Alles' },
-  { key: 'yin', label: 'Yin' },
-  { key: 'flow', label: 'Flow' },
-  { key: 'gentle', label: 'Gentle' },
-];
+import { challengeDays, challengeImage } from '@/data/yinChallenge';
 
 const gradients: Record<ClassStyle, [string, string]> = {
   yin: [colors.teal, '#2C8B7A'],
@@ -24,86 +16,47 @@ const gradients: Record<ClassStyle, [string, string]> = {
   gentle: [colors.marigold, '#F2C06E'],
 };
 
-export default function VideosScreen() {
-  const [filter, setFilter] = useState<Filter>('alles');
+// Photo of day 1, step 1: the face of the Yin challenge.
+const challengeCover = challengeImage(challengeDays[0].steps[0].image, 'step');
 
-  const visibleVideos = videos.filter((v) => filter === 'alles' || v.style === filter);
-
-  // The Yin Yoga challenge: 30 days of short series with photos, above the videos.
-  const challenge = (
+// One large block in the grid: picture (or gradient) with the title below it.
+function Tile({ title, sub, onPress, children }: { title: string; sub?: string; onPress?: () => void; children: ReactNode }) {
+  return (
     <Pressable
-      style={({ pressed }) => [styles.challenge, pressed && { opacity: 0.85 }]}
-      onPress={() => router.push('/yin-challenge' as Href)}
+      style={({ pressed }) => [styles.tile, pressed && { opacity: 0.85 }]}
+      onPress={onPress}
+      disabled={!onPress}
       accessibilityRole="button"
-      accessibilityLabel="Yin challenge openen">
-      <LinearGradient colors={gradients.yin} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.challengeBadge}>
-        <Text style={styles.challengeDays}>30</Text>
-        <Text style={styles.challengeDaysLabel}>dagen</Text>
-      </LinearGradient>
-      <View style={styles.info2}>
-        <Text style={styles.challengeTitle}>Yin challenge</Text>
-        <Text style={styles.sub}>30 dagen Yin Yoga: elke dag een mini reeks of meditatie</Text>
+      accessibilityLabel={title}>
+      <View style={styles.tileMedia}>{children}</View>
+      <View style={styles.tileInfo}>
+        <Text style={styles.tileTitle} numberOfLines={2}>
+          {title}
+        </Text>
+        {sub ? <Text style={styles.tileSub}>{sub}</Text> : null}
       </View>
-      <Text style={styles.challengeChevron}>›</Text>
     </Pressable>
   );
+}
 
-  if (videos.length === 0) {
-    return (
-      <View style={styles.container}>
-        <ScreenHeader title="Video's" subtitle="Oefen op jouw moment, in jouw tempo" />
-        {challenge}
-        <View style={styles.soon}>
-          <View style={styles.soonIcon}>
-            <View style={[styles.playTriangle, styles.soonTriangle]} />
-          </View>
-          <Text style={styles.soonTitle}>Video's en media volgen binnenkort</Text>
-          <Text style={styles.soonText}>
-            Hier deelt Soulful Yoga straks video's en mediabestanden, zoals lessen om thuis mee te oefenen, op jouw moment en in jouw tempo.
-          </Text>
-        </View>
-      </View>
-    );
-  }
-
+// Inspiratie: large blocks with media to practise with at home, two side by side.
+// The Yin challenge is the first block (top left); videos, photos and files follow.
+export default function InspiratieScreen() {
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Video's" subtitle="Oefen op jouw moment, in jouw tempo" />
-
-      <View style={styles.filters}>
-        {filters.map((f) => {
-          const active = filter === f.key;
-          return (
-            <Pressable
-              key={f.key}
-              onPress={() => setFilter(f.key)}
-              style={[styles.chip, active && styles.chipActive]}>
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>{f.label}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
-        {challenge}
-        {visibleVideos.map((video) => (
-          <View key={video.id} style={styles.card}>
-            <LinearGradient
-              colors={gradients[video.style]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.thumb}>
+      <ScreenHeader title="Inspiratie" subtitle="Oefen op jouw moment, in jouw tempo" />
+      <ScrollView contentContainerStyle={styles.grid} showsVerticalScrollIndicator={false}>
+        <Tile title="Yin challenge" onPress={() => router.push('/yin-challenge' as Href)}>
+          <Image source={{ uri: challengeCover }} style={styles.fill} resizeMode="cover" />
+        </Tile>
+        {videos.map((video) => (
+          <Tile key={video.id} title={video.title} sub={`${video.durationMinutes} min · ${video.level}`}>
+            <LinearGradient colors={gradients[video.style]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.fill, styles.center]}>
               <View style={styles.play}>
                 <View style={styles.playTriangle} />
               </View>
             </LinearGradient>
-            <View style={styles.info}>
-              <Text style={styles.name}>{video.title}</Text>
-              <Text style={styles.sub}>
-                {video.durationMinutes} min · {video.level}
-              </Text>
-            </View>
-          </View>
+          </Tile>
         ))}
       </ScrollView>
     </View>
@@ -111,73 +64,22 @@ export default function VideosScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.ivory,
-  },
-  challenge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    marginHorizontal: 20,
-    marginTop: 16,
-    padding: 12,
-    borderRadius: 18,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.sand,
-  },
-  challengeBadge: { width: 64, height: 64, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  challengeDays: { fontFamily: fonts.display, fontSize: 24, lineHeight: 26, color: '#fff' },
-  challengeDaysLabel: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: '#fff' },
-  challengeTitle: { fontFamily: fonts.display, fontSize: 18, color: colors.ink },
-  challengeChevron: { fontSize: 24, color: colors.sand, paddingRight: 4 },
-  info2: { flex: 1 },
-  filters: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 4,
-  },
-  chip: {
-    paddingVertical: 7,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.sand,
-  },
-  chipActive: {
-    backgroundColor: colors.ink,
-    borderColor: colors.ink,
-  },
-  chipText: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 12.5,
-    color: colors.ink,
-  },
-  chipTextActive: {
-    color: colors.ivory,
-  },
-  list: {
-    paddingVertical: 10,
-    paddingBottom: 24,
-  },
-  card: {
-    marginHorizontal: 20,
-    marginVertical: 8,
+  container: { flex: 1, backgroundColor: colors.ivory },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 14, padding: 20, paddingBottom: 32 },
+  tile: {
+    width: '48%',
     borderRadius: 18,
     overflow: 'hidden',
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.sand,
   },
-  thumb: {
-    height: 110,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  tileMedia: { width: '100%', aspectRatio: 4 / 5, backgroundColor: colors.sand },
+  fill: { width: '100%', height: '100%' },
+  center: { alignItems: 'center', justifyContent: 'center' },
+  tileInfo: { paddingHorizontal: 12, paddingVertical: 10 },
+  tileTitle: { fontFamily: fonts.display, fontSize: 16, color: colors.ink },
+  tileSub: { fontFamily: fonts.body, fontSize: 12, color: colors.mutedText, marginTop: 2 },
   play: {
     width: 40,
     height: 40,
@@ -196,56 +98,5 @@ const styles = StyleSheet.create({
     borderTopColor: 'transparent',
     borderBottomColor: 'transparent',
     borderLeftColor: colors.ink,
-  },
-  soon: {
-    alignItems: 'center',
-    paddingHorizontal: 36,
-    paddingTop: 56,
-  },
-  soonIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.sand,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 18,
-  },
-  soonTriangle: {
-    borderTopWidth: 11,
-    borderBottomWidth: 11,
-    borderLeftWidth: 17,
-    marginLeft: 5,
-    borderLeftColor: colors.sand,
-  },
-  soonTitle: {
-    fontFamily: fonts.display,
-    fontSize: 19,
-    color: colors.ink,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  soonText: {
-    fontFamily: fonts.body,
-    fontSize: 13.5,
-    lineHeight: 20,
-    color: colors.descText,
-    textAlign: 'center',
-  },
-  info: {
-    padding: 14,
-  },
-  name: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 14.5,
-    color: colors.ink,
-  },
-  sub: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.mutedText,
-    marginTop: 2,
   },
 });

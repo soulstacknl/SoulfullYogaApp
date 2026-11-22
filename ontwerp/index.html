@@ -75,6 +75,11 @@
   .accept b{display:block; font:600 13px var(--body);} .accept span{font:400 11.5px var(--body); color:var(--mutedText);}
   .switch{width:44px; height:26px; flex:none; border-radius:13px; background:var(--sand); position:relative;}
   .switch::after{content:''; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff;}
+  .tiles{display:flex;flex-wrap:wrap;justify-content:space-between;row-gap:14px;padding:20px 20px 32px}
+  .tile{width:48%;border-radius:18px;overflow:hidden;background:#fff;border:1px solid var(--sand);cursor:pointer}
+  .tile .tm-media{width:100%;aspect-ratio:4/5;background:var(--sand);display:flex;align-items:center;justify-content:center}
+  .tile .tm-media img{width:100%;height:100%;object-fit:cover;display:block}
+  .tile .tt{padding:10px 12px;font-family:'Fraunces',serif;font-weight:600;font-size:16px;color:var(--ink)}
 </style>
 </head>
 <body>
@@ -149,7 +154,7 @@ const todayLabel = `${WEEKDAYS[now.getDay()]} ${now.getDate()} ${MONTHS[now.getM
 /* ── Bouwstenen ─────────────────────────────────────────────────────── */
 const ICON = {
   rooster:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>',
-  videos:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9l6 3-6 3z" fill="currentColor" stroke="none"/></svg>',
+  videos:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M10 3.5l1.6 4.9 4.9 1.6-4.9 1.6L10 16.5l-1.6-4.9L3.5 10l4.9-1.6z"/><path d="M18 14.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg>',
   lessen:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M8.5 14.5l2.5 2.5 4.5-5"/></svg>',
   berichten:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-4 3.5V17H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/><path d="M8 10h8M8 13h5"/></svg>',
   profiel:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4.5 5-6 8-6s6.5 1.5 8 6"/></svg>',
@@ -163,7 +168,7 @@ const header = ({eyebrow, title, subtitle='', back, photo}) => `
     </div><img src="${photo || 'logo-mark.png'}" class="${photo ? 'hphoto' : ''}" alt=""></div>
   </div>`;
 // badge = rood getal op Berichten.
-const tabbar = (on, badge = 2) => `<div class="tabbar">${[['rooster','Rooster'],['lessen','Mijn lessen'],['berichten','Berichten'],['videos',"Video's"],['profiel','Profiel']]
+const tabbar = (on, badge = 2) => `<div class="tabbar">${[['rooster','Rooster'],['lessen','Mijn lessen'],['berichten','Berichten'],['videos','Inspiratie'],['profiel','Profiel']]
   .map(([k,l]) => `<div class="tab ${on===k?'on':''}">${k === 'berichten' && badge ? `<span class="tdot">${badge}</span>` : ''}${ICON[k]}${l}</div>`).join('')}</div>`;
 const dot = (s, sm) => `<div class="dot ${sm?'sm':''} ${s}">${STYLE[s].dot}</div>`;
 const classCard = (c) => `<div class="ccard">${dot(c.s)}<div class="meta"><div class="nm">${STYLE[c.s].label}</div><div class="tm">${c.t}</div></div>
@@ -268,10 +273,10 @@ Fijne feestdagen! 🎄</p></div>`)) },
       <div class="push-txt">📣 Kerstvakantie</div></div></div></div>`) },
   { id:'aangevraagd', group:'student', name:'Reservering aangevraagd', src:'components/Toast.tsx',
     html: () => phone(roosterScreen(), `<div class="toast">Reservering aangevraagd ✓</div>`) },
-  { id:'videos', group:'student', name:"Video's", src:'app/(tabs)/videos.tsx',
-    flag:"Voorbereiding: hier komen later video's en mediabestanden.",
-    html: () => phone(screen(header({title:"Video's", subtitle:'Oefen op jouw moment, in jouw tempo'}) +
-      `<div class="soon"><div class="soon-ic"></div><h3>Video's en media volgen binnenkort</h3><p>Hier deelt Soulful Yoga straks video's en mediabestanden, zoals lessen om thuis mee te oefenen, op jouw moment en in jouw tempo.</p></div>`, 'videos')) },
+  { id:'videos', group:'student', name:'Inspiratie', src:'app/(tabs)/videos.tsx',
+    flag:"De Yin challenge; later ook video's, foto's en bestanden.",
+    html: () => phone(screen(header({title:'Inspiratie', subtitle:'Oefen op jouw moment, in jouw tempo'}) +
+      `<div class="tiles"><div class="tile"><div class="tm-media"><img src="https://static.wixstatic.com/media/7e29a3_d2dabdfaacb44daf969adcd28986c75e~mv2.jpg/v1/fit/w_900,h_900,q_80/7e29a3_d2dabdfaacb44daf969adcd28986c75e~mv2.jpg" alt=""></div><div class="tt">Yin challenge</div></div></div>` + '', 'videos')) },
   { id:'inloggen', group:'student', name:'Inloggen', src:'components/LoginScreen.tsx',
     html: () => phone(screen(header({title:'Inloggen', subtitle:'Log in om je strippenkaart te bekijken'}) +
       `<div style="padding:24px 20px 20px"><div class="field"><label>E-mailadres</label><div class="in">naam@voorbeeld.nl</div></div>

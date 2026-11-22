@@ -58,7 +58,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="videos"
         options={{
-          title: "Video's",
+          title: 'Inspiratie',
           tabBarIcon: ({ color }) => <VideosIcon color={color} />,
         }}
       />

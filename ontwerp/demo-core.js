@@ -9,7 +9,7 @@ const DESC = {
   flow:'Met Flow Yoga laat je je meevoeren met de muziek — elke in- en uitademing wordt een beweging, tot er een soort yogadans ontstaat. De les wordt een maand lang herhaald zodat je volledig zonder nadenken in de Flow komt.',
   gentle:'Een milde vorm van yoga waarin je met aandacht beweegt, diep ademhaalt en het lichaam souplesse geeft. De houdingen zijn voor iedereen goed te volgen en aan te passen waar nodig.',
 };
-// Leeg in de eerste versies: het tabblad Video's meldt dat hier later video's en mediabestanden komen.
+// Video's voor het tabblad Inspiratie (nu nog leeg; daar staat de Yin challenge).
 const VIDEOS = [];
 // Gelijk aan data/terms.ts (gebaseerd op soulfulyoga.nl/general-5, plus artikel 14 over de app).
 const TERMS_VERSION = 'Versie 1.1 · november 2026';

@@ -8,6 +8,5 @@ export type Video = {
   level: string;
 };
 
-// Empty in the first versions: the Video's tab says videos and media files will be shared there
-// until real videos are added here (later from Supabase).
+// Videos for the Inspiratie tab (later from Supabase). Empty for now: the tab shows the Yin challenge.
 export const videos: Video[] = [];
