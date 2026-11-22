@@ -108,7 +108,7 @@ export async function loadSnapshot(): Promise<Snapshot> {
       id: p.id, email: key(p.user_id), date: p.date, time: `${dotTime(p.start_time)} – ${dotTime(p.end_time)}`, cancelled: !!p.cancelled_at,
       cancelledAt: p.cancelled_at ?? undefined, cancelSeen: !!p.cancel_seen_at,
     })),
-    waitlist: waitlist.map((w) => ({ id: w.id, sessionId: w.session_id, date: w.date, email: key(w.user_id) })),
+    waitlist: waitlist.map((w) => ({ id: w.id, sessionId: w.session_id, date: w.date, email: key(w.user_id), at: w.created_at })),
   };
 
   for (const e of roster) (data.roster[e.session_id] ??= []).push({ id: e.id, name: e.name, strips: e.strips });

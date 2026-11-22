@@ -670,6 +670,7 @@ function participantsPanel(sid, d){
     ${att.map(({user, st}) => `<div class="row tight"><div class="meta"><div class="nm">${esc(user.name)}</div>${srcLabel(st)}</div>
       ${!started && st.source !== 'aanvraag' ? `<div class="circ rm" data-act="askRemove" data-email="${user.email}">✕</div>` : ''}</div>`).join('')}
     ${off.map(u => `<div class="row tight" style="opacity:.6"><div class="meta"><div class="nm">${esc(u.name)}</div>${cancellationOf(u.email, sid, d)?.charged ? '<span class="tag open">Afgemeld &lt; 24 uur · −1 strip</span>' : '<span class="tag off">Afgemeld</span>'}</div></div>`).join('')}
+    ${waitlistOf(sid, d).length ? `<div class="sect" style="padding:0;margin:12px 0 4px">Wachtlijst · ${waitlistOf(sid, d).length}</div><div class="small-note" style="margin-bottom:8px">Komt er een plek vrij, dan krijgen zij een melding en kan de eerste die reageert zich inplannen.</div>${waitlistRows(sid, d, 'row tight')}` : ''}
     <div class="cta ${canAdd ? '' : 'off'}" style="margin-top:6px" ${canAdd ? 'data-act="startPick"' : ''}>${started ? 'Les is al begonnen' : canAdd ? '＋ Klant toevoegen' : 'Vol — geen plekken meer'}</div>`;
 }
 function bookingSheet({sid, d}){

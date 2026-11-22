@@ -269,7 +269,8 @@ export function ScheduleProvider({ children }: { children: ReactNode }) {
         onWaitlist: (email, sessionId, date) => rules.onWaitlist(data, email, sessionId, date),
         joinWaitlist: (sessionId, date, email) => run(() => remote.joinWaitlist(sessionId, date, idOf(email))),
         leaveWaitlist: (sessionId, date, email) => run(() => remote.leaveWaitlist(sessionId, date, idOf(email))),
-        waitlistOf: (sessionId, date) => data.waitlist.filter((w) => w.sessionId === sessionId && w.date === date),
+        waitlistOf: (sessionId, date) =>
+          data.waitlist.filter((w) => w.sessionId === sessionId && w.date === date).sort((a, b) => a.at.localeCompare(b.at)),
         openBookings: () => rules.openBookings(data),
         acknowledgeBooking: (b) => run(() => remote.acknowledgeBooking(b.sessionId, b.date, idOf(b.email))),
         cancelLesson,

@@ -21,7 +21,7 @@ export type Booking = {
   approvedAt?: string;
 };
 // Waiting list for a full lesson date (customers see only their own entries).
-export type WaitlistEntry = { id: string; sessionId: string; date: string; email: string };
+export type WaitlistEntry = { id: string; sessionId: string; date: string; email: string; at: string };
 // One-off booking waiting for the teacher's approval — already holds a spot.
 export type ReservationRequest = { id: string; sessionId: string; date: string; email: string; name: string };
 // Customer is off for one lesson date. Free up to LATE_CANCEL_HOURS before the start;

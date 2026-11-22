@@ -334,7 +334,9 @@ function bookLesson(sid, d, u){
   return true;
 }
 const onWaitlist = (email, sid, d) => (S.waitlist || []).some(w => w.email === email && w.sessionId === sid && w.date === d);
-const waitlistOf = (sid, d) => (S.waitlist || []).filter(w => w.sessionId === sid && w.date === d);
+const waitlistOf = (sid, d) => (S.waitlist || []).filter(w => w.sessionId === sid && w.date === d).sort((a, b) => (a.at || '').localeCompare(b.at || ''));
+// Wachtlijst van een les als lijst voor de beheerder (op volgorde van inschrijving).
+const waitlistRows = (sid, d, rowClass) => waitlistOf(sid, d).map((w, i) => `<div class="${rowClass}"><b style="width:18px;text-align:center;color:var(--muted,#7a8a7f)">${i + 1}</b><div class="meta"><div class="nm">${esc(userBy(w.email)?.name || 'Klant')}</div><div class="dt">Op de wachtlijst sinds ${shortDate((w.at || nowIso()).slice(0, 10))}</div></div><span class="tag pend">Wachtlijst</span></div>`).join('');
 function joinWaitlist(sid, d, email){ if (!onWaitlist(email, sid, d)) (S.waitlist ||= []).push({sessionId:sid, date:d, email, at:nowIso()}); }
 function leaveWaitlist(sid, d, email){ S.waitlist = (S.waitlist || []).filter(w => !(w.email === email && w.sessionId === sid && w.date === d)); }
 // Er kwam een plek vrij: iedereen op de wachtlijst krijgt een melding (in de demo: notified).

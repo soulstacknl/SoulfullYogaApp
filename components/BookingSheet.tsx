@@ -6,7 +6,7 @@ import type { ConfirmRequest } from '@/components/ConfirmDialog';
 import Stepper from '@/components/Stepper';
 import { colors, fonts, styleMeta } from '@/constants/theme';
 import { useSchedule } from '@/contexts/ScheduleContext';
-import { useCurrentUser, useUsers } from '@/contexts/UsersContext';
+import { useCurrentUser } from '@/contexts/UsersContext';
 import { classDescriptions } from '@/data/schedule';
 import { dateLabel, shortDate } from '@/lib/dutchDate';
 import { cancelNotice, heldByCancellation, LATE_CANCEL_HOURS } from '@/lib/schedule';
@@ -34,7 +34,6 @@ export default function BookingSheet({
   const { height } = useWindowDimensions();
   const user = useCurrentUser();
   const schedule = useSchedule();
-  const { users } = useUsers();
   const session = selection ? schedule.sessionById(selection.sessionId) : undefined;
 
   const renderBody = () => {
@@ -107,11 +106,6 @@ export default function BookingSheet({
           {heldByCancellation(schedule.data, session.id, date) ? (
             <Text style={styles.hint}>
               Waarvan {heldByCancellation(schedule.data, session.id, date)} afgemeld: de plek komt vrij na Akkoord bij Afmeldingen.
-            </Text>
-          ) : null}
-          {schedule.waitlistOf(session.id, date).length ? (
-            <Text style={styles.hint}>
-              Wachtlijst: {schedule.waitlistOf(session.id, date).map((w) => users.find((u) => u.email === w.email)?.name ?? 'klant').join(', ')}
             </Text>
           ) : null}
           <AdminLessonPanel session={session} date={date} onToast={onToast} />

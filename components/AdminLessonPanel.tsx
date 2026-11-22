@@ -32,6 +32,7 @@ export default function AdminLessonPanel({ session, date, onToast }: { session: 
   const attending = schedule.attendees(session.id, date);
   const cancelled = students.filter((u) => schedule.statusFor(u.email, session.id, date)?.cancelled);
   const roster = schedule.data.roster[session.id] ?? [];
+  const waiting = schedule.waitlistOf(session.id, date);
   const lessonName = `${styleMeta[session.style].label} ${shortDate(date)} ${startTimeOf(session)}`;
   const q = query.trim().toLowerCase();
   const pickable = students
@@ -138,6 +139,25 @@ export default function AdminLessonPanel({ session, date, onToast }: { session: 
               </View>
             </View>
           ))}
+          {waiting.length ? (
+            <>
+              <Text style={[styles.label, { marginTop: 8 }]}>Wachtlijst · {waiting.length}</Text>
+              <Text style={styles.note}>Komt er een plek vrij, dan krijgen zij een melding en kan de eerste die reageert zich inplannen.</Text>
+              {waiting.map((w, i) => {
+                const u = students.find((s) => s.email === w.email);
+                return (
+                  <View key={w.id} style={styles.row}>
+                    <Text style={styles.position}>{i + 1}</Text>
+                    <View style={styles.info}>
+                      <Text style={styles.name}>{u?.name ?? 'Klant'}</Text>
+                      <Text style={styles.detail}>Op de wachtlijst sinds {shortDate(w.at.slice(0, 10))}</Text>
+                    </View>
+                    <Tag label="Wachtlijst" tone="pending" />
+                  </View>
+                );
+              })}
+            </>
+          ) : null}
           <Pressable style={[styles.addBtn, !canAdd && styles.addBtnOff]} onPress={() => setPicking(true)} disabled={!canAdd}>
             <Text style={styles.addText}>{started ? 'Les is al begonnen' : canAdd ? '＋ Klant toevoegen' : 'Vol — geen plekken meer'}</Text>
           </Pressable>
@@ -178,6 +198,7 @@ const styles = StyleSheet.create({
   name: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.ink },
   detail: { fontFamily: fonts.body, fontSize: 12.5, color: colors.mutedText, marginTop: 1 },
   chevron: { fontSize: 22, color: colors.sand },
+  position: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.mutedText, width: 18, textAlign: 'center' },
   removeBtn: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, borderColor: colors.sand, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   removeText: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.rani },
   addBtn: { backgroundColor: colors.rani, borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: 6, marginBottom: 10 },
