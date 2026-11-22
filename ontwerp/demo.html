@@ -53,6 +53,9 @@
   @keyframes pop{from{transform:scale(.94); opacity:0;}}
   @keyframes drop{from{transform:translate(-50%,-20px); opacity:0;}}
   .field input{width:100%; font:400 14.5px var(--body); color:var(--ink); background:var(--card); border:1px solid var(--sand); border-radius:var(--r-btn); padding:13px 16px;}
+  .pw{position:relative} .pw input{padding-right:50px}
+  .pw .eye{position:absolute; right:0; top:0; bottom:0; width:50px; display:flex; align-items:center; justify-content:center; background:none; border:0; cursor:pointer; color:var(--muted, #7A8A80)}
+  .pw .eye .slash{display:block} .pw.show .eye .slash{display:none}
   .field input:focus{outline:2px solid var(--rani); outline-offset:0; border-color:transparent;}
   .field textarea{width:100%; font:400 14.5px/21px var(--body); color:var(--ink); background:var(--card); border:1px solid var(--sand); border-radius:var(--r-btn); padding:13px 16px; resize:vertical;}
   .field textarea:focus,.chatbar .cin:focus{outline:2px solid var(--rani); outline-offset:0; border-color:transparent;}
@@ -311,7 +314,7 @@ function berichtenTab(){
 function loginScreen(){
   return header({title:'Inloggen', subtitle:'Log in om je strippenkaart te bekijken'}) + `<div style="padding:24px 20px 20px">
     <div class="field"><label>E-mailadres</label><input id="loginEmail" type="email" placeholder="naam@voorbeeld.nl" value="${esc(UI.loginEmail)}" autocomplete="off"></div>
-    <div class="field"><label>Wachtwoord</label><input id="loginPw" type="password" placeholder="••••••••" value="${esc(UI.loginPw)}"></div>
+    <div class="field"><label>Wachtwoord</label><div class="pw"><input id="loginPw" type="password" placeholder="••••••••" value="${esc(UI.loginPw)}"><button type="button" class="eye" aria-label="Wachtwoord tonen" onclick="const w=this.parentNode, i=w.querySelector('input'), on=i.type==='password'; i.type=on?'text':'password'; w.classList.toggle('show',on); this.setAttribute('aria-label', on?'Wachtwoord verbergen':'Wachtwoord tonen')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path class="slash" d="M3 3l18 18"/></svg></button></div></div>
     ${UI.loginError ? `<div class="err">${UI.loginError}</div>` : ''}
     <div class="cta" style="margin-top:4px" data-act="login">Inloggen</div>
     <div class="ask-account">Nog geen account? <a data-act="push" data-v="account-aanvragen">Account aanvragen</a></div>
