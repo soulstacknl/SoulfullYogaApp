@@ -4,9 +4,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import type { ReactNode } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import LoginPrompt from '@/components/LoginPrompt';
 import ScreenHeader from '@/components/ScreenHeader';
 import { colors, fonts } from '@/constants/theme';
 import type { ClassStyle } from '@/constants/theme';
+import { useCurrentUser } from '@/contexts/UsersContext';
 import { videos } from '@/data/videos';
 import { challengeDays, challengeImage } from '@/data/yinChallenge';
 
@@ -42,6 +44,16 @@ function Tile({ title, sub, onPress, children }: { title: string; sub?: string; 
 // Inspiratie: large blocks with media to practise with at home, two side by side.
 // The Yin challenge is the first block (top left); videos, photos and files follow.
 export default function InspiratieScreen() {
+  const user = useCurrentUser();
+  if (!user) {
+    return (
+      <LoginPrompt
+        title="Inspiratie"
+        subtitle="Oefen op jouw moment, in jouw tempo"
+        text="Log in om de Yin challenge en andere inspiratie te bekijken."
+      />
+    );
+  }
   return (
     <View style={styles.container}>
       <ScreenHeader title="Inspiratie" subtitle="Oefen op jouw moment, in jouw tempo" />

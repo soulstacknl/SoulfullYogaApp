@@ -6,6 +6,7 @@ import CardValidity from '@/components/CardValidity';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import type { ConfirmRequest } from '@/components/ConfirmDialog';
 import LessonCard from '@/components/LessonCard';
+import LoginPrompt from '@/components/LoginPrompt';
 import ScreenHeader from '@/components/ScreenHeader';
 import type { TagTone } from '@/components/Tag';
 import Toast, { useToast } from '@/components/Toast';
@@ -57,16 +58,7 @@ export default function MijnLessenScreen() {
 
   if (!user) {
     return (
-      <View style={styles.container}>
-        <ScreenHeader title="Mijn lessen" subtitle="Je planning en geschiedenis" />
-        <View style={styles.loginPrompt}>
-          <Text style={styles.loginIcon}>🧘</Text>
-          <Text style={styles.loginText}>Log in om te zien voor welke lessen je bent ingepland.</Text>
-          <Pressable style={styles.primaryBtn} onPress={() => router.push('/profiel')}>
-            <Text style={styles.primaryBtnText}>Inloggen</Text>
-          </Pressable>
-        </View>
-      </View>
+      <LoginPrompt title="Mijn lessen" subtitle="Je planning en geschiedenis" text="Log in om te zien voor welke lessen je bent ingepland." />
     );
   }
 
@@ -392,23 +384,6 @@ const styles = StyleSheet.create({
     color: colors.mutedText,
     textAlign: 'center',
     marginTop: 24,
-  },
-  loginPrompt: {
-    alignItems: 'center',
-    paddingHorizontal: 28,
-    paddingTop: 40,
-  },
-  loginIcon: {
-    fontSize: 44,
-    marginBottom: 14,
-  },
-  loginText: {
-    fontFamily: fonts.body,
-    fontSize: 14.5,
-    lineHeight: 22,
-    color: colors.descText,
-    textAlign: 'center',
-    marginBottom: 22,
   },
   primaryBtn: {
     alignSelf: 'stretch',

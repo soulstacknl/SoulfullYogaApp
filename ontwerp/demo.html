@@ -220,10 +220,12 @@ function stripCard(e){
   return `<div class="lcard"><div class="datebox ${prive ? 'prive' : ''}" style="${prive ? '' : 'background:var(--ink)'}"><b>${dt.getDate()}</b><span>${WEEKDAYS[dt.getDay()].slice(0,2)}</span></div>
     <div class="meta"><div class="nm">${title}</div><div class="tm">Daarna ${e.balance} ${prive ? 'privéstrippen' : e.balance === 1 ? 'strip' : 'strippen'}</div><span class="tag ${e.delta > 0 ? 'vast' : 'open'}">${e.delta > 0 ? '+' : '−'}${n} ${n === 1 ? 'strip' : 'strippen'}</span></div></div>`;
 }
+// Tabblad dat een account nodig heeft: kop, korte uitleg en een knop om in te loggen.
+const loginPrompt = (title, subtitle, text) => header({title, subtitle}) +
+  `<div class="info-c"><div class="ic">🧘</div><p>${text}</p><div class="cta" data-act="tab" data-v="profiel">Inloggen</div></div>`;
 function lessenTab(){
   const u = me();
-  if (!u) return header({title:'Mijn lessen', subtitle:'Je planning en geschiedenis'}) +
-    `<div class="info-c"><div class="ic">🧘</div><p>Log in om te zien voor welke lessen je bent ingepland.</p><div class="cta" data-act="tab" data-v="profiel">Inloggen</div></div>`;
+  if (!u) return loginPrompt('Mijn lessen', 'Je planning en geschiedenis', 'Log in om te zien voor welke lessen je bent ingepland.');
   const today = isoOf(now());
   const all = myLessons(u.email, '2000-01-01', horizonEnd());
   // Een afgemelde les gaat meteen uit de planning (onder Afgenomen blijft hij zichtbaar).
@@ -264,6 +266,7 @@ function lessenTab(){
 // Inspiratie: grote blokken, twee naast elkaar; de Yin challenge linksboven.
 const yinCard = () => `<div class="tile" data-act="push" data-v="yin-challenge"><div class="tm-media"><img src="${yinImg(YIN_DAYS[0].steps[0].image, 'step')}" alt=""></div><div class="tt">Yin challenge</div></div>`;
 function videosTab(){
+  if (!me()) return loginPrompt('Inspiratie', 'Oefen op jouw moment, in jouw tempo', 'Log in om de Yin challenge en andere inspiratie te bekijken.');
   const list = VIDEOS.filter(v => UI.filter === 'alles' || v.s === UI.filter);
   if (!VIDEOS.length) return header({title:'Inspiratie', subtitle:'Oefen op jouw moment, in jouw tempo'}) + `<div class="tiles">${yinCard()}</div>`;
   return header({title:'Inspiratie', subtitle:'Oefen op jouw moment, in jouw tempo'}) + yinCard() +
@@ -294,13 +297,13 @@ function berichtenTab(){
         : '<div class="empty">Nog geen gesprekken.</div>'}
       ${newsBlock}</div>`;
   }
-  const chat = u ? chatOf(u.email) : []; const last = chat.at(-1); const unread = u ? unreadChat(u.email) : 0;
+  if (!u) return loginPrompt('Berichten', 'Je chat met Marjolijn en het laatste nieuws', 'Log in om met Marjolijn te chatten en het nieuws van de studio te lezen.');
+  const chat = chatOf(u.email); const last = chat.at(-1); const unread = unreadChat(u.email);
   return header({title:'Berichten', subtitle:'Je chat met Marjolijn en het laatste nieuws'}) + `<div class="pad">
     <div class="msect"><div class="sect">Chat</div></div>
-    ${u ? `<div class="chatrow ${unread ? 'unread' : ''}" data-act="openChat" data-email="${u.email}">${logoAv}
+    <div class="chatrow ${unread ? 'unread' : ''}" data-act="openChat" data-email="${u.email}">${logoAv}
         <div class="meta"><div class="top"><span class="nm">Marjolijn</span>${last ? `<span class="tm">${msgTime(last.at)}</span>` : ''}</div>
-        <div class="last">${last ? `${last.from === 'klant' ? 'Jij: ' : ''}${esc(msgPreview(last))}` : 'Stel je vraag aan Marjolijn'}</div></div>${unread ? `<span class="cnt">${unread}</span>` : ''}</div>`
-      : `<div class="chatrow" data-act="tab" data-v="profiel">${logoAv}<div class="meta"><div class="nm">Marjolijn</div><div class="last">Log in om met Marjolijn te chatten</div></div></div>`}
+        <div class="last">${last ? `${last.from === 'klant' ? 'Jij: ' : ''}${esc(msgPreview(last))}` : 'Stel je vraag aan Marjolijn'}</div></div>${unread ? `<span class="cnt">${unread}</span>` : ''}</div>
     ${newsBlock}</div>`;
 }
 

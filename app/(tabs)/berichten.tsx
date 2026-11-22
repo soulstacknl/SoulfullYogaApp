@@ -5,6 +5,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ChatRow, NewsCard, SectionHead, TEACHER_NAME } from '@/components/BerichtenParts';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import type { ConfirmRequest } from '@/components/ConfirmDialog';
+import LoginPrompt from '@/components/LoginPrompt';
 import ScreenHeader from '@/components/ScreenHeader';
 import Toast, { useToast } from '@/components/Toast';
 import { colors, fonts } from '@/constants/theme';
@@ -91,24 +92,30 @@ export default function BerichtenScreen() {
     );
   }
 
-  const last = user ? inbox.messagesOf(user.id).at(-1) : undefined;
+  if (!user) {
+    return (
+      <LoginPrompt
+        title="Berichten"
+        subtitle={`Je chat met ${TEACHER_NAME} en het laatste nieuws`}
+        text={`Log in om met ${TEACHER_NAME} te chatten en het nieuws van de studio te lezen.`}
+      />
+    );
+  }
+
+  const last = inbox.messagesOf(user.id).at(-1);
   return (
     <View style={styles.container}>
       <ScreenHeader title="Berichten" subtitle={`Je chat met ${TEACHER_NAME} en het laatste nieuws`} />
       <ScrollView contentContainerStyle={styles.content}>
         <SectionHead first title="Chat" />
-        {user ? (
-          <ChatRow
-            photo
-            name={TEACHER_NAME}
-            last={last ? `${last.fromStudio ? '' : 'Jij: '}${messagePreview(last)}` : `Stel je vraag aan ${TEACHER_NAME}`}
-            time={last ? msgTime(last.at) : undefined}
-            unread={inbox.unreadChat}
-            onPress={() => router.push('/chat')}
-          />
-        ) : (
-          <ChatRow photo name={TEACHER_NAME} last={`Log in om met ${TEACHER_NAME} te chatten`} unread={0} onPress={() => router.push('/profiel')} />
-        )}
+        <ChatRow
+          photo
+          name={TEACHER_NAME}
+          last={last ? `${last.fromStudio ? '' : 'Jij: '}${messagePreview(last)}` : `Stel je vraag aan ${TEACHER_NAME}`}
+          time={last ? msgTime(last.at) : undefined}
+          unread={inbox.unreadChat}
+          onPress={() => router.push('/chat')}
+        />
         {newsSection}
       </ScrollView>
     </View>
