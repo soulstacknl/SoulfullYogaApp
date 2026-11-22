@@ -11,29 +11,17 @@ export default function ChatAttachment({ message: m, isAdmin }: { message: Messa
   return m.kind === 'betaalverzoek' ? <PaymentCard message={m} isAdmin={isAdmin} /> : <FileCard message={m} />;
 }
 
-// Amount, description and status. The customer pays through the link (bank or Tikkie);
-// the admin marks it as paid by hand.
+// Amount and description. The request is only shared in the chat: the customer pays
+// through the link (bank or Tikkie); payment is not tracked in the app.
 function PaymentCard({ message: m, isAdmin }: { message: Message; isAdmin: boolean }) {
-  const inbox = useInbox();
-  const paid = !!m.paidAt;
   return (
     <View style={styles.card}>
       <Text style={styles.label}>Betaalverzoek</Text>
       <Text style={styles.amount}>{euro(m.amountCents ?? 0)}</Text>
       <Text style={styles.description}>{m.body}</Text>
-      <Text style={[styles.status, paid ? styles.paid : styles.open]}>
-        {paid
-          ? `✓ Betaald · ${new Date(m.paidAt!).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}`
-          : 'Nog niet betaald'}
-      </Text>
-      {!paid && m.payUrl ? (
+      {m.payUrl ? (
         <Pressable style={styles.payBtn} onPress={() => Linking.openURL(m.payUrl!)}>
           <Text style={styles.payBtnText}>{isAdmin ? 'Betaallink openen' : 'Betalen'}</Text>
-        </Pressable>
-      ) : null}
-      {isAdmin ? (
-        <Pressable style={styles.markBtn} onPress={() => inbox.setPaid(m.id, !paid)} hitSlop={6}>
-          <Text style={styles.markBtnText}>{paid ? 'Toch nog niet betaald' : '✓ Markeer als betaald'}</Text>
         </Pressable>
       ) : null}
     </View>
@@ -105,22 +93,8 @@ const styles = StyleSheet.create({
   },
   amount: { fontFamily: fonts.display, fontSize: 24, color: colors.ink, marginTop: 2 },
   description: { fontFamily: fonts.body, fontSize: 13.5, lineHeight: 19, color: colors.ink, marginTop: 2 },
-  status: {
-    alignSelf: 'flex-start',
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 11.5,
-    borderRadius: 20,
-    overflow: 'hidden',
-    paddingVertical: 2,
-    paddingHorizontal: 8,
-    marginTop: 8,
-  },
-  paid: { backgroundColor: '#EAF3EE', color: colors.teal },
-  open: { backgroundColor: '#FCF1DE', color: '#9A6512' },
   payBtn: { backgroundColor: colors.rani, borderRadius: 12, paddingVertical: 10, alignItems: 'center', marginTop: 10 },
   payBtnText: { fontFamily: fonts.bodyBold, fontSize: 14, color: '#fff' },
-  markBtn: { alignItems: 'center', paddingTop: 10 },
-  markBtnText: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: colors.teal },
   image: { width: 220, height: 220, borderRadius: 12, backgroundColor: colors.sand },
   fileRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   fileIcon: { fontSize: 26 },

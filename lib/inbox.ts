@@ -83,7 +83,6 @@ export const inboxRemote = {
         customer_id: customerId, from_studio: true, kind: 'betaalverzoek', body: description, amount_cents: amountCents, pay_url: payUrl,
       })
     ),
-  setPaid: (messageId: string, paid: boolean) => check(supabase.rpc('set_payment_paid', { p_message: messageId, p_paid: paid })),
   // Upload first, then the message that points to it.
   async sendFile(customerId: string, f: ChosenFile) {
     const safe = f.name.replace(/[^\w.\-]+/g, '_').slice(-80) || 'bestand';

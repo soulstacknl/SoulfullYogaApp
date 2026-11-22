@@ -89,6 +89,8 @@ export default function ChatThread({ customerId, emptyText, bottomInset = 0, sty
         style={styles.scroll}
         contentContainerStyle={styles.bubbles}
         onContentSizeChange={() => scroll.current?.scrollToEnd({ animated: false })}
+        // The keyboard makes the view smaller: keep the newest message in sight.
+        onLayout={() => scroll.current?.scrollToEnd({ animated: false })}
         keyboardShouldPersistTaps="handled">
         {messages.length === 0 ? <Text style={styles.empty}>{emptyText}</Text> : null}
         {messages.map((m, i) => {

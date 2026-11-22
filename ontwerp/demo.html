@@ -329,7 +329,6 @@ function profielTab(){
       <div class="abtn" data-act="push" data-v="rooster-beheer"><span class="ic">🗓️</span><span class="t">Rooster beheren</span><span class="chev">›</span></div>
       <div class="abtn" data-act="push" data-v="klanten"><span class="ic">👥</span><span class="t">Klanten beheren</span>${(S.accountRequests || []).length ? `<span class="bdg">${S.accountRequests.length}</span>` : ''}<span class="chev">›</span></div>
       <div class="abtn" data-act="push" data-v="reserveringen"><span class="ic">📨</span><span class="t">Aanmeldingen en afmeldingen</span>${S.requests.length + openBookings().length + openCancellations().length ? `<span class="bdg">${S.requests.length + openBookings().length + openCancellations().length}</span>` : ''}<span class="chev">›</span></div>
-      <div class="abtn" data-act="push" data-v="betaalverzoeken"><span class="ic">💶</span><span class="t">Betaalverzoeken</span>${openPayments().length ? `<span class="bdg">${openPayments().length}</span>` : ''}<span class="chev">›</span></div>
       <div class="abtn" data-act="push" data-v="voorwaarden-overzicht"><span class="ic">📄</span><span class="t">Algemene voorwaarden<small class="abtn-sub">${termsCount()}</small></span><span class="chev">›</span></div>
     </div>${profileFooter}`;
   const card = u.strippen !== null
@@ -587,16 +586,6 @@ const STACK = {
       <div class="meta"><div class="nm">${esc(r.name)}</div><div class="dt">${STYLE[s.style].label} · ${dateLabel(r.date)} · ${s.time}</div><div class="em">${esc(r.email)}</div></div><div class="chev">›</div></div>`; }).join('')
       : '<div class="empty" style="margin-top:40px">Geen nieuwe aanmeldingen</div>'}</div>`; },
 
-  // Alle betaalverzoeken uit de chats: open en betaald.
-  betaalverzoeken: () => { const tab = UI.payTab || 'open'; const list = tab === 'open' ? openPayments() : paidPayments();
-    const total = openPayments().reduce((s, m) => s + m.cents, 0); const day = (iso) => new Date(iso).toLocaleDateString('nl-NL', {day:'numeric', month:'short'});
-    return header({back:'Terug', eyebrow:'Docentmodus', title:'Betaalverzoeken', subtitle: openPayments().length ? `${openPayments().length} open · samen ${euro(total)}` : 'Alles is betaald'}) +
-      `<div class="seg">${[['open', `Open (${openPayments().length})`], ['betaald', `Betaald (${paidPayments().length})`]].map(([k, l]) => `<div class="${tab === k ? 'on' : ''}" data-act="payTab" data-v="${k}">${l}</div>`).join('')}</div>
-      <div class="pad" style="padding-top:8px">${list.map(m => `<div class="row" style="gap:12px"><div class="meta"><div class="nm">${esc(userBy(m.email)?.name || m.email)}</div><div class="nm" style="font:600 20px var(--display)">${euro(m.cents)}</div><div class="dt">${esc(m.text)}</div><div class="em">Verstuurd ${day(m.at)}${m.paidAt ? ` · betaald ${day(m.paidAt)}` : ''}</div></div>
-        <div style="display:flex;flex-direction:column;gap:8px"><div class="obtn ${m.paidAt ? '' : 'teal'}" data-act="togglePaid" data-id="${m.id}">${m.paidAt ? 'Toch open' : '✓ Betaald'}</div><div class="obtn" style="border-color:var(--sand);color:var(--ink)" data-act="openChat" data-email="${m.email}">💬 Chat</div></div></div>`).join('')
-        || `<div class="empty" style="margin-top:30px">${tab === 'open' ? 'Geen openstaande betaalverzoeken.' : 'Nog geen betaalde verzoeken.'}</div>`}
-      <div class="small-note" style="text-align:center;margin-top:16px">Een betaalverzoek stuur je in de chat met een klant: tik daar op ＋ → Betaalverzoek.</div></div>`; },
-
   // Docentmodus: lessen van vandaag + eerdere lessen waarvan de presentie nog bevestigd moet worden.
   vandaag: () => {
     const d = isoOf(now());
@@ -790,7 +779,7 @@ function render(){
     <div class="form"><div class="field"><label>Bedrag</label><input type="text" data-f="pa" value="${esc(UI.form.pa || '')}" placeholder="€ 110,00"></div>
     <div class="field"><label>Waarvoor</label><input type="text" data-f="pd" value="${esc(UI.form.pd || '')}" placeholder="Bijvoorbeeld: 10-strippenkaart"></div>
     <div class="field"><label>Betaalverzoek of betaallink</label><textarea data-f="pu" rows="3" placeholder="Plak hier wat je uit je bank-app of Tikkie kopieert">${esc(UI.form.pu || '')}</textarea></div>
-    <div class="small-note">Maak in je bank-app of Tikkie een betaalverzoek aan, kies Delen of Kopiëren en plak het hier: de app haalt de link eruit. De klant ziet in de chat een knop Betalen. Is er betaald? Tik dan in de chat op Markeer als betaald.</div>
+    <div class="small-note">Maak in je bank-app of Tikkie een betaalverzoek aan, kies Delen of Kopiëren en plak het hier: de app haalt de link eruit. De klant ziet in de chat een knop Betalen.</div>
     ${UI.formError ? `<div class="err">${UI.formError}</div>` : ''}<div class="cta" data-act="sendPay">Versturen</div></div>`);
   if (UI.prompt) overlay += weeksPrompt();
   if (UI.confirm) overlay += confirmBox();
@@ -1141,7 +1130,6 @@ const ACTIONS = {
     S.pushQueue.push({to:email, text:`💶 Betaalverzoek ${euro(cents)} · ${f.pd.trim()}`, open:{tab:'berichten'}});
     log(`Betaalverzoek ${euro(cents)} aan ${userBy(email).name}`); UI.sheet = null; UI.form = {}; save(); showToast('Betaalverzoek verstuurd ✓'); return 'rendered';
   },
-  togglePaid(el){ const m = S.messages.find(x => x.id === el.dataset.id); setPaid(m.id, !m.paidAt); log(`Betaalverzoek ${m.paidAt ? 'betaald' : 'weer open'}: ${userBy(m.email).name}`); save(); },
   pickFile(){
     UI.chatMenu = false; const email = UI.stack.at(-1).email;
     const input = document.createElement('input'); input.type = 'file';

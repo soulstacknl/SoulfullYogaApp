@@ -19,7 +19,6 @@ export default function AdminLayout() {
       <Stack.Screen name="les-bewerken" />
       <Stack.Screen name="voorwaarden" />
       <Stack.Screen name="reserveringen" />
-      <Stack.Screen name="betaalverzoeken" />
       <Stack.Screen name="plekken" />
       <Stack.Screen name="nieuws-schrijven" />
       <Stack.Screen name="nieuw-gesprek" />

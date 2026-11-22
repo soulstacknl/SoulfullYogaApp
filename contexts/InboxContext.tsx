@@ -25,9 +25,6 @@ type InboxContextValue = {
   // Studio only: a payment request with a payment link, or a file (photo, video, pdf…).
   sendPayment: (customerId: string, description: string, amountCents: number, payUrl: string) => Promise<boolean>;
   sendFile: (customerId: string, file: ChosenFile) => Promise<boolean>;
-  setPaid: (messageId: string, paid: boolean) => Promise<boolean>;
-  // Admin: payment requests in all chats, open ones newest first, paid ones last paid first.
-  payments: { open: Message[]; paid: Message[] };
   fileUrl: (path: string) => Promise<string>;
   markChatRead: (customerId: string) => void;
   markNewsRead: () => void;
@@ -124,13 +121,6 @@ export function InboxProvider({ children }: { children: ReactNode }) {
       sendPayment: (customerId, description, amountCents, payUrl) =>
         run(() => inboxRemote.sendPayment(customerId, description, amountCents, payUrl)),
       sendFile: (customerId, file) => run(() => inboxRemote.sendFile(customerId, file)),
-      setPaid: (messageId, paid) => run(() => inboxRemote.setPaid(messageId, paid)),
-      payments: {
-        open: messages.filter((m) => m.kind === 'betaalverzoek' && !m.paidAt).reverse(),
-        paid: messages
-          .filter((m) => m.kind === 'betaalverzoek' && m.paidAt)
-          .sort((a, b) => (b.paidAt ?? '').localeCompare(a.paidAt ?? '')),
-      },
       fileUrl: (path) => inboxRemote.fileUrl(path),
       markChatRead: (customerId) => {
         if (unreadFor(customerId, isAdmin)) run(() => inboxRemote.markChatRead(customerId));

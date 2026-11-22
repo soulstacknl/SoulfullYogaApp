@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { colors, fonts } from '@/constants/theme';
 
@@ -51,7 +51,7 @@ export default function PaymentRequestSheet({ visible, customerName, onClose, on
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={close}>
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={styles.flex} behavior="padding">
         <Pressable style={styles.backdrop} onPress={close}>
           <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
             <Text style={styles.title}>Betaalverzoek</Text>
@@ -94,7 +94,7 @@ export default function PaymentRequestSheet({ visible, customerName, onClose, on
             <Text style={styles.hint}>
               Maak in je bank-app of Tikkie een betaalverzoek aan, kies Delen of Kopiëren en plak het hier: de app haalt de link
               eruit. {customerName.split(' ')[0]} ziet
-              in de chat een knop Betalen. Is er betaald? Tik dan in de chat op Markeer als betaald.
+              in de chat een knop Betalen.
             </Text>
             {error ? <Text style={styles.error}>{error}</Text> : null}
             <Pressable style={[styles.sendBtn, sending && styles.sendBtnOff]} onPress={send} disabled={sending}>

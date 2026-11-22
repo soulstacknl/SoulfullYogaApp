@@ -486,13 +486,10 @@ function deleteNews(id){ S.news = S.news.filter(n => n.id !== id); }
 const chatOf = (email) => S.messages.filter(m => m.email === email).sort((a, b) => a.at.localeCompare(b.at));
 function sendMessage(email, from, text){ const m = {id:`m-${Date.now()}`, email, from, text, at:nowIso()}; S.messages.push(m); return m; }
 // Alleen de studio: een betaalverzoek (bedrag, omschrijving, betaallink van bank of Tikkie) of een bestand.
-function sendPayment(email, text, cents, url){ const m = sendMessage(email, 'studio', text); Object.assign(m, {kind:'betaalverzoek', cents, url, paidAt:null}); return m; }
+function sendPayment(email, text, cents, url){ const m = sendMessage(email, 'studio', text); Object.assign(m, {kind:'betaalverzoek', cents, url, }); return m; }
 function sendFile(email, name, type, size, dataUrl){ const m = sendMessage(email, 'studio', name); Object.assign(m, {kind:'bestand', type, size, dataUrl}); return m; }
-function setPaid(id, paid){ const m = S.messages.find(x => x.id === id); if (m) m.paidAt = paid ? nowIso() : null; }
 // De link uit wat er geplakt is: bank-apps delen "Wil je … betalen? https://…".
 const linkIn = (text) => (text || '').match(/https:\/\/[^\s"'<>]+/)?.[0]?.replace(/[.,;)]+$/, '') ?? null;
-const openPayments = () => S.messages.filter(m => m.kind === 'betaalverzoek' && !m.paidAt).reverse();
-const paidPayments = () => S.messages.filter(m => m.kind === 'betaalverzoek' && m.paidAt).sort((a, b) => b.paidAt.localeCompare(a.paidAt));
 // Groepsles verwijderen: nooit gegeven → helemaal weg; met geschiedenis → stopt na gisteren.
 function removeWeekly(sid){
   const hasHistory = Object.keys(S.confirmed).some(k => k.startsWith(sid + '@'));
@@ -509,9 +506,8 @@ const msgPreview = (m) => m.kind === 'betaalverzoek' ? `💶 Betaalverzoek ${eur
 function bubbleHtml(m, me, admin){
   const time = `<small>${msgTime(m.at).split(' ').at(-1)}</small>`;
   if (m.kind === 'betaalverzoek') return `<div class="att ${me ? 'me' : 'them'}"><div class="paycard"><div class="pl">Betaalverzoek</div><div class="pa">${euro(m.cents)}</div><div class="pd">${esc(m.text)}</div>
-    <span class="tag ${m.paidAt ? 'paid' : 'pend'}">${m.paidAt ? `✓ Betaald · ${new Date(m.paidAt).toLocaleDateString('nl-NL', {day:'numeric', month:'short'})}` : 'Nog niet betaald'}</span>
-    ${m.paidAt ? '' : `<a class="paybtn" href="${esc(m.url)}" target="_blank" rel="noopener">${admin ? 'Betaallink openen' : 'Betalen'}</a>`}
-    ${admin ? `<div class="paymark" data-act="togglePaid" data-id="${m.id}">${m.paidAt ? 'Toch nog niet betaald' : '✓ Markeer als betaald'}</div>` : ''}</div>${time}</div>`;
+    <a class="paybtn" href="${esc(m.url)}" target="_blank" rel="noopener">${admin ? 'Betaallink openen' : 'Betalen'}</a>
+    </div>${time}</div>`;
   if (m.kind === 'bestand') return `<div class="att ${me ? 'me' : 'them'}">${m.dataUrl && m.type.startsWith('image/') ? `<img class="attimg" src="${m.dataUrl}" alt="${esc(m.text)}">`
     : `<div class="paycard filecard"><span class="fi">${fileIcon(m.type)}</span><div><div class="fn">${esc(m.text)}</div><div class="fm">${sizeLabel(m.size)} · tik om te openen</div></div></div>`}${time}</div>`;
   return `<div class="bub ${me ? 'me' : 'them'}">${esc(m.text)}${time}</div>`;

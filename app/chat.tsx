@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TEACHER_NAME, teacherPhoto } from '@/components/BerichtenParts';
@@ -16,6 +17,15 @@ export default function ChatScreen() {
   const { users } = useUsers();
   const { klant } = useLocalSearchParams<{ klant?: string }>();
   const back = () => (router.canGoBack() ? router.back() : router.replace('/berichten'));
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  useEffect(() => {
+    const show = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', () => setKeyboardOpen(true));
+    const hide = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => setKeyboardOpen(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
 
   if (!user) {
     return (
@@ -37,8 +47,10 @@ export default function ChatScreen() {
     );
   }
 
+  // Android draws edge-to-edge, so the window no longer shrinks for the keyboard by itself:
+  // pad on both platforms, and drop the bottom safe area while the keyboard covers it.
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={styles.container} behavior="padding">
       {isAdmin ? (
         <ScreenHeader backLabel="Berichten" onBack={back} eyebrow="Chat" title={customer.name} subtitle={[shownEmail(customer.email), customer.phone].filter(Boolean).join(' · ')} />
       ) : (
@@ -46,7 +58,7 @@ export default function ChatScreen() {
       )}
       <ChatThread
         customerId={customer.id}
-        bottomInset={insets.bottom}
+        bottomInset={keyboardOpen ? 0 : insets.bottom}
         emptyText={isAdmin ? `Stuur ${customer.name.split(' ')[0]} een bericht.` : `Heb je een vraag? Stuur ${TEACHER_NAME} een bericht.`}
       />
     </KeyboardAvoidingView>
