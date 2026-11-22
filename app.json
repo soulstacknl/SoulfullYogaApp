@@ -50,7 +50,8 @@
           "color": "#1F3D2B",
           "defaultChannel": "lessen"
         }
-      ]
+      ],
+      "./plugins/withOptionalPortraitScreen"
     ],
     "experiments": {
       "typedRoutes": true
