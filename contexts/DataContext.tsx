@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Alert, AppState, Platform } from 'react-native';
+import { Alert, Platform } from 'react-native';
 
 import { useAuth } from '@/contexts/AuthContext';
 import type { AppUser } from '@/data/users';
@@ -8,7 +8,7 @@ import type { AccountRequest } from '@/lib/remote';
 import { loadSnapshot } from '@/lib/remote';
 import type { ScheduleData } from '@/lib/schedule';
 import { emptyScheduleData } from '@/lib/schedule';
-import { supabase } from '@/lib/supabase';
+import { keepLive } from '@/lib/live';
 
 type DataContextValue = {
   loading: boolean; // true until the first load for the current session finished
@@ -50,25 +50,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (!ready) return;
     setLoading(true);
     reload();
-    // Changes from other devices: reload shortly after the last one.
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const channel = supabase
-      .channel(`data-${userId ?? 'guest'}`)
-      .on('postgres_changes', { event: '*', schema: 'public' }, () => {
-        clearTimeout(timer);
-        timer = setTimeout(reload, 300);
-      })
-      .subscribe();
-    // Back from the background (e.g. after tapping a push): the live connection may have
-    // missed changes meanwhile, so load everything again.
-    const appState = AppState.addEventListener('change', (state) => {
-      if (state === 'active') reload();
-    });
-    return () => {
-      clearTimeout(timer);
-      appState.remove();
-      supabase.removeChannel(channel);
-    };
+    // Changes from other devices: reload shortly after the last one. Also after coming
+    // back from the background or when a push arrives (see keepLive).
+    return keepLive(
+      `data-${userId ?? 'guest'}`,
+      (channel, changed) => channel.on('postgres_changes', { event: '*', schema: 'public' }, changed),
+      reload,
+      300
+    );
   }, [ready, userId, reload]);
 
   const run = async (write: () => Promise<unknown>) => {

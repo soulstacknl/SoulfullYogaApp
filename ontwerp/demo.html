@@ -133,7 +133,9 @@ function spotLabel(sid, d){
     if (onWaitlist(u.email, sid, d)) return [occ(sid, d).available > 0 ? 'Wachtlijst · plek vrij!' : 'Wachtlijst', 'pend'];
   }
   const o = occ(sid, d);
-  return o.available <= 0 ? ['Vol', 'full'] : [`${o.available}/${o.cap} beschikbaar`, ''];
+  // De beheerder ziet meteen hoeveel klanten op een plek wachten.
+  const n = u?.role === 'admin' ? waitlistOf(sid, d).length : 0; const q = n ? ` · Wachtlijst (${n})` : '';
+  return o.available <= 0 ? [`Vol${q}`, 'full'] : [`${o.available}/${o.cap} beschikbaar${q}`, n ? 'pend' : ''];
 }
 // Maandoverzicht: raster ma–zo met een gekleurd bolletje per les; tik op een dag om erheen te springen.
 function monthCalendar(m){
@@ -659,7 +661,7 @@ function participantsPanel(sid, d){
     ${att.map(({user, st}) => `<div class="row tight"><div class="meta"><div class="nm">${esc(user.name)}</div>${srcLabel(st)}</div>
       ${!started && st.source !== 'aanvraag' ? `<div class="circ rm" data-act="askRemove" data-email="${user.email}">✕</div>` : ''}</div>`).join('')}
     ${off.map(u => `<div class="row tight" style="opacity:.6"><div class="meta"><div class="nm">${esc(u.name)}</div>${cancellationOf(u.email, sid, d)?.charged ? '<span class="tag open">Afgemeld &lt; 24 uur · −1 strip</span>' : '<span class="tag off">Afgemeld</span>'}</div></div>`).join('')}
-    ${waitlistOf(sid, d).length ? `<div class="sect" style="padding:0;margin:12px 0 4px">Wachtlijst · ${waitlistOf(sid, d).length}</div><div class="small-note" style="margin-bottom:8px">Komt er een plek vrij, dan krijgen zij een melding en kan de eerste die reageert zich inplannen.</div>${waitlistRows(sid, d, 'row tight')}` : ''}
+    ${waitlistOf(sid, d).length ? `<div class="sect" style="padding:0;margin:12px 0 4px">Wachtlijst (${waitlistOf(sid, d).length})</div><div class="small-note" style="margin-bottom:8px">Komt er een plek vrij, dan krijgen zij een melding en kan de eerste die reageert zich inplannen.</div>${waitlistRows(sid, d, 'row tight')}` : ''}
     <div class="cta ${canAdd ? '' : 'off'}" style="margin-top:6px" ${canAdd ? 'data-act="startPick"' : ''}>${started ? 'Les is al begonnen' : canAdd ? '＋ Klant toevoegen' : 'Vol — geen plekken meer'}</div>`;
 }
 function bookingSheet({sid, d}){

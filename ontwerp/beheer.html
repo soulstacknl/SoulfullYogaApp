@@ -263,7 +263,7 @@ function rooster(){
     <div class="cal">${days.map(d => { const list = sessionsOn(d);
       return `<div class="cal-day ${d === t ? 'today' : ''} ${d < t ? 'past' : ''}"><h3>${WEEKDAYS[toDate(d).getDay()]}<span>${toDate(d).getDate()} ${MONTHS[toDate(d).getMonth()].slice(0, 3)}</span></h3>
         ${list.length ? list.map(s => { const cl = closureOf(s.id, d);
-          return `<div class="lesson ${s.style} ${cl ? 'closed' : ''}" data-act="openLesson" ${at(s.id, d)}><div class="t">${s.time}</div><div class="s">${STYLE[s.style].label}${isExtra(s) ? ' · extra' : ''}${cl ? ` · ${esc(cl.reason)}` : ''}</div>${cl ? '<span class="tag muted">Vervalt</span>' : meter(occ(s.id, d))}</div>`; }).join('')
+          return `<div class="lesson ${s.style} ${cl ? 'closed' : ''}" data-act="openLesson" ${at(s.id, d)}><div class="t">${s.time}</div><div class="s">${STYLE[s.style].label}${isExtra(s) ? ' · extra' : ''}${cl ? ` · ${esc(cl.reason)}` : ''}</div>${cl ? '<span class="tag muted">Vervalt</span>' : meter(occ(s.id, d))}${!cl && waitlistOf(s.id, d).length ? `<span class="tag pend" style="margin-top:4px">Wachtlijst (${waitlistOf(s.id, d).length})</span>` : ''}</div>`; }).join('')
           : '<div class="note">Geen lessen</div>'}</div>`; }).join('')}</div>`;
 }
 
@@ -530,7 +530,7 @@ function lessonDrawer({sid, d}){
       <div class="card"><h2>Deelnemers <small>${att.length} met de app · ${(S.roster[sid] || []).length} zonder</small></h2>
         ${att.length ? att.map(({user, st}) => `<div class="list-row" data-act="gotoKlant" data-email="${user.email}" title="Naar klant"><div class="meta"><div class="nm">${esc(user.name)} <span class="go">›</span></div><div class="dt">${user.strippen === null ? 'geen kaart' : `${user.strippen} strippen`} · ${esc(user.email)}</div></div>${sourceTag(st, d)}
           ${!started && st.source !== 'aanvraag' ? `<button class="icon-btn rm" data-act="askRemove" ${at(sid, d)} data-email="${user.email}" title="Afmelden">✕</button>` : ''}</div>`).join('') : '<div class="note">Nog geen app-klanten ingepland.</div>'}
-        ${waitlistOf(sid, d).length ? `<h2 style="margin-top:14px">Wachtlijst <small>${waitlistOf(sid, d).length} · krijgen een melding als er een plek vrijkomt</small></h2>${waitlistRows(sid, d, 'list-row')}` : ''}
+        ${waitlistOf(sid, d).length ? `<h2 style="margin-top:14px">Wachtlijst (${waitlistOf(sid, d).length}) <small>op volgorde van inschrijving · krijgen een melding als er een plek vrijkomt</small></h2>${waitlistRows(sid, d, 'list-row')}` : ''}
         ${off.map(u => `<div class="list-row" style="opacity:.6" data-act="gotoKlant" data-email="${u.email}" title="Naar klant"><div class="meta"><div class="nm">${esc(u.name)} <span class="go">›</span></div></div>${cancellationOf(u.email, sid, d)?.charged ? '<span class="tag rani">Afgemeld &lt; 24 uur · −1 strip</span>' : '<span class="tag muted">Afgemeld</span>'}</div>`).join('')}
       </div>
       ${!cl && !started ? `<div class="card"><h2>Vaste klant inplannen <small>vanaf ${shortDate(d)}</small></h2>

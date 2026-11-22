@@ -2,3 +2,6 @@
 export async function registerPush() {}
 export async function unregisterPush() {}
 export function useNotificationLinks() {}
+export function onPushReceived(_callback: () => void) {
+  return () => {};
+}

@@ -183,7 +183,7 @@ try { S = JSON.parse(localStorage.getItem(SAVE_KEY)) || null; } catch { S = null
 const reindex = () => { SES = Object.fromEntries(S.sessions.map(s => [s.id, s])); };
 if (!S) { S = initialState(); S.seedPending = true; }   // geschiedenis volgt onderaan, als alle regels bekend zijn
 reindex();
-const save = () => { expireCards(); try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch {} };
+const save = () => { expireCards(); cleanWaitlist(); try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch {} };
 
 
 const me = () => S.users.find(u => u.email === S.email) || null;
@@ -428,6 +428,8 @@ const validTag = (iso, extra = '') => { const v = validity(iso); return !v ? '' 
 // What the admin did with the strips (new card, + or −): the customer's history.
 function logStrip(u, card, kind, delta, balance){ if (delta) (u.stripLog ||= []).unshift({card, kind, delta, balance, at: new Date().toISOString()}); }
 // Strips left after the end date go to 0 (the database does this every hour), logged as "vervallen".
+// Na de start van een les is de wachtlijst niet meer nodig: weg ermee.
+function cleanWaitlist(){ if (S?.waitlist) S.waitlist = S.waitlist.filter(w => !SES[w.sessionId] || !hasStarted(w.sessionId, w.date)); }
 function expireCards(){
   if (!S?.users) return;
   const today = isoOf(now());

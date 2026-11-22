@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCurrentUser } from '@/contexts/UsersContext';
 import type { ChosenFile, Inbox, Message, NewsItem } from '@/lib/inbox';
 import { emptyInbox, inboxRemote, loadInbox } from '@/lib/inbox';
-import { supabase } from '@/lib/supabase';
+import { keepLive } from '@/lib/live';
 
 export type Conversation = { customerId: string; last: Message; unread: number };
 
@@ -57,21 +57,16 @@ export function InboxProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!ready) return;
     reload();
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const later = () => {
-      clearTimeout(timer);
-      timer = setTimeout(reload, 200);
-    };
-    const channel = supabase
-      .channel(`inbox-${userId ?? 'guest'}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, later)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_reads' }, later)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'news' }, later)
-      .subscribe();
-    return () => {
-      clearTimeout(timer);
-      supabase.removeChannel(channel);
-    };
+    return keepLive(
+      `inbox-${userId ?? 'guest'}`,
+      (channel, changed) =>
+        channel
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, changed)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_reads' }, changed)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'news' }, changed),
+      reload,
+      200
+    );
   }, [ready, userId, reload]);
 
   const run = useCallback(

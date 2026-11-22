@@ -66,6 +66,17 @@ export async function unregisterPush() {
   }
 }
 
+// A notification arrived (app open) or was tapped: the data it is about has changed, so
+// the app reloads it at once instead of waiting for the live connection.
+export function onPushReceived(callback: () => void) {
+  const received = Notifications.addNotificationReceivedListener(callback);
+  const tapped = Notifications.addNotificationResponseReceivedListener(callback);
+  return () => {
+    received.remove();
+    tapped.remove();
+  };
+}
+
 // Tapping a notification opens what it is about (data.url, e.g. /chat or /nieuws/<id>),
 // only when it is meant for the account that is logged in. The last response is kept by
 // the system across app starts, so it is cleared once handled: otherwise every launch

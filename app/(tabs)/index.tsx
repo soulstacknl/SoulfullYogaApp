@@ -55,9 +55,12 @@ export default function ScheduleScreen() {
       if (schedule.onWaitlist(user.email, session.id, date)) return ['Wachtlijst', 'pending'];
     }
     const occupancy = schedule.occupancy(session.id, date);
+    // The admin sees at a glance how many customers wait for a spot.
+    const waiting = isAdmin ? schedule.waitlistOf(session.id, date).length : 0;
+    const queue = waiting ? ` · Wachtlijst (${waiting})` : '';
     return occupancy.available <= 0
-      ? ['Vol', 'full']
-      : [`${occupancy.available}/${occupancy.capacity} beschikbaar`, 'muted'];
+      ? [`Vol${queue}`, 'full']
+      : [`${occupancy.available}/${occupancy.capacity} beschikbaar${queue}`, waiting ? 'pending' : 'muted'];
   };
 
   const monthName = (offset: number) => MONTHS[monthStart(offset, now).getMonth()];

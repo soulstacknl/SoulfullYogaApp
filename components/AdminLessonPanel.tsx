@@ -141,7 +141,7 @@ export default function AdminLessonPanel({ session, date, onToast }: { session: 
           ))}
           {waiting.length ? (
             <>
-              <Text style={[styles.label, { marginTop: 8 }]}>Wachtlijst · {waiting.length}</Text>
+              <Text style={[styles.label, { marginTop: 8 }]}>Wachtlijst ({waiting.length})</Text>
               <Text style={styles.note}>Komt er een plek vrij, dan krijgen zij een melding en kan de eerste die reageert zich inplannen.</Text>
               {waiting.map((w, i) => {
                 const u = students.find((s) => s.email === w.email);

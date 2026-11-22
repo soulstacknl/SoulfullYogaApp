@@ -76,8 +76,11 @@ export default function PortalRooster() {
                       {closure ? (
                         <Pill label="Vervalt" tone="muted" />
                       ) : (
-                        <View style={{ flexDirection: 'row' }}>
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
                           <Meter occupancy={schedule.occupancy(session.id, date)} />
+                          {schedule.waitlistOf(session.id, date).length ? (
+                            <Pill label={`Wachtlijst (${schedule.waitlistOf(session.id, date).length})`} tone="pending" />
+                          ) : null}
                         </View>
                       )}
                     </Pressable>

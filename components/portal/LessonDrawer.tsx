@@ -37,6 +37,7 @@ export default function LessonDrawer({ sessionId, date }: { sessionId: string; d
   const started = schedule.hasStarted(session, date);
   const attending = schedule.attendees(sessionId, date);
   const cancelled = students.filter((u) => schedule.statusFor(u.email, sessionId, date)?.cancelled);
+  const waiting = schedule.waitlistOf(sessionId, date);
   const pickable = students.filter((u) => !enrollmentOf(schedule.data, u.email, sessionId, date)).sort((a, b) => a.name.localeCompare(b.name));
   const single = closure && closure.from === closure.to && closure.sessionId === sessionId;
   const lessonName = `${styleMeta[session.style].label} · ${dateLabel(date)} · ${session.time}`;
@@ -137,6 +138,20 @@ export default function LessonDrawer({ sessionId, date }: { sessionId: string; d
           </Row>
         ))}
       </Card>
+
+      {waiting.length ? (
+        <Card title={`Wachtlijst (${waiting.length})`} note="op volgorde van inschrijving · krijgen een melding als er een plek vrijkomt">
+          {waiting.map((w, i) => {
+            const u = students.find((x) => x.email === w.email);
+            return (
+              <Row key={w.id} onPress={u ? () => portal.openKlant(w.email, true) : undefined}>
+                <Meta title={`${i + 1}. ${u?.name ?? 'Klant'}${u ? ' ›' : ''}`} detail={`op de wachtlijst sinds ${shortDate(w.at.slice(0, 10))}`} />
+                <Pill label="Wachtlijst" tone="pending" />
+              </Row>
+            );
+          })}
+        </Card>
+      ) : null}
 
       {!closure && !started ? (
         <Card title="Vaste klant inplannen" note={`vanaf ${shortDate(date)}`}>
